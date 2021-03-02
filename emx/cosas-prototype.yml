@@ -1,0 +1,62 @@
+name: cosas
+label: COSAS Prototype
+description: An example database
+version: 0.1.0
+date: 2021-03-01
+defaults:
+  idAttribute: false
+  dataType: string
+  nillable: true
+entities:
+  - name: patients
+    description: Patient information
+    attributes:
+      - name: umcg_numr
+        dataType: string
+        idAttribute: true
+        nillable: false
+      - name: familie_numr
+      - name: geboortedatum
+        dataType: date
+      - name: leeftijd
+        dataType: decimal
+      - name: geslacht
+      - name: overleden
+        dataType: bool
+      - name: invoerdatum
+        dataType: date
+  - name: samples
+    description: samples by patient and visit
+    attributes:
+      - name: umcg_numr
+        dataType: string
+        idAttribute: true
+        nillable: false
+      - name: aanvraagdatum
+        dataType: date
+      - name: bezoek_numr
+      - name: bezoek
+        dataType: int
+      - name: analyse
+      - name: dna_numr
+      - name: lab_indicatie
+      - name: aandoening 
+      - name: advisevraag_uitslagcode
+  - name: analysis
+    description: overview on sample analysis
+    attributes:
+      - name: umcg_numr
+        dataType: string
+        idAttribute: true
+        nillable: false
+      - name: familie_numr
+      - name: aanvraagdatum
+        dataType: date
+      - name: bezoek_numr
+      - name: analyse
+      - name: dna_numr
+      - name: soort_experiment
+      - name: design_numr
+      - name: expr_numr
+      - name: filenaam
+        dataType: hyperlink

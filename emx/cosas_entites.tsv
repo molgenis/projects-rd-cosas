@@ -1,0 +1,4 @@
+name	description	package
+patients	Patient information	cosas
+samples	samples by patient and visit	cosas
+analysis	overview on sample analysis	cosas
