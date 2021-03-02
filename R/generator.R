@@ -1,14 +1,12 @@
-#'////////////////////////////////////////////////////////////////////////////
-#' FILE: generator.R
-#' AUTHOR: David Ruvolo
-#' CREATED: 2021-02-26
-#' MODIFIED: 2021-03-04
-#' PURPOSE: methods for generating random datasets
-#' STATUS: in.progress
-#' PACKAGES: Na
-#' COMMENTS: NA
-#'////////////////////////////////////////////////////////////////////////////
 
+#' @title
+#' Generate Dataset
+#'
+#' @description
+#' Generate a samples dataset that creates data on patients, diagnostics,
+#' samples, and analysis
+#'
+#' @exportClass
 generator <- R6::R6Class(,
     classname = "Generator",
     public = list(
@@ -88,8 +86,8 @@ generator <- R6::R6Class(,
                "SNP"
             ),
             mutation = c(
-                "Niet afwijkend",
-                "Afwijkend"
+                "Niet afwijkend",  # no mutation found
+                "Afwijkend"        # mutation found
             )
         ),
 
@@ -131,8 +129,8 @@ generator <- R6::R6Class(,
         build_patient_table = function() {
             self$data$ids %>%
                 tibble::as_tibble(.) %>%
-                rename(umcg_numr = value) %>%
-                mutate(
+                dplyr::rename(umcg_numr = value) %>%
+                dplyr::mutate(
                     # UMCG internal ID - Family ID
                     familie_numr = private$rand_numeric_id(n = self$n),
                     # dob
@@ -157,12 +155,12 @@ generator <- R6::R6Class(,
                         size = self$n,
                         replace = TRUE
                     ),
-                    overleden = case_when(
-                        leeftijd >= 78 ~ sample(
+                    overleden = dplyr::case_when(
+                        leeftijd >= 75 ~ sample(
                             x = c(TRUE, FALSE),
                             size = 1,
                             replace = TRUE,
-                            prob = c(0.15, 0.85)
+                            prob = c(0.3, 0.7)
                         ),
                         TRUE ~ FALSE
                     )
@@ -210,39 +208,40 @@ generator <- R6::R6Class(,
                     advisevraag_uitslagcode = sample(
                         x = private$params$mutation,
                         size = 1,
-                        replace = TRUE
+                        replace = TRUE,
+                        prob = c(0.65, 0.35)
                     )
                 )
 
                 # for each visit, generate a random ID and generate visit
                 # number
                 time %>%
-                    group_by(umcg_numr) %>%
-                    arrange(aanvraagdatum) %>%
-                    mutate(
+                    dplyr::group_by(umcg_numr) %>%
+                    dplyr::arrange(aanvraagdatum) %>%
+                    dplyr::mutate(
                         bezoek_numr = private$rand_numeric_id(n = NROW(time)),
                         bezoek = seq_len(length(aanvraagdatum))
                     ) %>%
-                    ungroup() %>%
-                    select(
+                    dplyr::ungroup() %>%
+                    dplyr::select(
                         umcg_numr,
                         aanvraagdatum,
                         bezoek_numr,
                         bezoek,
-                        everything()
+                        dplyr::everything()
                     )
             })
 
-            d <- bind_rows(d)
+            d <- dplyr::bind_rows(d)
 
             # bind date entered into 'system'
             self$data$patients <- d %>%
-                group_by(umcg_numr) %>%
-                filter(bezoek == 1) %>%
-                select(umcg_numr, aanvraagdatum) %>%
-                left_join(g$data$patients, ., by = "umcg_numr") %>%
-                mutate(
-                    aanvraagdatum = case_when(
+                dplyr::group_by(umcg_numr) %>%
+                dplyr::filter(bezoek == 1) %>%
+                dplyr::select(umcg_numr, aanvraagdatum) %>%
+                dplyr::left_join(g$data$patients, ., by = "umcg_numr") %>%
+                dplyr::mutate(
+                    aanvraagdatum = dplyr::case_when(
                         !is.null(aanvraagdatum) ~ as.Date(
                             aanvraagdatum + sample(
                                 x = 0:2,
@@ -252,7 +251,7 @@ generator <- R6::R6Class(,
                         )
                     )
                 ) %>%
-                rename(invoerdatum = aanvraagdatum)
+                dplyr::rename(invoerdatum = aanvraagdatum)
 
             d
         },
@@ -260,16 +259,16 @@ generator <- R6::R6Class(,
         # generate analysis table
         build_analysis_table = function() {
             self$data$samples %>%
-                select(
+                dplyr::select(
                     umcg_numr, aanvraagdatum, bezoek_numr, analyse, dna_numr
                 ) %>%
-                left_join(
+                dplyr::left_join(
                     self$data$patients %>%
-                        select(umcg_numr, familie_numr),
+                        dplyr::select(umcg_numr, familie_numr),
                     .,
                     by = "umcg_numr"
                 ) %>%
-                mutate(
+                dplyr::mutate(
                     soort_experiment = sample(
                         x = private$params$experiment,
                         size = length(umcg_numr),

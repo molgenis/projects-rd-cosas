@@ -1,21 +1,101 @@
-umcg_numr	aanvraagdatum	bezoek_numr	bezoek	analyse	dna_numr	lab_indicatie	aandoening
-55.37.044	2019-05-09	04612126	1	NX764	DNA278010	DI Diagnostisch	cyto3 SNP-Array
-33.14.479	2020-07-19	53652991	1	NX320	DNA364117	DI Diagnostisch	cyto3 SNP-Array
-45.71.449	2019-06-23	11814212	1	NX650	DNA586404	DI Diagnostisch	EXOOM targeted exoom
-34.33.709	2020-10-08	62630808	1	NX026	DNA874241	DI Diagnostisch	EXOOM targeted exoom
-22.19.996	2017-02-19	70631208	1	NX472	DNA307023	DI Diagnostisch	cyto3 SNP-Array
-93.67.867	2018-06-25	26264434	1	NX686	DNA903232	DI Diagnostisch	EXOOM targeted exoom
-90.26.977	2020-12-19	84879882	1	NX171	DNA664105	DR Dragerschap	DER Dermatologie
-46.44.592	2019-01-31	85553772	1	NX787	DNA092927	DI Diagnostisch	DYST Dystonie
-43.14.552	2017-11-24	52895964	1	NX156	DNA812348	DR Dragerschap	DER Dermatologie
-93.87.936	2020-02-10	25207045	1	NX551	DNA883177	DI Diagnostisch	cyto3 SNP-Array
-40.65.370	2017-02-17	24074095	1	NX347	DNA108184	DI Diagnostisch	5GPM DNA snel diagnostiek
-14.06.695	2017-11-21	99389769	1	NX521	DNA530146	INF Informatief	5GPM DNA snel diagnostiek
-72.74.881	2020-01-11	91710804	1	NX446	DNA444224	DI Diagnostisch	5GPM DNA snel diagnostiek
-87.33.551	2018-07-27	37482685	1	NX268	DNA640231	DI Diagnostisch	5GPM DNA snel diagnostiek
-20.84.823	2018-03-23	59675622	1	NX815	DNA373870	DI Diagnostisch	EXOOM targeted exoom
-28.82.638	2019-09-14	46760119	1	NX325	DNA038430	DI Diagnostisch	cyto3 SNP-Array
-28.08.558	2019-04-25	03244924	1	NX224	DNA340089	DI Diagnostisch	DYST Dystonie
-06.83.927	2020-12-14	47877699	1	NX228	DNA401855	DI Diagnostisch	5GPM DNA snel diagnostiek
-98.86.250	2019-11-09	24351902	1	NX416	DNA182756	DI Diagnostisch	DYST Dystonie
-93.96.696	2017-01-18	93412691	1	NX573	DNA049714	INF Informatief	DYST Dystonie
+umcg_numr	aanvraagdatum	bezoek_numr	bezoek	analyse	dna_numr	lab_indicatie	aandoening	advisevraag_uitslagcode
+05.40.128	2019-12-16	20426144	1	NX109	DNA027963	DR Dragerschap	cyto3 SNP-Array	Afwijkend
+03.86.969	2020-01-26	11283301	1	NX700	DNA539872	DI Diagnostisch	5GPM DNA snel diagnostiek	Niet afwijkend
+57.00.476	2017-02-07	14234302	1	NX386	DNA047894	DI Diagnostisch	cyto3 SNP-Array	Niet afwijkend
+83.34.718	2017-02-06	79328647	1	NX850	DNA658281	DI Diagnostisch	EXOOM targeted exoom	Niet afwijkend
+61.02.876	2020-08-23	41909035	1	NX013	DNA233050	DI Diagnostisch	EXOOM targeted exoom	Niet afwijkend
+73.29.462	2017-04-19	29641874	1	NX276	DNA608126	R Research	DYST Dystonie	Afwijkend
+55.35.443	2018-08-20	96364248	1	NX412	DNA142668	DI Diagnostisch	cyto3 SNP-Array	Niet afwijkend
+66.85.982	2018-07-22	02292147	1	NX401	DNA735855	R Research	EXOOM targeted exoom	Niet afwijkend
+82.35.103	2017-02-09	17338874	1	NX591	DNA300917	DR Dragerschap	DER Dermatologie	Niet afwijkend
+84.40.224	2017-05-06	41297391	1	NX730	DNA257701	DI Diagnostisch	EXOOM targeted exoom	Niet afwijkend
+86.95.746	2020-06-23	25915911	1	NX127	DNA353942	DI Diagnostisch	cyto3 SNP-Array	Afwijkend
+64.66.939	2019-12-29	88653150	1	NX412	DNA859555	DI Diagnostisch	5GPM DNA snel diagnostiek	Niet afwijkend
+42.54.247	2019-03-25	26823847	1	NX686	DNA240780	R Research	cyto3 SNP-Array	Afwijkend
+60.97.049	2020-02-05	94598209	1	NX236	DNA451661	DI Diagnostisch	DYST Dystonie	Niet afwijkend
+27.93.298	2018-12-16	54271914	1	NX150	DNA474840	R Research	DER Dermatologie	Afwijkend
+47.15.923	2018-05-13	73789276	1	NX375	DNA781954	DI Diagnostisch	5GPM DNA snel diagnostiek	Niet afwijkend
+72.47.806	2017-12-20	24386319	1	NX434	DNA117366	DI Diagnostisch	5GPM DNA snel diagnostiek	Niet afwijkend
+09.38.365	2019-10-03	65562410	1	NX356	DNA962693	INF Informatief	cyto3 SNP-Array	Niet afwijkend
+86.20.923	2019-08-08	69695558	1	NX135	DNA559931	DR Dragerschap	cyto3 SNP-Array	Niet afwijkend
+87.02.655	2018-08-31	69116365	1	NX747	DNA156753	DI Diagnostisch	DER Dermatologie	Afwijkend
+25.38.940	2017-05-27	99155697	1	NX230	DNA535517	DI Diagnostisch	EXOOM targeted exoom	Niet afwijkend
+67.13.185	2019-03-16	41583606	1	NX066	DNA905259	DR Dragerschap	DER Dermatologie	Niet afwijkend
+31.73.552	2018-09-30	09910044	1	NX230	DNA633454	DI Diagnostisch	DYST Dystonie	Niet afwijkend
+16.84.617	2019-03-15	76391986	1	NX025	DNA936246	DI Diagnostisch	EXOOM targeted exoom	Niet afwijkend
+48.05.315	2018-12-27	52336492	1	NX165	DNA918195	DI Diagnostisch	DYST Dystonie	Niet afwijkend
+60.64.988	2020-03-21	64553257	1	NX107	DNA423516	DI Diagnostisch	EXOOM targeted exoom	Niet afwijkend
+21.17.801	2018-07-02	44730943	1	NX734	DNA310781	DI Diagnostisch	EXOOM targeted exoom	Niet afwijkend
+54.08.341	2017-04-18	65768664	1	NX909	DNA118797	DI Diagnostisch	cyto3 SNP-Array	Niet afwijkend
+50.17.178	2017-06-14	78351248	1	NX569	DNA563499	DR Dragerschap	cyto3 SNP-Array	Afwijkend
+32.64.299	2017-06-01	96883423	1	NX115	DNA926975	INF Informatief	DER Dermatologie	Afwijkend
+99.62.457	2020-02-09	73084134	1	NX813	DNA562593	DI Diagnostisch	EXOOM targeted exoom	Niet afwijkend
+96.70.077	2017-05-18	83247161	1	NX357	DNA788640	DI Diagnostisch	EXOOM targeted exoom	Niet afwijkend
+83.13.646	2020-12-03	22956258	1	NX574	DNA656601	DI Diagnostisch	5GPM DNA snel diagnostiek	Niet afwijkend
+78.54.407	2020-12-29	14180151	1	NX851	DNA155819	DI Diagnostisch	DYST Dystonie	Niet afwijkend
+18.36.427	2018-11-04	32414711	1	NX929	DNA398931	INF Informatief	DER Dermatologie	Afwijkend
+46.96.039	2019-02-13	43546381	1	NX829	DNA779172	DI Diagnostisch	DER Dermatologie	Niet afwijkend
+22.60.425	2017-04-22	66581979	1	NX729	DNA013524	DI Diagnostisch	DER Dermatologie	Niet afwijkend
+48.59.655	2019-02-03	14152440	1	NX893	DNA915906	DR Dragerschap	EXOOM targeted exoom	Niet afwijkend
+23.87.413	2017-03-23	47758926	1	NX146	DNA162846	R Research	DYST Dystonie	Niet afwijkend
+85.13.690	2017-11-20	32520631	1	NX636	DNA029544	DI Diagnostisch	EXOOM targeted exoom	Niet afwijkend
+61.83.792	2019-12-25	13614870	1	NX524	DNA252315	DI Diagnostisch	cyto3 SNP-Array	Afwijkend
+19.73.288	2017-09-07	85023658	1	NX615	DNA352512	DR Dragerschap	DYST Dystonie	Niet afwijkend
+56.21.199	2020-04-25	32386004	1	NX421	DNA281322	DI Diagnostisch	cyto3 SNP-Array	Niet afwijkend
+04.21.389	2019-02-14	64017627	1	NX129	DNA798880	INF Informatief	DYST Dystonie	Afwijkend
+49.35.761	2019-07-14	87599897	1	NX844	DNA305290	DI Diagnostisch	EXOOM targeted exoom	Afwijkend
+26.31.283	2018-05-07	72900142	1	NX440	DNA495674	R Research	EXOOM targeted exoom	Niet afwijkend
+28.25.330	2020-01-22	90280807	1	NX550	DNA049327	DI Diagnostisch	cyto3 SNP-Array	Niet afwijkend
+59.40.648	2018-08-14	01669742	1	NX090	DNA622334	DI Diagnostisch	DYST Dystonie	Niet afwijkend
+28.76.876	2018-07-31	54301912	1	NX460	DNA020799	DI Diagnostisch	cyto3 SNP-Array	Niet afwijkend
+52.83.218	2018-10-29	69467327	1	NX656	DNA922593	DI Diagnostisch	DYST Dystonie	Niet afwijkend
+32.90.279	2017-11-05	15943043	1	NX432	DNA626498	DI Diagnostisch	DYST Dystonie	Niet afwijkend
+76.25.054	2019-11-01	57151843	1	NX005	DNA843130	DI Diagnostisch	DYST Dystonie	Niet afwijkend
+15.07.511	2019-03-18	26943826	1	NX471	DNA880193	DI Diagnostisch	EXOOM targeted exoom	Niet afwijkend
+15.76.337	2017-10-18	27722507	1	NX829	DNA160602	DI Diagnostisch	DYST Dystonie	Niet afwijkend
+31.11.763	2018-09-05	21923605	1	NX445	DNA880734	DR Dragerschap	DER Dermatologie	Niet afwijkend
+64.91.838	2018-09-25	62287447	1	NX306	DNA343957	DR Dragerschap	DER Dermatologie	Niet afwijkend
+88.35.604	2017-05-28	86119258	1	NX428	DNA639827	DI Diagnostisch	DER Dermatologie	Afwijkend
+26.91.132	2018-03-02	72689429	1	NX483	DNA102355	R Research	DYST Dystonie	Afwijkend
+81.26.994	2020-04-29	29897385	1	NX147	DNA168985	DI Diagnostisch	cyto3 SNP-Array	Afwijkend
+26.88.138	2018-12-04	95518252	1	NX213	DNA511384	DI Diagnostisch	EXOOM targeted exoom	Niet afwijkend
+90.17.875	2019-03-23	29891332	1	NX165	DNA235856	DR Dragerschap	DER Dermatologie	Niet afwijkend
+14.22.258	2019-03-05	66071479	1	NX379	DNA849913	DI Diagnostisch	DYST Dystonie	Niet afwijkend
+48.42.354	2018-08-28	47481718	1	NX525	DNA380693	DI Diagnostisch	5GPM DNA snel diagnostiek	Niet afwijkend
+61.49.595	2019-06-28	49724052	1	NX388	DNA971823	INF Informatief	5GPM DNA snel diagnostiek	Niet afwijkend
+75.79.549	2019-09-19	70767013	1	NX702	DNA723927	DI Diagnostisch	5GPM DNA snel diagnostiek	Niet afwijkend
+35.84.592	2020-07-04	72260732	1	NX050	DNA415736	DI Diagnostisch	DER Dermatologie	Niet afwijkend
+78.39.206	2017-08-07	82252990	1	NX648	DNA123361	DI Diagnostisch	DER Dermatologie	Niet afwijkend
+30.08.257	2018-12-21	37558022	1	NX313	DNA549022	DI Diagnostisch	DER Dermatologie	Niet afwijkend
+40.94.247	2019-11-29	18344778	1	NX633	DNA965951	INF Informatief	EXOOM targeted exoom	Afwijkend
+08.86.335	2020-08-28	99929670	1	NX245	DNA544514	DI Diagnostisch	cyto3 SNP-Array	Niet afwijkend
+08.74.157	2017-02-17	33452794	1	NX752	DNA605340	INF Informatief	5GPM DNA snel diagnostiek	Niet afwijkend
+21.87.361	2017-07-02	61203450	1	NX464	DNA819656	DR Dragerschap	5GPM DNA snel diagnostiek	Niet afwijkend
+89.89.455	2019-02-28	71145113	1	NX141	DNA846403	INF Informatief	DYST Dystonie	Afwijkend
+09.51.056	2019-06-24	89881652	1	NX945	DNA994624	DI Diagnostisch	5GPM DNA snel diagnostiek	Niet afwijkend
+45.67.850	2018-08-01	04638553	1	NX520	DNA743807	DI Diagnostisch	DER Dermatologie	Niet afwijkend
+24.58.063	2018-12-17	53056349	1	NX094	DNA136587	INF Informatief	5GPM DNA snel diagnostiek	Afwijkend
+60.20.278	2020-08-08	19835904	1	NX667	DNA954434	INF Informatief	DER Dermatologie	Niet afwijkend
+85.96.541	2020-11-07	83468381	1	NX065	DNA689821	DI Diagnostisch	5GPM DNA snel diagnostiek	Niet afwijkend
+36.27.992	2019-12-21	16115165	1	NX581	DNA152162	DI Diagnostisch	DYST Dystonie	Niet afwijkend
+93.81.975	2017-11-11	57972736	1	NX729	DNA308021	DR Dragerschap	DYST Dystonie	Niet afwijkend
+46.42.533	2020-10-28	08390827	1	NX526	DNA152618	DR Dragerschap	cyto3 SNP-Array	Niet afwijkend
+03.58.353	2020-10-02	19709657	1	NX553	DNA345885	DI Diagnostisch	DER Dermatologie	Afwijkend
+69.27.912	2019-06-13	39377717	1	NX885	DNA837553	DI Diagnostisch	DYST Dystonie	Afwijkend
+39.86.242	2019-08-24	22022532	1	NX777	DNA005085	DI Diagnostisch	5GPM DNA snel diagnostiek	Afwijkend
+20.33.352	2018-05-03	88304079	1	NX722	DNA194886	DI Diagnostisch	cyto3 SNP-Array	Afwijkend
+52.49.673	2020-11-29	28170591	1	NX995	DNA947226	DI Diagnostisch	DER Dermatologie	Niet afwijkend
+04.19.878	2019-01-08	44634435	1	NX495	DNA276120	DR Dragerschap	DER Dermatologie	Niet afwijkend
+38.86.836	2018-09-02	88619792	1	NX994	DNA227831	DI Diagnostisch	EXOOM targeted exoom	Niet afwijkend
+72.82.367	2020-04-19	16393374	1	NX212	DNA092726	DI Diagnostisch	EXOOM targeted exoom	Niet afwijkend
+34.84.729	2017-12-06	45697398	1	NX521	DNA861594	DI Diagnostisch	EXOOM targeted exoom	Afwijkend
+47.32.549	2020-08-06	57678765	1	NX257	DNA217404	DI Diagnostisch	DYST Dystonie	Afwijkend
+58.35.515	2020-09-29	51478412	1	NX230	DNA209460	DR Dragerschap	cyto3 SNP-Array	Niet afwijkend
+79.46.798	2019-12-05	16884278	1	NX246	DNA525444	DI Diagnostisch	DYST Dystonie	Niet afwijkend
+80.41.826	2017-07-18	15137138	1	NX404	DNA492048	DI Diagnostisch	DYST Dystonie	Niet afwijkend
+91.99.760	2018-04-06	93956659	1	NX446	DNA233464	DI Diagnostisch	DYST Dystonie	Afwijkend
+28.18.191	2019-07-31	67356890	1	NX656	DNA952599	DI Diagnostisch	EXOOM targeted exoom	Niet afwijkend
+29.36.279	2020-05-07	41768937	1	NX732	DNA271872	DI Diagnostisch	5GPM DNA snel diagnostiek	Afwijkend
+96.31.440	2018-09-22	52087262	1	NX331	DNA427102	DI Diagnostisch	5GPM DNA snel diagnostiek	Niet afwijkend
+61.84.620	2017-07-24	52794728	1	NX690	DNA102261	R Research	cyto3 SNP-Array	Afwijkend
+55.36.897	2019-09-24	71747873	1	NX031	DNA929810	DI Diagnostisch	5GPM DNA snel diagnostiek	Afwijkend
