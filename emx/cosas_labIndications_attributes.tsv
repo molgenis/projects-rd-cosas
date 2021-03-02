@@ -1,0 +1,3 @@
+name	dataType	idAttribute	nillable	entity	refEntity	lookupAttribute
+code	string	TRUE	TRUE	labIndications		TRUE
+label	string	FALSE	TRUE	labIndications		FALSE

@@ -1,12 +1,13 @@
 name: cosas
-label: COSAS Prototype
-description: An example database
-version: 0.1.0
-date: 2021-03-01
+label: COSAS
+description: A prototype for the COSAS database
+version: 0.2.0
+date: 2021-03-02
 defaults:
   idAttribute: false
   dataType: string
   nillable: true
+  lookupAttribute: false
 entities:
   - name: patients
     description: Patient information
@@ -40,7 +41,11 @@ entities:
       - name: analyse
       - name: dna_numr
       - name: lab_indicatie
+        dataType: xref
+        refEntity: cosas_labIndications
       - name: aandoening 
+        dataType: xref
+        refEntity: cosas_aandoening
       - name: advisevraag_uitslagcode
   - name: analysis
     description: overview on sample analysis
@@ -60,3 +65,40 @@ entities:
       - name: expr_numr
       - name: filenaam
         dataType: hyperlink
+  
+  # lookups
+  - name: labIndications
+    description: Lookup entity for lab indications
+    attributes:
+      - name: code
+        idAttribute: true
+        lookupAttribute: true
+      - name: label
+    data:
+      - code: DI
+        label: Diagnostisch
+      - code: DR
+        label: Dragerschap
+      - code: INF
+        label: Informatief
+      - code: R
+        label: Research
+
+  - name: aandoening
+    description: diagnotics
+    attributes:
+      - name: code
+        idAttribute: true
+        lookupAttribute: true
+      - name: label
+    data:
+      - code: DYST
+        label: Dystonie
+      - code: DER
+        label: Dermatologie
+      - code: cyto3
+        label: SNP-Array
+      - code: EXOOM
+        label: targeted exoom
+      - code: 5GPM
+        label: DNA snel diagnostiek

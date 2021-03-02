@@ -69,17 +69,17 @@ generator <- R6::R6Class(,
 
             # aandoening
             hpo_terms = c(
-                "DYST Dystonie",
-                "DER Dermatologie",
-                "cyto3 SNP-Array",
-                "EXOOM targeted exoom",
-                "5GPM DNA snel diagnostiek"
+                "DYST", # "Dystonie",
+                "DER", # "Dermatologie",
+                "cyto3", # "SNP-Array",
+                "EXOOM", # "targeted exoom",
+                "5GPM" # "DNA snel diagnostiek"
             ),
             lab_indicatie = c(
-                "DI Diagnostisch",
-                "DR Dragerschap",
-                "INF Informatief",
-                "R Research"
+                "DI", #"Diagnostisch",
+                "DR", #"Dragerschap",
+                "INF", #"Informatief",
+                "R" #"Research"
             ),
             experiment = c(
                "NGS targeted Exoom",

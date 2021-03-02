@@ -15,7 +15,15 @@
 # run
 mcmd config set host
 mcmd import -p emx/sys_md_Package.tsv
-mcmd import -p emx/cosas_attributes.tsv --as attributes --in cosas
+
+mcmd import -p emx/cosas_labIndications_attributes.tsv --as attributes --in cosas
+mcmd import -p emx/cosas_aandoening_attributes.tsv --as attributes --in cosas
+mcmd import -p emx/cosas_analysis_attributes.tsv --as attributes --in cosas
+mcmd import -p emx/cosas_patients_attributes.tsv --as attributes --in cosas
+mcmd import -p emx/cosas_samples_attributes.tsv --as attributes --in cosas
+
+mcmd import -p emx/cosas_labIndications.tsv --in cosas
+mcmd import -p emx/cosas_aandoening.tsv --in cosas
+mcmd import -p emx/cosas_analysis.tsv --in cosas
 mcmd import -p emx/cosas_patients.tsv --in cosas
 mcmd import -p emx/cosas_samples.tsv --in cosas
-mcmd import -p emx/cosas_analysis.tsv --in cosas

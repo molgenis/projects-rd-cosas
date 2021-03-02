@@ -1,0 +1,11 @@
+name	dataType	idAttribute	nillable	entity	refEntity	lookupAttribute
+umcg_numr	string	TRUE	FALSE	analysis		FALSE
+familie_numr	string	FALSE	TRUE	analysis		FALSE
+aanvraagdatum	date	FALSE	TRUE	analysis		FALSE
+bezoek_numr	string	FALSE	TRUE	analysis		FALSE
+analyse	string	FALSE	TRUE	analysis		FALSE
+dna_numr	string	FALSE	TRUE	analysis		FALSE
+soort_experiment	string	FALSE	TRUE	analysis		FALSE
+design_numr	string	FALSE	TRUE	analysis		FALSE
+expr_numr	string	FALSE	TRUE	analysis		FALSE
+filenaam	hyperlink	FALSE	TRUE	analysis		FALSE
