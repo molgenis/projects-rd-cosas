@@ -4,5 +4,5 @@ familie_numr	string	FALSE	TRUE	patients		FALSE
 geboortedatum	date	FALSE	TRUE	patients		FALSE
 leeftijd	decimal	FALSE	TRUE	patients		FALSE
 geslacht	string	FALSE	TRUE	patients		FALSE
-overleden	bool	FALSE	TRUE	patients		FALSE
+overleden	xref	FALSE	TRUE	patients	cosasmaps_inclusionStatus	FALSE
 invoerdatum	date	FALSE	TRUE	patients		FALSE

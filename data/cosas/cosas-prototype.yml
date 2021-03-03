@@ -23,7 +23,8 @@ entities:
         dataType: decimal
       - name: geslacht
       - name: overleden
-        dataType: bool
+        dataType: xref
+        refEntity: cosasmaps_inclusionStatus
       - name: invoerdatum
         dataType: date
   - name: samples
