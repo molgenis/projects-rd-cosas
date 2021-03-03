@@ -431,10 +431,10 @@
     },
     "ps": {
       "Package": "ps",
-      "Version": "1.5.0",
+      "Version": "1.6.0",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "ebaed51a03411fd5cfc1e12d9079b353"
+      "Hash": "32620e2001c1dce1af49c49dccbb9420"
     },
     "purrr": {
       "Package": "purrr",
@@ -480,10 +480,10 @@
     },
     "renv": {
       "Package": "renv",
-      "Version": "0.12.3",
+      "Version": "0.13.0",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "b5510c50c7f31d453c385c7b460af2b9"
+      "Hash": "9f10d9db5b50400c348920c5c603385e"
     },
     "rex": {
       "Package": "rex",
@@ -571,10 +571,10 @@
     },
     "tidyr": {
       "Package": "tidyr",
-      "Version": "1.1.2",
+      "Version": "1.1.3",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "c40b2d5824d829190f4b825f4496dfae"
+      "Hash": "450d7dfaedde58e28586b854eeece4fa"
     },
     "tidyselect": {
       "Package": "tidyselect",
