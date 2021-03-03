@@ -3,17 +3,17 @@
 #' @param model a parsed yml object
 #'
 #' @export
-write_emx <- function(model) {
+write_emx <- function(model, out_dir) {
     for (m in seq_len(length(model))) {
         if (names(model[m]) == "packages") {
             readr::write_tsv(
                 x = model[[m]],
-                file = "emx/sys_md_Package.tsv"
+                file = paste0(out_dir, "/sys_md_Package.tsv")
             )
         } else if (names(model[m]) == "entities") {
             readr::write_tsv(
                 x = model[[m]],
-                file = "emx/cosas_entities.tsv"
+                file = paste0(out_dir, "/cosas_entities.tsv")
             )
         } else if (names(model[m]) == "attributes") {
             d <- model[[m]]
@@ -23,7 +23,8 @@ write_emx <- function(model) {
                 readr::write_tsv(
                     x = t,
                     file = paste0(
-                        "emx/cosas_",
+                        out_dir,
+                        "/cosas_",
                         entities[e],
                         "_attributes.tsv"
                     ),
@@ -33,7 +34,7 @@ write_emx <- function(model) {
         } else {
             readr::write_tsv(
                 x = model[[m]],
-                file = paste0("emx/", names(model[m]), ".tsv")
+                file = paste0(out_dir, "/", names(model[m]), ".tsv")
             )
         }
     }

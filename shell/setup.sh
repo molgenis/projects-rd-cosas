@@ -11,19 +11,32 @@
 # init
 # mcmd config add host 
 # https://cosas-acc.gcc.rug.nl/
-
-# run
 mcmd config set host
+
+
+# import Fair Genomes
+mcmd import -p data/fairgenomes/sys_md_Package.tsv
+mcmd import -p data/fairgenomes/personal_inclusionstatus_attributes.tsv --as attributes --in fair-genomes
+mcmd import -p data/fairgenomes/personal_inclusionstatus.tsv --as fair-genomes_personal_inclusionstatus --in fair-genomes
+
+
+# import cosas mappings
+mcmd import -p data/cosas-mappings/sys_md_Package.tsv
+mcmd import -p data/cosas-mappings/cosasmaps_attributes.tsv --as attributes --in cosasmaps
+mcmd import -p data/cosas-mappings/cosasmaps_inclusionStatus.tsv --as cosasmaps_inclusionStatus
+
+
+# import cosas db
 mcmd import -p emx/sys_md_Package.tsv
 
-mcmd import -p emx/cosas_labIndications_attributes.tsv --as attributes --in cosas
-mcmd import -p emx/cosas_aandoening_attributes.tsv --as attributes --in cosas
-mcmd import -p emx/cosas_analysis_attributes.tsv --as attributes --in cosas
-mcmd import -p emx/cosas_patients_attributes.tsv --as attributes --in cosas
-mcmd import -p emx/cosas_samples_attributes.tsv --as attributes --in cosas
+mcmd import -p data/cosas/cosas_labIndications_attributes.tsv --as attributes --in cosas
+mcmd import -p data/cosas/cosas_aandoening_attributes.tsv --as attributes --in cosas
+mcmd import -p data/cosas/cosas_analysis_attributes.tsv --as attributes --in cosas
+mcmd import -p data/cosas/cosas_patients_attributes.tsv --as attributes --in cosas
+mcmd import -p data/cosas/cosas_samples_attributes.tsv --as attributes --in cosas
 
-mcmd import -p emx/cosas_labIndications.tsv --in cosas
-mcmd import -p emx/cosas_aandoening.tsv --in cosas
-mcmd import -p emx/cosas_analysis.tsv --in cosas
-mcmd import -p emx/cosas_patients.tsv --in cosas
-mcmd import -p emx/cosas_samples.tsv --in cosas
+mcmd import -p data/cosas/cosas_labIndications.tsv --in cosas
+mcmd import -p data/cosas/cosas_aandoening.tsv --in cosas
+mcmd import -p data/cosas/cosas_analysis.tsv --in cosas
+mcmd import -p data/cosas/cosas_patients.tsv --in cosas
+mcmd import -p data/cosas/cosas_samples.tsv --in cosas

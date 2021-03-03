@@ -1,0 +1,21 @@
+cosas_overleden	fg_id
+nee	Alive
+ja	Dead
+withdrawn	Lost in follow-up
+declined	Opted-out
+no.info	NoInformation (NI, nullflavor)
+invalid	Invalid (INV, nullflavor)
+derived	Derived (DER, nullflavor)
+other	Other (OTH, nullflavor)
+neg.infinity	Negative infinity (NINF, nullflavor)
+pos.infinity	Positive infinity (PINF, nullflavor)
+decoded	Un-encoded (UNC, nullflavor)
+encoded	Masked (MSK, nullflavor)
+"NA"	Not applicable (NA, nullflavor)
+uknown	Unknown (UNK, nullflavor)
+asked.declined	Asked but unknown (ASKU, nullflavor)
+temp.unavailable	Temporarily unavailable (NAV, nullflavor)
+not.collected	Not asked (NASK, nullflavor)
+unavailable	Not available (NAVU, nullflavor)
+sufficient	Sufficient quantity (QS, nullflavor)
+trace	Trace (TRC, nullflavor)

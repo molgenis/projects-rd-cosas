@@ -1,0 +1,20 @@
+name: cosasmaps
+label: COSAS Mappings
+description: Intermediate Mapping Tables for FairGenomes
+version: 0.1.0
+date: 2021-03-03
+defaults:
+  dataType: string
+  idAttribute: false
+  labelAttribute: false
+entities:
+  - name: inclusionStatus
+    description: Patient Inclusion Status
+    attributes:
+      - name: cosas_overleden
+        dataType: string
+        idAttribute: true
+        labelAttribute: true
+      - name: fg_id
+        dataType: xref
+        refEntity: fair-genomes_personal_inclusionstatus

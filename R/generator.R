@@ -1,4 +1,3 @@
-
 #' @title
 #' Generate Dataset
 #'
@@ -156,13 +155,13 @@ generator <- R6::R6Class(,
                         replace = TRUE
                     ),
                     overleden = dplyr::case_when(
-                        leeftijd >= 75 ~ sample(
-                            x = c(TRUE, FALSE),
+                        leeftijd >= 65 ~ sample(
+                            x = c("ja", "nee", "not.collected", "temp.unavailable"),
                             size = 1,
                             replace = TRUE,
-                            prob = c(0.3, 0.7)
+                            prob = c(0.3, 0.5, 0.1, 0.1)
                         ),
-                        TRUE ~ FALSE
+                        TRUE ~ "nee"
                     )
                 )
         },
