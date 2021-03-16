@@ -4,6 +4,7 @@
 #'
 #' @export
 write_emx <- function(model, out_dir) {
+    pkg_name <- attr(model, "package")
     for (m in seq_len(length(model))) {
         if (names(model[m]) == "packages") {
             readr::write_tsv(
@@ -13,7 +14,7 @@ write_emx <- function(model, out_dir) {
         } else if (names(model[m]) == "entities") {
             readr::write_tsv(
                 x = model[[m]],
-                file = paste0(out_dir, "/cosas_entities.tsv")
+                file = paste0(out_dir, "/", pkg_name, "_entities.tsv")
             )
         } else if (names(model[m]) == "attributes") {
             d <- model[[m]]
@@ -23,8 +24,8 @@ write_emx <- function(model, out_dir) {
                 readr::write_tsv(
                     x = t,
                     file = paste0(
-                        out_dir,
-                        "/cosas_",
+                        out_dir, "/",
+                        pkg_name, "_",
                         entities[e],
                         "_attributes.tsv"
                     ),
