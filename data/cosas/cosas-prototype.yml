@@ -10,96 +10,90 @@ defaults:
   lookupAttribute: false
 entities:
   - name: patients
-    description: Patient information
+    description: Overview about each patient
     attributes:
       - name: umcg_numr
         dataType: string
         idAttribute: true
         nillable: false
-      - name: familie_numr
-      - name: geboortedatum
+      - name: family_numr
+        label-nl: familie_numr
+      - name: dob
         dataType: date
-      - name: leeftijd
+        label-nl: geboortedatum
+      - name: age
+        label-nl: leeftijd
         dataType: decimal
-      - name: geslacht
-      - name: overleden
+      - name: sex
+        label-nl: geslacht
+      - name: is_deceased
+        label-nl: overleden
         dataType: xref
         refEntity: cosasmaps_inclusionStatus
-      - name: invoerdatum
+      - name: date_sys_registered
+        label: invoerdatum
         dataType: date
   - name: samples
-    description: samples by patient and visit
+    description: Information about samples
     attributes:
       - name: umcg_numr
         dataType: string
         idAttribute: true
         nillable: false
-      - name: aanvraagdatum
+      - name: family_numr
+        label-nl: familie_numr
+      - name: test_date
+        label-nl: aanvraagdatum
         dataType: date
-      - name: bezoek_numr
-      - name: bezoek
-        dataType: int
-      - name: analyse
+      - name: test_id
+        label-nl: analyse
       - name: dna_numr
-      - name: lab_indicatie
+      - name: lab_indication
+        label-nl: lab_indicatie
         dataType: xref
-        refEntity: cosas_labIndications
-      - name: aandoening 
+        refEntity: cosasrefs_labIndications
+      - name: phenotype 
+        label-nl: aandoening 
         dataType: xref
-        refEntity: cosas_aandoening
-      - name: advisevraag_uitslagcode
-  - name: analysis
-    description: overview on sample analysis
+        refEntity: cosasrefs_diagnosis
+      - name: affected_status
+        label-nl: advisevraag_uitslagcode
+      - name: requester
+        label-nl: verwijzer
+  - name: labinfo
+    description: Overview on lab procedures
     attributes:
       - name: umcg_numr
         dataType: string
         idAttribute: true
         nillable: false
-      - name: familie_numr
-      - name: aanvraagdatum
+      - name: family_numr
+        label-nl: familie_numr
+      - name: test_date
+        label-nl: aanvraagdatum
         dataType: date
-      - name: bezoek_numr
-      - name: analyse
+      - name: test_id
+        label-nl: analyse
       - name: dna_numr
-      - name: soort_experiment
+      - name: test
+        label-nl: soort_experiment
       - name: design_numr
       - name: expr_numr
-      - name: filenaam
-        dataType: hyperlink
-  
-  # lookups
-  - name: labIndications
-    description: Lookup entity for lab indications
+  - name: files
+    description: Metadata on files
     attributes:
-      - name: code
+      - name: umcg_numr
+        dataType: string
         idAttribute: true
-        lookupAttribute: true
-      - name: label
-    data:
-      - code: DI
-        label: Diagnostisch
-      - code: DR
-        label: Dragerschap
-      - code: INF
-        label: Informatief
-      - code: R
-        label: Research
-
-  - name: aandoening
-    description: diagnotics
-    attributes:
-      - name: code
-        idAttribute: true
-        lookupAttribute: true
-      - name: label
-    data:
-      - code: DYST
-        label: Dystonie
-      - code: DER
-        label: Dermatologie
-      - code: cyto3
-        label: SNP-Array
-      - code: EXOOM
-        label: targeted exoom
-      - code: 5GPM
-        label: DNA snel diagnostiek
+        nillable: false
+      - name: family_numr
+        label-nl: familie_numr
+      - name: test_id
+        label-nl: analyse
+      - name: dna_numr
+      - name: test
+        label-nl: soort_experiment
+      - name: filename
+      - name: filetype
+      - name: created
+        dataType: date

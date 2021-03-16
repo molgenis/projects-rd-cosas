@@ -1,0 +1,9 @@
+name	dataType	idAttribute	nillable	entity	label-nl	refEntity	label
+umcg_numr	string	TRUE	FALSE	labinfo			
+family_numr	string	FALSE	TRUE	labinfo	familie_numr		
+test_date	date	FALSE	TRUE	labinfo	aanvraagdatum		
+test_id	string	FALSE	TRUE	labinfo	analyse		
+dna_numr	string	FALSE	TRUE	labinfo			
+test	string	FALSE	TRUE	labinfo	soort_experiment		
+design_numr	string	FALSE	TRUE	labinfo			
+expr_numr	string	FALSE	TRUE	labinfo			

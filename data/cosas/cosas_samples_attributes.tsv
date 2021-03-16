@@ -1,10 +1,10 @@
-name	dataType	idAttribute	nillable	entity	refEntity	lookupAttribute
-umcg_numr	string	TRUE	FALSE	samples		FALSE
-aanvraagdatum	date	FALSE	TRUE	samples		FALSE
-bezoek_numr	string	FALSE	TRUE	samples		FALSE
-bezoek	int	FALSE	TRUE	samples		FALSE
-analyse	string	FALSE	TRUE	samples		FALSE
-dna_numr	string	FALSE	TRUE	samples		FALSE
-lab_indicatie	xref	FALSE	TRUE	samples	cosas_labIndications	FALSE
-aandoening	xref	FALSE	TRUE	samples	cosas_aandoening	FALSE
-advisevraag_uitslagcode	string	FALSE	TRUE	samples		FALSE
+name	dataType	idAttribute	nillable	entity	label-nl	refEntity	label
+umcg_numr	string	TRUE	FALSE	samples			
+family_numr	string	FALSE	TRUE	samples	familie_numr		
+test_date	date	FALSE	TRUE	samples	aanvraagdatum		
+test_id	string	FALSE	TRUE	samples	analyse		
+dna_numr	string	FALSE	TRUE	samples			
+lab_indication	xref	FALSE	TRUE	samples	lab_indicatie	cosasrefs_labIndications	
+phenotype	xref	FALSE	TRUE	samples	aandoening	cosasrefs_diagnosis	
+affected_status	string	FALSE	TRUE	samples	advisevraag_uitslagcode		
+requester	string	FALSE	TRUE	samples	verwijzer		
