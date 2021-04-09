@@ -1,10 +1,12 @@
-name	dataType	idAttribute	nillable	entity	label-nl	refEntity	label
-umcg_numr	string	TRUE	FALSE	samples			
-family_numr	string	FALSE	TRUE	samples	familie_numr		
-test_date	date	FALSE	TRUE	samples	aanvraagdatum		
-test_id	string	FALSE	TRUE	samples	analyse		
-dna_numr	string	FALSE	TRUE	samples			
-lab_indication	xref	FALSE	TRUE	samples	lab_indicatie	cosasrefs_labIndications	
-phenotype	xref	FALSE	TRUE	samples	aandoening	cosasrefs_diagnosis	
-affected_status	string	FALSE	TRUE	samples	advisevraag_uitslagcode		
-requester	string	FALSE	TRUE	samples	verwijzer		
+name	description	dataType	idAttribute	nillable	entity	label-nl	refEntity	description-nl	auto
+umcg_numr	MDN id in EPIC	string	FALSE	TRUE	samples				
+family_numr		string	FALSE	TRUE	samples	familie_numr			
+test_date	date of request	date	FALSE	TRUE	samples	aanvraagdatum		datum van aanvraag	
+test_code	analysis in Adlas (NX...)	string	FALSE	TRUE	samples	testcode		analyse in Adlas (NX...)	
+dna_numr		string	FALSE	TRUE	samples				
+lab_indication	e.g. DI Diagnostisch / DR Dragerschap / INF Informatief / R Research	xref	FALSE	TRUE	samples	lab_indicatie	cosasrefs_labIndications	b.v. DI Diagnostisch / DR Dragerschap / INF Informatief / R Research	
+sample_material		string	FALSE	TRUE	samples	sample_materiaal			
+phenotype		string	FALSE	TRUE	samples	fenotype			
+requester		string	FALSE	TRUE	samples	aanvrager			
+affected_status		string	FALSE	TRUE	samples	advisevraag_uitslagcode			
+molgenis_id		string	TRUE	FALSE	samples				TRUE

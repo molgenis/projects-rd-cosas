@@ -1,0 +1,141 @@
+name: cosas
+label: COSAS
+description: A prototype for the COSAS database
+version: 0.2.1
+date: 2021-03-02
+defaults:
+  idAttribute: false
+  dataType: string
+  nillable: true
+  lookupAttribute: false
+entities:
+  - name: patients
+    description: Overview about each patient
+    description-nl: Patiëntgerelateerde informatie
+    attributes:
+      - name: umcg_numr
+        description: MDN id in EPIC
+        dataType: string
+        idAttribute: true
+        nillable: false
+      - name: family_numr
+        label-nl: familie_numr
+      - name: dob
+        dataType: date
+        label-nl: geboortedatum
+      - name: age
+        label-nl: leeftijd
+        dataType: decimal
+      - name: sex
+        label-nl: geslacht
+      - name: is_deceased
+        label-nl: overleden
+        dataType: xref
+        refEntity: cosasmaps_inclusionStatus
+      - name: consanguinity
+        label-nl: consanguiniteit
+      - name: date_registered
+        label-nl: invoerdatum
+        description: first time time seen in the clinic
+        description-nl: eerst op poli gezien
+        dataType: date
+  - name: samples
+    description: Information about samples
+    description-nl: Samplemateriaal
+    attributes:
+      - name: umcg_numr
+        description: MDN id in EPIC
+      - name: family_numr
+        label-nl: familie_numr
+      - name: test_date
+        label-nl: aanvraagdatum
+        description: date of request
+        description-nl: datum van aanvraag
+        dataType: date
+      - name: test_code
+        label-nl: testcode
+        description: analysis in Adlas (NX...)
+        description-nl: analyse in Adlas (NX...)
+      - name: dna_numr
+      - name: lab_indication
+        label-nl: lab_indicatie
+        description: e.g. DI Diagnostisch / DR Dragerschap / INF Informatief / R Research
+        description-nl: b.v. DI Diagnostisch / DR Dragerschap / INF Informatief / R Research
+        dataType: xref
+        refEntity: cosasrefs_labIndications
+      - name: sample_material
+        label-nl: sample_materiaal
+      - name: phenotype 
+        label-nl: fenotype 
+        # dataType: xref
+        # refEntity: cosasrefs_diagnosis
+      - name: requester
+        label-nl: aanvrager
+      - name: affected_status
+        label-nl: advisevraag_uitslagcode
+      - name: molgenis_id
+        dataType: string
+        auto: true
+        idAttribute: true
+        nillable: false
+  - name: labinfo
+    description: Overview on lab procedures
+    description-nl: Labinformatie m.b.t. geproduceerde datafiles
+    attributes:
+      - name: umcg_numr
+        description: MDN id in EPIC
+      - name: family_numr
+        label-nl: familie_numr
+      - name: test_date
+        label-nl: aanvraagdatum
+        description: date of request
+        description-nl: datum van aanvraag
+        dataType: date
+      - name: test_code
+        label-nl: testcode
+        description: analysis in Adlas (NX...)
+        description-nl: analyse in Adlas (NX...)
+      - name: dna_numr
+      - name: test
+        label-nl: test
+        description: experiment type (NGS/Targeted-Exoom, Array/SNP)
+        description-nl: Soort experiment (NGS/Targeted-Exoom, Array/SNP)
+      - name: sequencer
+      - name: cap_kit
+        description: capturing kit
+      - name: prep_kit
+        description: DNA prep kit
+      - name: expr_numr
+        description: sequence run / projectnummer
+      - name: design_numr
+      - name: molgenis_id
+        dataType: string
+        auto: true
+        idAttribute: true
+        nillable: false
+  - name: files
+    description: Metadata on files
+    description-nl: Datafile informatie
+    attributes:
+      - name: umcg_numr
+        description: MDN id in EPIC
+      - name: family_numr
+        label-nl: familie_numr
+      - name: test_code
+        label-nl: testcode
+      - name: dna_numr
+      - name: test
+        label-nl: test
+        description: experiment type (NGS/Targeted-Exoom, Array/SNP)
+        description-nl: Soort experiment (NGS/Targeted-Exoom, Array/SNP)
+      - name: requester
+        label-nl: aanvrager
+      - name: filename
+      - name: filetype
+      - name: created
+        dataType: date
+      - name: molgenis_id
+        dataType: string
+        auto: true
+        idAttribute: true
+        nillable: false

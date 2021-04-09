@@ -1,5 +1,5 @@
-name	description	package
-patients	Overview about each patient	cosas
-samples	Information about samples	cosas
-labinfo	Overview on lab procedures	cosas
-files	Metadata on files	cosas
+name	description	description-nl	package
+patients	Overview about each patient	Patiëntgerelateerde informatie	cosas
+samples	Information about samples	Samplemateriaal	cosas
+labinfo	Overview on lab procedures	Labinformatie m.b.t. geproduceerde datafiles	cosas
+files	Metadata on files	Datafile informatie	cosas
