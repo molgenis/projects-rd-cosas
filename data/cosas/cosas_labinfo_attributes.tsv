@@ -5,9 +5,8 @@ test_date	date of request	date	FALSE	TRUE	labinfo	aanvraagdatum		datum van aanvr
 test_code	analysis in Adlas (NX...)	string	FALSE	TRUE	labinfo	testcode		analyse in Adlas (NX...)	
 dna_numr		string	FALSE	TRUE	labinfo				
 test	experiment type (NGS/Targeted-Exoom, Array/SNP)	string	FALSE	TRUE	labinfo	test		Soort experiment (NGS/Targeted-Exoom, Array/SNP)	
-sequencer		string	FALSE	TRUE	labinfo				
-cap_kit	capturing kit	string	FALSE	TRUE	labinfo				
+capture_kit	capturing kit	string	FALSE	TRUE	labinfo				
 prep_kit	DNA prep kit	string	FALSE	TRUE	labinfo				
-expr_numr	sequence run / projectnummer	string	FALSE	TRUE	labinfo				
+expr_numr	sequence run, project number	string	FALSE	TRUE	labinfo			sequence run, projectnummer	
 design_numr		string	FALSE	TRUE	labinfo				
 molgenis_id		string	TRUE	FALSE	labinfo				TRUE

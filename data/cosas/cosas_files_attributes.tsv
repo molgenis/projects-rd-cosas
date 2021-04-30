@@ -3,8 +3,6 @@ umcg_numr	MDN id in EPIC	string	FALSE	TRUE	files
 family_numr		string	FALSE	TRUE	files	familie_numr			
 test_code		string	FALSE	TRUE	files	testcode			
 dna_numr		string	FALSE	TRUE	files				
-test	experiment type (NGS/Targeted-Exoom, Array/SNP)	string	FALSE	TRUE	files	test		Soort experiment (NGS/Targeted-Exoom, Array/SNP)	
-requester		string	FALSE	TRUE	files	aanvrager			
 filename		string	FALSE	TRUE	files				
 filetype		string	FALSE	TRUE	files				
 created		date	FALSE	TRUE	files				

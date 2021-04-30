@@ -1,8 +1,8 @@
 name: cosas
 label: COSAS
 description: A prototype for the COSAS database
-version: 0.2.1
-date: 2021-03-02
+version: 0.2.2
+date: 2021-04-30
 defaults:
   idAttribute: false
   dataType: string
@@ -23,11 +23,11 @@ entities:
       - name: dob
         dataType: date
         label-nl: geboortedatum
-      - name: age
-        label-nl: leeftijd
-        dataType: decimal
-      - name: sex
-        label-nl: geslacht
+      # - name: age
+      #   label-nl: leeftijd
+      #   dataType: decimal
+      - name: biological_sex
+        label-nl: biologisch_geslacht
       - name: is_deceased
         label-nl: overleden
         dataType: xref
@@ -47,15 +47,15 @@ entities:
         description: MDN id in EPIC
       - name: family_numr
         label-nl: familie_numr
-      - name: test_date
-        label-nl: aanvraagdatum
-        description: date of request
-        description-nl: datum van aanvraag
-        dataType: date
-      - name: test_code
-        label-nl: testcode
-        description: analysis in Adlas (NX...)
-        description-nl: analyse in Adlas (NX...)
+      # - name: test_date
+      #   label-nl: aanvraagdatum
+      #   description: date of request
+      #   description-nl: datum van aanvraag
+      #   dataType: date
+      # - name: test_code
+      #   label-nl: testcode
+      #   description: analysis in Adlas (NX...)
+      #   description-nl: analyse in Adlas (NX...)
       - name: dna_numr
       - name: lab_indication
         label-nl: lab_indicatie
@@ -69,6 +69,12 @@ entities:
         label-nl: fenotype 
         # dataType: xref
         # refEntity: cosasrefs_diagnosis
+      - name: biological_sex
+        label-nl: biologisch_geslacht
+      - name: relationship
+        label-nl: relatie
+        description: the relationship between family members
+        description-nl: de verhouding tussen familieleden
       - name: requester
         label-nl: aanvrager
       - name: affected_status
@@ -100,13 +106,13 @@ entities:
         label-nl: test
         description: experiment type (NGS/Targeted-Exoom, Array/SNP)
         description-nl: Soort experiment (NGS/Targeted-Exoom, Array/SNP)
-      - name: sequencer
-      - name: cap_kit
+      - name: capture_kit
         description: capturing kit
       - name: prep_kit
         description: DNA prep kit
       - name: expr_numr
-        description: sequence run / projectnummer
+        description: sequence run, project number
+        description-nl: sequence run, projectnummer
       - name: design_numr
       - name: molgenis_id
         dataType: string
@@ -124,12 +130,12 @@ entities:
       - name: test_code
         label-nl: testcode
       - name: dna_numr
-      - name: test
-        label-nl: test
-        description: experiment type (NGS/Targeted-Exoom, Array/SNP)
-        description-nl: Soort experiment (NGS/Targeted-Exoom, Array/SNP)
-      - name: requester
-        label-nl: aanvrager
+      # - name: test
+      #   label-nl: test
+      #   description: experiment type (NGS/Targeted-Exoom, Array/SNP)
+      #   description-nl: Soort experiment (NGS/Targeted-Exoom, Array/SNP)
+      # - name: requester
+      #   label-nl: aanvrager
       - name: filename
       - name: filetype
       - name: created
