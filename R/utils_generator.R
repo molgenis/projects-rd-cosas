@@ -23,24 +23,26 @@ generator <- R6::R6Class(,
         #' @param n the number of records to generate
         initialize = function(
             n = 100,
-            n_samples = 1
+            n_samples = 1,
+            patient_visits = 1
         ) {
-            private$n <- n
+            private$params$n <- n
 
             if (patient_visits > 5 | patient_visits < 1) {
                 stop("Number of patient samples must be less than 5")
             }
 
             p <- c(0.3, 0.3, 0.25, 0.10, 0.05)
-            private$n_samples <- patient_visits
-            private$n_samples_prob <- p[1:patient_visits]
+            private$params$n_samples <- patient_visits
+            private$params$n_samples_prob <- p[1:patient_visits]
         },
 
         #' @title randomize data
         random_dataset = function() {
-            self$data$ids <- private$rand_patient_id(n = private$n)
+            self$data$ids <- private$rand_patient_id(n = private$params$n)
             self$data$patients <- private$build_patient_table()
             self$data$samples <- private$build_samples_table()
+            self$data$labinfo <- private$build_labinfo_table()
             self$data$files <- private$build_files_table()
         }
     ),
@@ -70,7 +72,7 @@ generator <- R6::R6Class(,
                 "EXOOM", # "targeted exoom",
                 "5GPM" # "DNA snel diagnostiek"
             ),
-            lab_indicatie = c(
+            lab_incidation = c(
                 "DI", #"Diagnostisch",
                 "DR", #"Dragerschap",
                 "INF", #"Informatief",
@@ -94,11 +96,11 @@ generator <- R6::R6Class(,
                     "bam.bai", "merged.dedup.bam.bai",
                     "cram", "merged.dedup.bam.cram",
                     "cram.bai", "merged.dedup.bam.cram.crai"
-                ),
-                snp = tibble::tribble(
-                    ~format, ~ext,
-                    ""
-                )
+                )#,
+                # snp = tibble::tribble(
+                #     ~format, ~ext,
+                #     ""
+                # )
             )
         ),
 
@@ -143,39 +145,49 @@ generator <- R6::R6Class(,
                 dplyr::rename(umcg_numr = value) %>%
                 dplyr::mutate(
                     # UMCG internal ID - Family ID
-                    familie_numr = private$rand_numeric_id(n = private$n),
+                    family_numr = private$rand_numeric_id(n = private$params$n),
                     # dob
-                    geboortedatum = as.Date(
+                    dob = as.Date(
                         purrr::rdunif(
-                            n = private$n,
+                            n = private$params$n,
                             a = as.integer(private$params$dob[1]),
                             b = as.integer(private$params$dob[2])
                         ),
                         origin = "1970-01-01"
                     ),
-                    # age - age today
-                    leeftijd = round(
+                    # # age - age today
+                    age = round(
                         as.numeric(
-                            ((Sys.Date() - geboortedatum) / 365.25)
+                            ((Sys.Date() - dob) / 365.25)
                         ),
                         digits = 2
                     ),
                     # sex
-                    geslacht = sample(
+                    biological_sex = sample(
                         x = private$params$sex,
-                        size = private$n,
+                        size = private$params$n,
                         replace = TRUE
                     ),
-                    overleden = dplyr::case_when(
-                        leeftijd >= 65 ~ sample(
+                    is_deceased = dplyr::case_when(
+                        age >= 65 ~ sample(
                             x = c("ja", "nee", "not.collected", "temp.unavailable"),
                             size = 1,
                             replace = TRUE,
                             prob = c(0.3, 0.5, 0.1, 0.1)
                         ),
                         TRUE ~ "nee"
+                    ),
+                    consanguinity = "nee",
+                    date_registered = as.Date(
+                        purrr::rdunif(
+                            n = length(private$params$n),
+                            a = as.integer(as.Date("2017-01-01")),
+                            b = as.integer(as.Date("2021-01-01"))
+                        ),
+                        origin = "1970-01-01"
                     )
-                )
+                ) %>%
+                select(-age)
         },
 
         # create samples tables based on the params n (total patients) and
@@ -183,142 +195,105 @@ generator <- R6::R6Class(,
         build_samples_table = function() {
             d <- purrr::map(self$data$ids, function(.x) {
                 i <- sample(
-                    x = 1:private$n_samples,
+                    x = 1:private$params$n_samples,
                     size = 1,
-                    prob = private$n_samples_prob
+                    prob = private$params$n_samples_prob
                 )
                 time <- data.frame(
                     umcg_numr = .x,
-                    aanvraagdatum = as.Date(
-                        purrr::rdunif(
-                            n = i,
-                            a = as.integer(as.Date("2017-01-01")),
-                            b = as.integer(as.Date("2021-01-01"))
-                        ),
-                        origin = "1970-01-01"
+                    family_numr = self$data$patients$family_numr[
+                        self$data$patients$umcg_numr == .x
+                    ],
+                    dna_numr = paste0(
+                        "DNA-",
+                        private$rand_numeric_id(n = i, length = 6)
                     ),
-                    analyse = paste0(
+                    test_code = paste0(
                         "NX",
                         private$rand_numeric_id(n = i, length = 3)
                     ),
-                    dna_numr = paste0(
-                        "DNA",
-                        private$rand_numeric_id(n = i, length = 6)
-                    ),
-                    lab_indicatie = sample(
-                        x = private$params$lab_indicatie,
+                    lab_indication = sample(
+                        x = private$params$lab_incidation,
                         size = 1,
                         replace = TRUE,
                         prob = c(0.95, 0.2, 0.1, 0.1)
                     ),
-                    aandoening = sample(
-                        x = private$params$hpo_terms,
+                    sample_material = "bloed",
+                    phenotype = sample(
+                        x = c("OA", "NVT"),
                         size = 1,
                         replace = TRUE
                     ),
-                    advisevraag_uitslagcode = sample(
-                        x = private$params$mutation,
+                    biological_sex = self$data$patients$biological_sex[
+                        self$data$patients$umcg_numr == .x
+                    ],
+                    relationship = "patient",
+                    requester = "S. Canner",
+                    affected_status = sample(
+                        x = c("ja", "nee"),
                         size = 1,
                         replace = TRUE,
                         prob = c(0.65, 0.35)
                     )
                 )
-
-                # for each visit, generate a random ID and generate visit
-                # number
-                time %>%
-                    dplyr::group_by(umcg_numr) %>%
-                    dplyr::arrange(aanvraagdatum) %>%
-                    dplyr::mutate(
-                        bezoek_numr = private$rand_numeric_id(n = NROW(time)),
-                        bezoek = seq_len(length(aanvraagdatum))
-                    ) %>%
-                    dplyr::ungroup() %>%
-                    dplyr::select(
-                        umcg_numr,
-                        aanvraagdatum,
-                        bezoek_numr,
-                        bezoek,
-                        dplyr::everything()
-                    )
             })
 
             d <- dplyr::bind_rows(d)
-
-            # bind date entered into 'system'
-            self$data$patients <- d %>%
-                dplyr::group_by(umcg_numr) %>%
-                dplyr::filter(bezoek == 1) %>%
-                dplyr::select(umcg_numr, aanvraagdatum) %>%
-                dplyr::left_join(g$data$patients, ., by = "umcg_numr") %>%
-                dplyr::mutate(
-                    aanvraagdatum = dplyr::case_when(
-                        !is.null(aanvraagdatum) ~ as.Date(
-                            aanvraagdatum + sample(
-                                x = 0:2,
-                                size = 1,
-                                prob = c(0.55, 0.35, 0.1)
-                            )
-                        )
-                    )
-                ) %>%
-                dplyr::rename(invoerdatum = aanvraagdatum)
-
             d
+        },
+
+        build_labinfo_table = function() {
+            self$data$samples %>%
+                dplyr::select(
+                    umcg_numr, family_numr, dna_numr, test_code
+                ) %>%
+                dplyr::left_join(
+                    self$data$patients %>%
+                        dplyr::select(umcg_numr, test_date = date_registered),
+                    .,
+                    by = "umcg_numr"
+                ) %>%
+                mutate(
+                    test = sample(
+                        x = c("Analyse Exoom; open exoom", "Analyse Exoom; panel OA"),
+                        size = length(umcg_numr),
+                        replace = TRUE
+                    ),
+                    capture_kit = "QXTR_580-Exoom_v3,Agilent/QXTExoom_v3",
+                    prep_kit = "Agilent SureSelect",
+                    expr_numr = "QXTR580",
+                    design_numr = "S07604514"
+                )
         },
 
         # generate files table
         build_files_table = function() {
             self$data$samples %>%
                 dplyr::select(
-                    umcg_numr, aanvraagdatum, bezoek_numr, analyse, dna_numr
+                    umcg_numr, family_numr, dna_numr
                 ) %>%
                 dplyr::left_join(
                     self$data$patients %>%
-                        dplyr::select(umcg_numr, familie_numr),
+                        dplyr::select(umcg_numr, date_registered),
                     .,
                     by = "umcg_numr"
                 ) %>%
                 dplyr::mutate(
-                    soort_experiment = sample(
-                        x = private$params$experiment,
+                    filetype = sample(
+                        x = private$params$filetypes$ngs$format,
                         size = length(umcg_numr),
                         replace = TRUE
                     ),
-                    design_numr = "AllExonV7",
-                    expr_numr = "HSR347A",
-
-                    filetype = dplyr::case_when(
-                        soort_experiment == "NGS targeted Exoom" ~ sample(
-                            x = private$params$filetypes$ngs$format,
-                            size = length(soort_experiment)
-                        ),
-                        soort_experiment == "SNP" ~ sample(
-                            x = private$params$filetypes$snp$format,
-                            size = soort_experiment
-                        )
+                    extension = sample(
+                        x = private$params$filetypes$ngs$ext,
+                        size = length(umcg_numr),
+                        replace = TRUE
                     ),
-
-                    extension = dplyr::case_when(
-                        soort_experiment == "NGS targeted Exoom" ~
-                            private$params$filetypes$ngs$ext[
-                                private$params$filetypes$ngs$format == filetype
-                            ],
-                        soort_experiment == "SNP" ~
-                            private$params$filetypes$snp$ext[
-                                private$params$filetypes$snp$format == filetype
-                            ],
-                    ),
-
-                    # file name - missing onderzoeksnr
-                    filenaam = paste0(
+                    filename = paste0(
                         paste(
-                            analyse,
-                            familie_numr,
+                            family_numr,
                             umcg_numr,
                             dna_numr,
-                            expr_numr,
-                            design_numr,
                             sep = "_"
                         ),
                         ".", extension

@@ -10,7 +10,8 @@
 #' ////////////////////////////////////////////////////////////////////////////
 
 
-#' devtools::load_all()
+suppressPackageStartupMessages(library(dplyr))
+source("R/utils_generator.R")
 
 # remove existing files
 invisible(
@@ -26,11 +27,12 @@ invisible(
 
 
 #' build new data
-g <- generator$new(n = 100, patient_visits = 1)
+g <- generator$new(n = 25)
 g$random_dataset()
 g$data
 
 # save data
-readr::write_tsv(g$data$patients, "data/cosas/cosas_patients.tsv")
-readr::write_tsv(g$data$samples, "data/cosas/cosas_samples.tsv")
-readr::write_tsv(g$data$analysis, "data/cosas/cosas_analysis.tsv")
+readr::write_tsv(g$data$patients, "data/test/cosas_patients.tsv")
+readr::write_tsv(g$data$samples, "data/test/cosas_samples.tsv")
+readr::write_tsv(g$data$labinfo, "data/test/cosas_labinfo.tsv")
+readr::write_tsv(g$data$files, "data/test/cosas_files.tsv")
