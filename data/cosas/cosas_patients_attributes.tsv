@@ -1,8 +1,0 @@
-name	description	dataType	idAttribute	nillable	entity	label-nl	refEntity	description-nl	auto
-umcg_numr	MDN id in EPIC	string	TRUE	FALSE	patients				
-family_numr		string	FALSE	TRUE	patients	familie_numr			
-dob		date	FALSE	TRUE	patients	geboortedatum			
-biological_sex		string	FALSE	TRUE	patients	biologisch_geslacht			
-is_deceased		xref	FALSE	TRUE	patients	overleden	cosasmaps_inclusionStatus		
-consanguinity		string	FALSE	TRUE	patients	consanguiniteit			
-date_registered	first time time seen in the clinic	date	FALSE	TRUE	patients	invoerdatum		eerst op poli gezien	

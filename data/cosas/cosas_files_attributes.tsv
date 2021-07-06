@@ -1,9 +1,0 @@
-name	description	dataType	idAttribute	nillable	entity	label-nl	refEntity	description-nl	auto
-umcg_numr	MDN id in EPIC	string	FALSE	TRUE	files				
-family_numr		string	FALSE	TRUE	files	familie_numr			
-test_code		string	FALSE	TRUE	files	testcode			
-dna_numr		string	FALSE	TRUE	files				
-filename		string	FALSE	TRUE	files				
-filetype		string	FALSE	TRUE	files				
-created		date	FALSE	TRUE	files				
-molgenis_id		string	TRUE	FALSE	files				TRUE
