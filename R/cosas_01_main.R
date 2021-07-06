@@ -20,25 +20,15 @@ source("R/utils_write_emx.R")
 
 #' ~ 0 ~
 #' remove existing files from `data/cosas`
-invisible(
-    sapply(
-        list.files(
-            path = "data/cosas",
-            full.names = TRUE,
-            pattern = "((cosas_[a-zA-Z])|(sys_[a-zA-Z])\\.tsv)",
-        ),
-        file.remove
-    )
-)
-
+invisible(sapply(list.files("emx/cosas/", full.names = TRUE), file.remove))
 
 #' ~ 1 ~
 #' convert and write
-model <- yml_to_emx(path = "data/_emx/cosas.yml")
+model <- yml_to_emx(path = "emx/src/cosas.yml", attr_entity_has_pkg = TRUE)
 model$attributes <- model$attributes %>%
     dplyr::rename(
         `label-nl` = label.nl,
         `description-nl` = description.nl
     )
 model$packages <- model$packages %>% dplyr::rename(id = name)
-write_emx(model = model, out_dir = "data/cosas")
+write_emx(model = model, out_dir = "emx/cosas", file_gets_pkg_name = TRUE)

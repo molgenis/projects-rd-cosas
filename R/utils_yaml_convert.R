@@ -35,7 +35,7 @@ yml_to_emx <- function(path, attr_entity_has_pkg = FALSE, ...) {
             data[["attributes"]],
             pull_attributes(
                 entity = entity,
-                pkg_name = data$package$name,
+                pkg_name = data$packages$name,
                 attr_entity_has_pkg = attr_entity_has_pkg
             )
         )
@@ -81,6 +81,22 @@ yml_to_emx <- function(path, attr_entity_has_pkg = FALSE, ...) {
 #' @noRd
 pull_pkg <- function(yaml) {
     d <- yaml[names(yaml) %in% emx[["packages"]][["names"]]]
+
+    txt <- c("(")
+    if ("version" %in% names(yaml)) {
+        txt <- c(txt, paste0("v", yaml["version"]))
+    }
+
+    if ("date" %in% names(yaml)) {
+        if (length(txt) == 1) {
+            txt <- c(txt, yaml["date"])
+        } else {
+            txt <- c(txt, ", ", yaml["date"])
+        }
+    }
+
+    d$description <- paste0(d$description, " ", paste0(txt, collapse = ""), ")")
+
     data.frame(d)
 }
 
@@ -99,10 +115,9 @@ pull_attributes <- function(entity, pkg_name, attr_entity_has_pkg) {
     if (length(entity[["attributes"]])) {
         for (n in seq_len(length(entity[["attributes"]]))) {
             df <- data.frame(entity[["attributes"]][n])
+            df$entity <- paste0(entity[["name"]])
             if (attr_entity_has_pkg) {
-                df$entity <- paste0(pkg_name, "_", entity[["name"]])
-            } else {
-                df$entity <- paste0(entity[["name"]])
+                df$entity <- paste0(pkg_name, "_", df$entity)
             }
             out <- dplyr::bind_rows(out, df)
         }
