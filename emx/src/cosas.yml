@@ -1,8 +1,8 @@
 name: cosas
 label: COSAS
-description: A prototype for the COSAS database
-version: 0.2.2
-date: 2021-04-30
+description: The Catalogue of Sequence Array and Samples
+version: 0.3
+date: 2021-07-06
 defaults:
   idAttribute: false
   dataType: string
@@ -10,138 +10,320 @@ defaults:
   lookupAttribute: false
 entities:
   - name: patients
-    description: Overview about each patient
-    description-nl: Patiëntgerelateerde informatie
+    label: Patients
+    label-nl: Patiënten
+    description: Patient characteristics including family members
+    description-nl: Patiëntgerelateerde informatie met familieleden
     attributes:
       - name: umcg_numr
+        label: UMCG Number
+        label-nl: UMCG Nummer
         description: MDN id in EPIC
         dataType: string
         idAttribute: true
         nillable: false
       - name: family_numr
-        label-nl: familie_numr
+        label: Family Number
+        label-nl: Familie Nummer
       - name: dob
         dataType: date
-        label-nl: geboortedatum
-      # - name: age
-      #   label-nl: leeftijd
-      #   dataType: decimal
+        label: Date of Birth
+        label-nl: Geboortedatum
       - name: biological_sex
-        label-nl: biologisch_geslacht
-      - name: is_deceased
-        label-nl: overleden
+        label: Bioloigical Sex
+        label-nl: Biologisch Geslacht
+        dataType: categorical
+        refEntity: cosasmaps_sex
+      - name: maternal_id
+        label: Maternal ID
+        label-nl: Maternale ID  
+      - name: paternal_id
+        label: Paternal ID
+        label-nl: Paternal ID
+      - name: linked_family_ids
+        label: Linked Family IDs
+        label-nl: Gekoppelde Familie-ID's
         dataType: xref
-        refEntity: cosasmaps_inclusionStatus
+        refEntity: cosas_patients
+      - name: date_deceased
+        label: Date of Death
+        label-nl: Overlijdensdatum
+        dataType: date
       - name: consanguinity
+        label: Consanguinity
         label-nl: consanguiniteit
-      - name: date_registered
-        label-nl: invoerdatum
-        description: first time time seen in the clinic
+      - name: is_fetus
+        label: Is fetus
+        label-nl: Is foetus
+        dataType: bool
+        defaultValue: false
+      - name: date_first_consult
+        label: First Consult Date
+        label-nl: Datum eerst consult
+        description: first time seen in the clinic
         description-nl: eerst op poli gezien
         dataType: date
-  - name: samples
-    description: Information about samples
-    description-nl: Samplemateriaal
+  - name: diagnoses
+    label: Diagnoses
+    label-nl: Diagnoses
+    description: Diagnoses and certainty of diagnoses per patient
+    description-nl: Diagnoses en zekerheid van diagnoses per patiënt
     attributes:
       - name: umcg_numr
+        label: UMCG Number
+        label-nl: UMCG Nummer
         description: MDN id in EPIC
+        nillable: false
+        dataType: xref
+        refEntity: cosas_patients
       - name: family_numr
-        label-nl: familie_numr
-      # - name: test_date
-      #   label-nl: aanvraagdatum
-      #   description: date of request
-      #   description-nl: datum van aanvraag
-      #   dataType: date
-      # - name: test_code
-      #   label-nl: testcode
-      #   description: analysis in Adlas (NX...)
-      #   description-nl: analyse in Adlas (NX...)
+        label: Family Number
+        label-nl: Familie Nummer
+      - name: primary_dx
+        label: Primary Diagnoses
+        label-nl: Primaire diagnose
+        dataType: mref
+        refEntity: cosasrefs_diagnoses
+        nillable: true
+      - name: primary_dx_certainty
+        label: Certainty of the primary diagnosis
+        label-nl: Zekerheid van de primaire diagnose
+        dataType: categorical
+        refEntity: cosasrefs_diagnoses_certainty
+        nillable: true
+      - name: extra_dx
+        label: Additional diagnoses
+        label-nl: Bijkomende diagnoses
+        dataType: mref
+        refEntity: cosasrefs_diagnoses
+        nillable: true
+      - name: extra_dx_certainty
+        label: Certainty of the additional diagnosis
+        label-nl: Zekerheid van de bijkomende diagnose
+        dataType: categorical
+        refEntity: cosasrefs_diagnoses_certainty
+        nillable: true
+      - name: ond_id
+        label: Public information research ID
+        label-nl: Voorlichtingsonderzoek
+        dataType: string
+        nillable: true
+      - name: id
+        label: id
+        label-nl: id
+        description: auto generated ID
+        description-nl: automatisch gegenereerde ID
+        idAttribute: true
+        auto: true
+  - name: samples
+    label: Samples
+    label-nl: Samples
+    description: Sample metadata including tests performed and results
+    description-nl: Metagegevens over het monster, inclusief uitgevoerde tests en resultaten
+    attributes:
+      - name: umcg_numr
+        label: UMCG Number
+        label-nl: UMCG Nummer
+        description: MDN id in EPIC
+        nillable: false
+        dataType: xref
+        refEntity: cosas_patients
+      - name: family_numr
+        label: Family Number
+        label-nl: Familie Nummer
+      - name: request_id
+        label: Request ID
+        label-nl: Aanvraag ID 
+      - name: sample_id
+        label: Sample ID
+        label-nl: Monster ID
       - name: dna_numr
+        label: DNA number
+        label-nl: DNA nummer
+      - name: material_type
+        label: Material type
+        label-nl: Materiaalsoort
       - name: lab_indication
-        label-nl: lab_indicatie
+        label: Lab Indication
+        label-nl: Lab indicatie
         description: e.g. DI Diagnostisch / DR Dragerschap / INF Informatief / R Research
         description-nl: b.v. DI Diagnostisch / DR Dragerschap / INF Informatief / R Research
-        dataType: xref
-        refEntity: cosasrefs_labIndications
-      - name: sample_material
-        label-nl: sample_materiaal
-      - name: phenotype 
-        label-nl: fenotype 
         # dataType: xref
-        # refEntity: cosasrefs_diagnosis
-      - name: biological_sex
-        label-nl: biologisch_geslacht
-      - name: relationship
-        label-nl: relatie
-        description: the relationship between family members
-        description-nl: de verhouding tussen familieleden
-      - name: requester
-        label-nl: aanvrager
-      - name: affected_status
-        label-nl: advisevraag_uitslagcode
-      - name: molgenis_id
-        dataType: string
-        auto: true
+        # refEntity: cosasrefs_lab_indications
+      - name: test_id
+        label: Test ID
+        label-nl: Test-ID
+      - name: test_code
+        label: Test Code
+        label-nl: Testcode
+      - name: test_description
+        label: Test description
+        label-nl: Testomschrijving
+      - name: test_date
+        label: Test date
+        label-nl: Testdatum
+      - name: test_result
+        label: Test result
+        label-nl: Testresultaat
+      - name: test_result_status
+        label: Test result status
+        label-nl: Status testresultaat
+      - name: id
+        label: id
+        label-nl: id
+        description: auto generated ID
+        description-nl: automatisch gegenereerde ID
         idAttribute: true
-        nillable: false
-  - name: labinfo
-    description: Overview on lab procedures
-    description-nl: Labinformatie m.b.t. geproduceerde datafiles
+        auto: true
+  - name: labs_array
+    label: Labs - Array (CNV)
+    label-nl: Labs - Array (CNV)
+    description: Lab information for Array
+    description-nl: Labs informatie voor Array
     attributes:
       - name: umcg_numr
+        label: UMCG Number
+        label-nl: UMCG Nummer
         description: MDN id in EPIC
-      - name: family_numr
-        label-nl: familie_numr
-      - name: test_date
-        label-nl: aanvraagdatum
-        description: date of request
-        description-nl: datum van aanvraag
-        dataType: date
-      - name: test_code
-        label-nl: testcode
-        description: analysis in Adlas (NX...)
-        description-nl: analyse in Adlas (NX...)
-      - name: dna_numr
-      - name: test
-        label-nl: test
-        description: experiment type (NGS/Targeted-Exoom, Array/SNP)
-        description-nl: Soort experiment (NGS/Targeted-Exoom, Array/SNP)
-      - name: capture_kit
-        description: capturing kit
-      - name: prep_kit
-        description: DNA prep kit
-      - name: expr_numr
-        description: sequence run, project number
-        description-nl: sequence run, projectnummer
-      - name: design_numr
-      - name: molgenis_id
-        dataType: string
-        auto: true
-        idAttribute: true
         nillable: false
+        dataType: xref
+        refEntity: cosas_patients
+      - name: family_numr
+        label: Family Number
+        label-nl: Familie Nummer
+      - name: request_id
+        label: Request ID
+        label-nl: Aanvraag ID 
+      - name: dna_numr
+        label: DNA number
+        label-nl: DNA nummer
+      - name: test_id
+        label: Test ID
+        label-nl: Test-ID
+      - name: test_code
+        label: Test Code
+        label-nl: Testcode
+      - name: test_description
+        label: Test description
+        label-nl: Testomschrijving
+      - name: test_date
+        label: Test date
+        label-nl: Testdatum
+      - name: test_result
+        label: Test Result
+        label-nl: Testresultaat
+      - name: id
+        label: id
+        label-nl: id
+        description: auto generated ID
+        description-nl: automatisch gegenereerde ID
+        idAttribute: true
+        auto: true
+  - name: labs_ngs
+    label: Labs - NGS
+    label-nl: Labs - NGS
+    description: Lab information for NGS
+    description-nl: Labs informatie voor NGS
+    attributes:
+      - name: umcg_numr
+        label: UMCG Number
+        label-nl: UMCG Nummer
+        description: MDN id in EPIC
+        nillable: false
+        dataType: xref
+        refEntity: cosas_patients
+      - name: family_numr
+        label: Family Number
+        label-nl: Familie Nummer
+      - name: request_id
+        label: Request ID
+        label-nl: Aanvraag ID 
+      - name: dna_numr
+        label: DNA number
+        label-nl: DNA nummer
+      - name: test_id
+        label: Test ID
+        label-nl: Test-ID
+      - name: test_code
+        label: Test Code
+        label-nl: Testcode
+      - name: test_description
+        label: Test description
+        label-nl: Testomschrijving
+      - name: test_date
+        label: Test date
+        label-nl: Testdatum
+      - name: test_result
+        label: Test Result
+        label-nl: Testresultaat
+      - name: sequencer
+        label: Sequencer
+        label-nl: Sequencer
+      - name: prep_kit
+        label: Prep Kit
+        label-nl: Prep Kit
+      - name: sequencing_type
+        label: Sequencing type
+        label-nl: Sequencing Type
+      - name: capturing_kit
+        label: Capturing Kit
+        label-nl: Capturing Kit
+      - name: batch
+        label: Batch
+        label-nl: Batch
+      - name: genome_build
+        label: Genome Build
+        label-nl: Genome Build
+      - name: id
+        label: id
+        label-nl: id
+        description: auto generated ID
+        description-nl: automatisch gegenereerde ID
+        idAttribute: true
+        auto: true
   - name: files
     description: Metadata on files
     description-nl: Datafile informatie
     attributes:
       - name: umcg_numr
+        label: UMCG Number
+        label-nl: UMCG Nummer
         description: MDN id in EPIC
-      - name: family_numr
-        label-nl: familie_numr
-      - name: test_code
-        label-nl: testcode
-      - name: dna_numr
-      # - name: test
-      #   label-nl: test
-      #   description: experiment type (NGS/Targeted-Exoom, Array/SNP)
-      #   description-nl: Soort experiment (NGS/Targeted-Exoom, Array/SNP)
-      # - name: requester
-      #   label-nl: aanvrager
-      - name: filename
-      - name: filetype
-      - name: created
-        dataType: date
-      - name: molgenis_id
-        dataType: string
-        auto: true
-        idAttribute: true
         nillable: false
+        dataType: xref
+        refEntity: cosas_patients
+      - name: family_numr
+        label: Family Number
+        label-nl: Familie Nummer
+      - name: dna_numr
+        label: DNA number
+        label-nl: DNA nummer
+      - name: test_id
+        label: Test ID
+        label-nl: Test-ID
+      - name: test_code
+        label: Test Code
+        label-nl: Testcode
+      - name: filename
+        label: Filename
+        label-nl: Filenaam
+      - name: filepath
+        label: filepath
+        label-nl: filepath
+      - name: filetype
+        label: File type
+        label-nl: filetype
+      - name: md5
+        label: Checksum
+        label-nl: Checksum
+      - name: created
+        label: Date created
+        label-nl: Datum aangemaakt
+        dataType: date
+      - name: id
+        label: id
+        label-nl: id
+        description: auto generated ID
+        description-nl: automatisch gegenereerde ID
+        idAttribute: true
+        auto: true

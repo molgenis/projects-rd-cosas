@@ -1,13 +1,17 @@
 name: cosasrefs
-label: COSAS Reference
-description: Reference tables for the COSAS database
-version: 0.0.1
-date: 2021-03-16
+label: COSAS References
+description: Reference tables for COSAS
+version: 0.1
+date: 2021-07-06
+
+# set default attribute values
 defaults:
   idAttribute: false
   dataType: string
   nillable: true
   lookupAttribute: false
+
+# define reference entities
 entities:
   - name: labIndications
     description: Lookup entity for lab indications
