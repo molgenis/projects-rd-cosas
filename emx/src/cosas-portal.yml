@@ -1,0 +1,194 @@
+name: cosasportal
+label: COSAS Portal
+description: Staging tables for raw data extracts
+version: 0.9
+date: 2021-07-07
+defaults:
+  idAttribute: false
+  dataType: string
+  nillable: true
+  lookupAttribute: false
+entities:
+  - name: patients
+    label: Patients
+    label-nl: Patiënten
+    description: Raw metadata for patients and families
+    description-nl: Ruwe metadata voor patiënten en families
+    attributes:
+      - name: UMCG_nummer
+      - name: Overlijdensdatum
+      - name: Familienummer
+      - name: Geboortedatum
+      - name: Geslacht
+      - name: Familieleden
+      - name: UMCG_moeder
+      - name: UMCG_vader
+      - name: processed
+        label: processed
+        label-nl: processed
+        dataType: bool
+        defaultValue: false
+      - name: id
+        description: auto generated Molgenis ID
+        description-nl: automatisch gegenereerde Molgenis-ID
+        idAttribute: true
+        auto: true
+        nillable: false
+        lookupAttribute: true
+  - name: diagnoses
+    label: Diagnoses
+    label-nl: Diagnoses
+    description: Raw diagnostic metadata
+    description-nl: Ruwe diagnostiek metadata
+    attributes:
+      - name: UMCG_NUMBER
+      - name: HOOFDDIAGNOSE
+      - name: HOOFDDIAGNOSE_ZEKERHEID
+      - name: EXTRADIAGNOSE
+      - name: EXTRADIAGNOSE_ZEKERHEID
+      - name: DATUM_EERSTE_CONSULT
+      - name: OND_ID
+      - name: id
+        description: auto generated Molgenis ID
+        description-nl: automatisch gegenereerde Molgenis-ID
+        idAttribute: true
+        auto: true
+        nillable: false
+        lookupAttribute: true
+  - name: samples
+    label: Samples
+    label-nl: Samples
+    description: Raw data table for samples
+    description-nl: Ruwe datatabel voor samples
+    attributes:
+      - name: UMCG_NUMMER
+      - name: ADVVRG_ID
+      - name: MONSTER_ID
+      - name: TEST_CODE
+      - name: TEST_OMS
+      - name: DNA_NUMMER
+      - name: MATERIAAL
+      - name: UITSLAG_TEKST
+      - name: UITSLAGCODE
+      - name: AANDOENING_CODE
+      - name: id
+        description: auto generated Molgenis ID
+        description-nl: automatisch gegenereerde Molgenis-ID
+        idAttribute: true
+        auto: true
+        nillable: false
+        lookupAttribute: true
+  - name: labs_array_adlas
+    label: Labs array ADLAS
+    label-nl: Labs array ADLAS
+    description: Raw array metadata from ADLAS
+    description-nl: Ruwe array metadata van ADLAS
+    attributes:
+      - name: UMCG_NUMBER
+      - name: ADVVRG_ID
+      - name: DNA_NUMMER
+      - name: TEST_ID
+      - name: TEST_CODE
+      - name: TEST_OMS
+      - name: SGA_CHROMOSOME_REGION
+      - name: SGA_CLASSIFICATION
+      - name: SGA_CYTOBAND
+      - name: SGA_DECIPHER_SYNDROMES
+      - name: SGA_DGV_SIMILARITY
+      - name: SGA_EVENT
+      - name: SGA_EVIDENCE_SCORE
+      - name: SGA_HMRELATED_GENES
+      - name: SGA_HMRELATED_GENES_COUNT
+      - name: SGA_LENGTH
+      - name: SGA_MOSAIC
+      - name: SGA_MOSAIC_PERCENTAGE
+      - name: SGA_NO_OF_PROBES
+      - name: SGA_NOTES
+      - name: SGA_OMIM_MORBID_MAP
+      - name: SGA_OMIM_MORBIDMAP_COUNT
+      - name: SGA_OVERERVING
+      - name: SGA_PROBE_MEDIAN
+      - name: SGA_REFSEQ_CODING_GENES
+      - name: SGA_REFSEQ_CODING_GENES_COUNT
+      - name: SGA_REGIONS_UMCG_CNV_NL_COUNT
+      - name: SGA_SIMILAR_PREVIOUS_CASES
+      - name: id
+        description: auto generated Molgenis ID
+        description-nl: automatisch gegenereerde Molgenis-ID
+        idAttribute: true
+        auto: true
+        nillable: false
+        lookupAttribute: true
+  - name: labs_array_darwin
+    label: Labs array Darwin
+    label-nl: Labs array Darwin
+    description: Raw array metadata from Darwin
+    description-nl: Ruwe array metadata van Darwin
+    attributes:
+      - name: UmcgNr
+      - name: TestId
+      - name: TestDatum
+      - name: Indicatie
+      - name: BatchNaam
+      - name: CallRate
+      - name: StandaardDeviatie
+      - name: id
+        description: auto generated Molgenis ID
+        description-nl: automatisch gegenereerde Molgenis-ID
+        idAttribute: true
+        auto: true
+        nillable: false
+        lookupAttribute: true
+  - name: labs_ngs_adlas
+    label: Labs NGS Adlas
+    label-nl: Labs NGS Adlas
+    description: Raw NGS data from ADLAS
+    description-nl: Ruwe NGS data van ADLAS
+    attributes:
+      - name: UMCG_NUMBER
+      - name: ADVVRG_ID
+      - name: DNA_NUMMER
+      - name: TEST_ID
+      - name: TEST_CODE
+      - name: TEST_OMS
+      - name: GEN
+      - name: MUTATIE
+      - name: KLASSE
+      - name: NM_NUMMER
+      - name: LRGS_NUMMER
+      - name: AMPLICON
+      - name: ALLELFREQUENTIE
+      - name: OVERERVING
+      - name: id
+        description: auto generated Molgenis ID
+        description-nl: automatisch gegenereerde Molgenis-ID
+        idAttribute: true
+        auto: true
+        nillable: false
+        lookupAttribute: true
+  - name: labs_ngs_darwin
+    label: Labs NGS Darwin
+    label-nl: Labs NGS Darwin
+    description: Raw NSG metadata from Darwin
+    description-nl: Ruwe NSG metadata van Darwin
+    attributes:
+      - name: UmcgNr
+      - name: TestId
+      - name: TestDatum
+      - name: Indicatie
+      - name: Sequencer
+      - name: PrepKit
+      - name: SequencingType
+      - name: SeqType
+      - name: CapturingKit
+      - name: BatchNaam
+      - name: GenomeBuild
+      - name: CallRate
+      - name: StandaardDeviatie
+      - name: id
+        description: auto generated Molgenis ID
+        description-nl: automatisch gegenereerde Molgenis-ID
+        idAttribute: true
+        auto: true
+        nillable: false
+        lookupAttribute: true

@@ -1,8 +1,8 @@
 name: cosas
 label: COSAS
 description: The Catalogue of Sequence Array and Samples
-version: 0.3
-date: 2021-07-06
+version: 0.9
+date: 2021-07-07
 defaults:
   idAttribute: false
   dataType: string
@@ -33,7 +33,7 @@ entities:
         label: Bioloigical Sex
         label-nl: Biologisch Geslacht
         dataType: categorical
-        refEntity: cosasmaps_sex
+        refEntity: cosasrefs_phenotypic_sex
       - name: maternal_id
         label: Maternal ID
         label-nl: Maternale ID  
@@ -89,7 +89,7 @@ entities:
         label: Certainty of the primary diagnosis
         label-nl: Zekerheid van de primaire diagnose
         dataType: categorical
-        refEntity: cosasrefs_diagnoses_certainty
+        refEntity: cosasrefs_diagnostic_certainty
         nillable: true
       - name: extra_dx
         label: Additional diagnoses
@@ -101,7 +101,7 @@ entities:
         label: Certainty of the additional diagnosis
         label-nl: Zekerheid van de bijkomende diagnose
         dataType: categorical
-        refEntity: cosasrefs_diagnoses_certainty
+        refEntity: cosasrefs_diagnostic_certainty
         nillable: true
       - name: ond_id
         label: Public information research ID
@@ -146,19 +146,15 @@ entities:
       - name: lab_indication
         label: Lab Indication
         label-nl: Lab indicatie
-        description: e.g. DI Diagnostisch / DR Dragerschap / INF Informatief / R Research
-        description-nl: b.v. DI Diagnostisch / DR Dragerschap / INF Informatief / R Research
-        # dataType: xref
-        # refEntity: cosasrefs_lab_indications
+        dataType: xref
+        refEntity: cosasrefs_lab_indications
+        nillable: true
       - name: test_id
         label: Test ID
         label-nl: Test-ID
-      - name: test_code
-        label: Test Code
-        label-nl: Testcode
-      - name: test_description
-        label: Test description
-        label-nl: Testomschrijving
+        dataType: xref
+        refEntity: cosasrefs_test_codes
+        nillable: true
       - name: test_date
         label: Test date
         label-nl: Testdatum
@@ -168,6 +164,12 @@ entities:
       - name: test_result_status
         label: Test result status
         label-nl: Status testresultaat
+      - name: disorder_code
+        label: Disorder code
+        label-nl: Aandoening code
+        dataType: xref
+        refEntity: cosasrefs_condition_codes
+        nillable: true
       - name: id
         label: id
         label-nl: id
@@ -200,12 +202,9 @@ entities:
       - name: test_id
         label: Test ID
         label-nl: Test-ID
-      - name: test_code
-        label: Test Code
-        label-nl: Testcode
-      - name: test_description
-        label: Test description
-        label-nl: Testomschrijving
+        dataType: xref
+        refEntity: cosasrefs_test_codes
+        nillable: true
       - name: test_date
         label: Test date
         label-nl: Testdatum
@@ -244,12 +243,9 @@ entities:
       - name: test_id
         label: Test ID
         label-nl: Test-ID
-      - name: test_code
-        label: Test Code
-        label-nl: Testcode
-      - name: test_description
-        label: Test description
-        label-nl: Testomschrijving
+        dataType: xref
+        refEntity: cosasrefs_test_codes
+        nillable: true
       - name: test_date
         label: Test date
         label-nl: Testdatum
@@ -282,6 +278,8 @@ entities:
         idAttribute: true
         auto: true
   - name: files
+    label: Files
+    label-nl: Files
     description: Metadata on files
     description-nl: Datafile informatie
     attributes:
@@ -301,9 +299,9 @@ entities:
       - name: test_id
         label: Test ID
         label-nl: Test-ID
-      - name: test_code
-        label: Test Code
-        label-nl: Testcode
+        dataType: xref
+        refEntity: cosasrefs_test_codes
+        nillable: true
       - name: filename
         label: Filename
         label-nl: Filenaam
