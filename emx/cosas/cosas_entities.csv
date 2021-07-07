@@ -1,7 +1,0 @@
-name,label,label-nl,description,description-nl,package
-patients,Patients,Patiënten,Patient characteristics including family members,Patiëntgerelateerde informatie met familieleden,cosas
-diagnoses,Diagnoses,Diagnoses,Diagnoses and certainty of diagnoses per patient,Diagnoses en zekerheid van diagnoses per patiënt,cosas
-samples,Samples,Samples,Sample metadata including tests performed and results,"Metagegevens over het monster, inclusief uitgevoerde tests en resultaten",cosas
-labs_array,Labs - Array (CNV),Labs - Array (CNV),Lab information for Array,Labs informatie voor Array,cosas
-labs_ngs,Labs - NGS,Labs - NGS,Lab information for NGS,Labs informatie voor NGS,cosas
-files,,,Metadata on files,Datafile informatie,cosas
