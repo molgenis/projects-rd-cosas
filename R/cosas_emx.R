@@ -120,7 +120,10 @@ openxlsx::createWorkbook() %T>%
 #' Convert COSAS package
 
 
-remove.files(dir = "emx/cosas/")
+# remove.files(dir = "emx/cosas/")
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(magrittr))
+source("R/utils_yaml_convert.R")
 
 cosas <- yml_to_emx(
     path = "emx/src/cosas.yml",
@@ -128,7 +131,6 @@ cosas <- yml_to_emx(
 )
 
 
-# fix names
 cosas$attributes <- cosas$attributes %>%
     dplyr::rename(
         `label-nl` = label.nl,

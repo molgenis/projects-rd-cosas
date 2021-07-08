@@ -1,8 +1,8 @@
 name: cosas
 label: COSAS
 description: The Catalogue of Sequence Array and Samples
-version: 0.9
-date: 2021-07-07
+version: 0.91
+date: 2021-07-08
 defaults:
   idAttribute: false
   dataType: string
@@ -43,7 +43,7 @@ entities:
       - name: linked_family_ids
         label: Linked Family IDs
         label-nl: Gekoppelde Familie-ID's
-        dataType: xref
+        dataType: mref
         refEntity: cosas_patients
       - name: date_deceased
         label: Date of Death
@@ -143,21 +143,24 @@ entities:
       - name: material_type
         label: Material type
         label-nl: Materiaalsoort
+        dataType: xref
+        refEntity: cosasrefs_material_types
       - name: lab_indication
         label: Lab Indication
         label-nl: Lab indicatie
         dataType: xref
         refEntity: cosasrefs_lab_indications
         nillable: true
-      - name: test_id
-        label: Test ID
-        label-nl: Test-ID
+      - name: test_code
+        label: Test code
+        label-nl: Test code
         dataType: xref
         refEntity: cosasrefs_test_codes
         nillable: true
       - name: test_date
         label: Test date
         label-nl: Testdatum
+        dataType: date
       - name: test_result
         label: Test result
         label-nl: Testresultaat
@@ -208,6 +211,7 @@ entities:
       - name: test_date
         label: Test date
         label-nl: Testdatum
+        dataType: date
       - name: test_result
         label: Test Result
         label-nl: Testresultaat
@@ -249,6 +253,7 @@ entities:
       - name: test_date
         label: Test date
         label-nl: Testdatum
+        dataType: date
       - name: test_result
         label: Test Result
         label-nl: Testresultaat
