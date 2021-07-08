@@ -1,8 +1,8 @@
 name: cosasrefs
 label: COSAS References
 description: Reference tables for COSAS
-version: 0.9
-date: 2021-07-06
+version: 0.91
+date: 2021-07-08
 defaults:
   idAttribute: false
   dataType: string
@@ -50,16 +50,6 @@ entities:
       - name: description
         label: Description
         label-nl: Omschrijving
-    data:
-      - category: zeker
-        label: Zeker
-        description: ''
-      - category: niet-zeker
-        label: Niet Zeker
-        description: ''
-      - category: zeker-niet
-        label: Zeker Niet
-        description: ''
 
   # ~ cosasrefs_diagnoses ~
   # Diagnostic Codes
@@ -80,14 +70,17 @@ entities:
     description: Diagnostic codes and descriptions
     description-nl: Diagnostische codes en beschrijvingen
     attributes:
+      - name: id
+        label: ID
+        label-nl: ID
+        idAttribute: true
+        nillable: false
+        dataType: string
       - name: code
         label: Diagnosis code
         label-nl: Diagnose code
         description: Diagnostic code (e.g., 12345)
         description-nl: Diagnostische code (bijv, 12345)
-        idAttribute: true
-        nillable: false
-        dataType: string
         lookupAttribute: true
       - name: description
         label: Diagnosis description
@@ -108,13 +101,16 @@ entities:
     description: Categories for material type
     description-nl: Categoriën voor materiaaltype
     attributes:
-      - name: type
-        label: Type
-        label-nl: Type
+      - name: id
+        label: ID
+        label-nl: ID
         idAttribute: true
         nillable: false
         dataType: string
         lookupAttribute: true
+      - name: type
+        label: Type
+        label-nl: Type
   
   # ~ cosasrefs_condition_codes ~
   # Reference entity for all disorder (condition) codes
@@ -148,10 +144,9 @@ entities:
       - name: id
         label: ID
         label-nl: ID
+        lookupAttribute: true
         idAttribute: true
         nillable: false
-        dataType: string
-        lookupAttribute: true
       - name: code
         label: Code
         label-nl: Code
@@ -187,21 +182,6 @@ entities:
         label: Indication
         label-nl: Indicatie
         dataType: string
-    data:
-      - code: diagnostisch
-        indication: Diagnostisch
-      - code: dragerschap
-        indication: Dragerschap
-      - code: hematologische-maligniteiten
-        indication: Hematologische maligniteiten
-      - code: informativiteit
-        indication: Informativiteit
-      - code: opslag
-        indication: Opslag
-      - code: presymptomatisch
-        indication: Presymptomatisch
-      - code: prenataal
-        indication: Prenataal
 
   # ~ cosasrefs_phenotypic_sex ~
   - name: phenotypic_sex
