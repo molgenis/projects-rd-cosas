@@ -2,3 +2,7 @@ man/
 data/fairgenomes/*
 .DS_STORE
 data/test/*
+data
+python/__pycache__
+python/_config.yml
+molgenis_config.yml
