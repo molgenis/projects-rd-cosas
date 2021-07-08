@@ -203,7 +203,11 @@ def dict_distinct(data, key):
         seen.add(k)
     return seen
 
-
+# @title Unique Dictionaries
+# @description get unique dictionaries based on values of a named key
+# @param data list of dictionaries to filter
+# @param key attribute to used to filter
+# @return a list of dictionaries filtered
 def dict_unique(data, key):
     return [dict(key) for key in set(tuple(x.items()) for x in data)]
 
