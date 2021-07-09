@@ -1,13 +1,14 @@
 name: cosasrefs
 label: COSAS References
 description: Reference tables for COSAS
-version: 0.91
-date: 2021-07-08
+version: 0.9002
+date: 2021-07-09
 defaults:
   idAttribute: false
   dataType: string
   nillable: true
   lookupAttribute: false
+  labelAttribute: false
 
 # Reference entities
 # Define entities below and include instructions for use
@@ -35,18 +36,19 @@ entities:
     description: Categories for diagnostic certainty
     description-nl: Categoriën voor diagnostisch zekerheid
     attributes:
-      - name: category
-        label: Category
-        label-nl: Categorie
-        description: Certainty of the diagnosis
-        description-nl: Zekerheid van de diagnose
+      - name: id
+        label: ID
+        label-nl: ID
         idAttribute: true
         nillable: false
         dataType: string
+      - name: certainty
+        label: Certainty
+        label-nl: Zekerheid
+        description: Certainty of the diagnosis
+        description-nl: Zekerheid van de diagnose
         lookupAttribute: true
-      - name: label
-        label: Label
-        label-nl: Label
+        labelAttribute: true
       - name: description
         label: Description
         label-nl: Omschrijving
@@ -76,15 +78,16 @@ entities:
         idAttribute: true
         nillable: false
         dataType: string
-      - name: code
-        label: Diagnosis code
-        label-nl: Diagnose code
+      - name: cineas_code
+        label: CINEAS code
+        label-nl: CINEAS code
         description: Diagnostic code (e.g., 12345)
         description-nl: Diagnostische code (bijv, 12345)
         lookupAttribute: true
-      - name: description
-        label: Diagnosis description
-        label-nl: Diagnose beschrijvingen
+        labelAttribute: true
+      - name: cineas_description
+        label: Diagnosis
+        label-nl: Diagnose
         
   # ~ cosasrefs_material_types ~
   #
@@ -107,10 +110,11 @@ entities:
         idAttribute: true
         nillable: false
         dataType: string
+      - name: material
+        label: Material
+        label-nl: Materiaal
         lookupAttribute: true
-      - name: type
-        label: Type
-        label-nl: Type
+        labelAttribute: true
   
   # ~ cosasrefs_condition_codes ~
   # Reference entity for all disorder (condition) codes
@@ -121,19 +125,19 @@ entities:
     description: General disease codes
     description-nl: Aandoening codes
     attributes:
-      - name: code
-        label: Code
-        label-nl: Code
+      - name: id
+        label: ID
+        label-nl: ID
         idAttribute: true
         nillable: false
         dataType: string
-        lookupAttribute: true
       - name: name
         label: Name
         label-nl: Naam
-        dataType: string
+        lookupAttribute: true
+        labelAttribute: true
 
-  # ~ cosas_test_codes ~
+  # ~ cosasrefs_test_codes ~
   # Reference entity for all tests codes and descriptions
   - name: test_codes
     label: Test codes
@@ -144,17 +148,45 @@ entities:
       - name: id
         label: ID
         label-nl: ID
-        lookupAttribute: true
         idAttribute: true
         nillable: false
+        dataType: string
       - name: code
         label: Code
         label-nl: Code
-        dataType: string
+        lookupAttribute: true
+        labelAttribute: true
       - name: description
         label: Description
         label-nl: Beschrijving
+      - name: genes
+        label: Genes
+        label-nl: Genes
+        dataType: mref
+        refEntity: cosasrefs_genes_by_test
+    
+  # ~ cosasrefs_genes_by_test ~
+  # Create a reference entity where each row is a test code and a gene
+  # This entity should be linked in `cosasrefs_test_codes`
+  - name: genes_by_test
+    label: Genes by test
+    label-nl: Genen per test
+    description: List of genes by test
+    description-nl: Lijst van genen per test
+    attributes:
+      - name: id
+        label: ID
+        label-nl: ID
+        description: Test Code
+        description-nl: Test Code
+        idAttribute: true
+        nillable: false
         dataType: string
+      - name: genes
+        label: Genes
+        label-nl: Genen
+        lookupAttribute: true
+        labelAttribute: true
 
   # ~ cosasrefs_lab_indications ~
   # A reference entity for lab indications
@@ -171,17 +203,18 @@ entities:
     description: Categories for purpose of the labs
     description-nl: Categoriën voor het doel van de laboratia
     attributes:
-      - name: code
-        label: Code
-        label-nl: Code
+      - name: id
+        label: ID
+        label-nl: ID
         idAttribute: true
         nillable: false
         dataType: string
-        lookupAttribute: true
       - name: indication
         label: Indication
         label-nl: Indicatie
         dataType: string
+        lookupAttribute: true
+        labelAttribute: true
 
   # ~ cosasrefs_phenotypic_sex ~
   - name: phenotypic_sex
@@ -190,12 +223,17 @@ entities:
     description: Categories for phenotypic sex
     description-nl: Categoriën voor phenotypic geslacht
     attributes:
-        - name: value
-          label: Sex
-          label-nl: Geslacht
+        - name: id
+          label: ID
+          label-nl: ID
           idAttribute: true
           nillable: false
           dataType: string
+          lookupAttribute: true
+          labelAttribute: true
+        - name: value
+          label: COSAS Value
+          label-nl: COSAS Value
         - name: description
           label: Description
           label-nl: Omschrijving
@@ -210,13 +248,15 @@ entities:
           label-nl: iri
           dataType: hyperlink
     data:
-      - value: vrouw
+      - id: vrouw
+        value: female
         description: A biological sex quality inhering in an individual or a population that only produces gametes that can be fertilised by male gametes.
         codesystem: PATO
         code: 0000383
         iri: http://purl.obolibrary.org/obo/PATO_0000383
 
-      - value: man
+      - id: man
+        value: male
         description: A biological sex quality inhering in an individual or a population whose sex organs contain only male gametes.
         codesystem: PATO
         code: 0000384
