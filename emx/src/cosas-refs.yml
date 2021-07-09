@@ -232,8 +232,8 @@ entities:
           lookupAttribute: true
           labelAttribute: true
         - name: value
-          label: COSAS Value
-          label-nl: COSAS Value
+          label: Value
+          label-nl: Value
         - name: description
           label: Description
           label-nl: Omschrijving

@@ -2,14 +2,13 @@
 #' FILE: cosasrefs_create.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-07-08
-#' MODIFIED: 2021-07-08
+#' MODIFIED: 2021-07-09
 #' PURPOSE: Initial script for creating reference entities
-#' STATUS: in.progress
+#' STATUS: working
 #' PACKAGES: NA
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
-from typing import SupportsAbs
 import python.cosas_utils as cosastools
 import pandas as pd
 import re
@@ -53,7 +52,7 @@ for d in dx:
     if dx2 != '-':
         raw.append(dx2)
 
-del d
+del d, dx1, dx2
 
 # Find distinct cases only
 diagnoses = list(set(raw))
@@ -66,9 +65,10 @@ for d in diagnoses:
         row = d.split(':')
         dx_data.append({
             'id': int(row[0]), 
-            'code': row[0],
-            'description': row[1]
+            'cineas_code': row[0],
+            'cineas_description': row[1]
         })
+
 del d
 
 dx_data = sorted(dx_data, key = lambda x: x['id'])
@@ -81,6 +81,8 @@ cosas.add_all(
     entity = 'cosasrefs_diagnoses',
     entities = dx_data
 )
+
+del diagnoses,raw, d, row, dx_data
 
 #//////////////////////////////////////
 
@@ -105,8 +107,8 @@ certainty_options = []
 for opt in options:
     if opt != '-':
         certainty_options.append({
-            'category': opt.replace(' ', '-').lower(),
-            'label': opt
+            'id': opt.replace(' ', '-').lower(),
+            'certainty': opt
         })
 
 certainty_options
@@ -118,6 +120,8 @@ cosas.add_all(
     entities = certainty_options
 )
 
+
+del options, certainty_options, opt, dx
 
 #//////////////////////////////////////////////////////////////////////////////
 
@@ -136,9 +140,9 @@ codes = cosastools.attr_flatten(
 # build data
 data = []
 for code in codes:
-    data.append({'code': code.lower(), 'name': code})
+    data.append({'id': code.lower(), 'name': code})
 
-data = sorted(data, key = lambda x: x['code'])
+data = sorted(data, key = lambda x: x['id'])
 
 # upload + cleanup
 cosas.add_all(entity = 'cosasrefs_condition_codes', entities = data)
@@ -167,7 +171,7 @@ material_types = []
 for t in types:
     material_types.append({
         'id': t,
-        'type': t.replace('-', ' ') # reset values
+        'material': t.replace('-', ' ').capitalize() # reset values
     })
 
 material_types = sorted(material_types, key = lambda x: x['id'])
@@ -236,7 +240,7 @@ indications.sort()
 data = []
 for i in indications:
     data.append({
-        'code': i.replace(' ', '-').lower(),
+        'id': i.replace(' ', '-').lower(),
         'indication': i
     })
 
