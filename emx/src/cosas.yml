@@ -1,8 +1,8 @@
 name: cosas
 label: COSAS
 description: The Catalogue of Sequence Array and Samples
-version: 0.91
-date: 2021-07-08
+version: 0.9001
+date: 2021-07-09
 defaults:
   idAttribute: false
   dataType: string

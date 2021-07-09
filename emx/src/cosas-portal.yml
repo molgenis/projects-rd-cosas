@@ -1,8 +1,8 @@
 name: cosasportal
 label: COSAS Portal
 description: Staging tables for raw data extracts
-version: 0.9
-date: 2021-07-07
+version: 0.9001
+date: 2021-07-09
 defaults:
   idAttribute: false
   dataType: string
