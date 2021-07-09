@@ -9,7 +9,7 @@
   "scripts": {
     "build-cosas": "Rscript R/cosas_emx.R cosas",
     "build-cosasrefs": "Rscript R/cosas_emx.R cosasrefs",
-    "build-cosasportal": "Rscript R/cosas_emx.R cosasrefs",
+    "build-cosasportal": "Rscript R/cosas_emx.R cosasportal",
     "build": "npm run build-cosas && npm run build-cosasrefs && npm run build-cosasportal"
   },
   "repository": {
