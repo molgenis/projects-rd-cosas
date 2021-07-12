@@ -2,9 +2,9 @@
 #' FILE: gene_list.R
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-07-09
-#' MODIFIED: 2021-07-09
+#' MODIFIED: 2021-07-12
 #' PURPOSE: load gene file and generate gene list reference dataset
-#' STATUS: in.progress
+#' STATUS: working
 #' PACKAGES: NA
 #' COMMENTS: This script is intended for initial COSAS setup only
 #'////////////////////////////////////////////////////////////////////////////
@@ -28,7 +28,7 @@ m$login(
 )
 
 # pull initial data from reference entity
-coderefs <- m$get(table = "cosasrefs_test_codes", attrs = "id,description")
+coderefs <- m$get(table = "cosasrefs_test_codes", attrs = "id,code,description")
 
 
 #'//////////////////////////////////////
