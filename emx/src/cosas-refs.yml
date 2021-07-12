@@ -1,8 +1,8 @@
 name: cosasrefs
 label: COSAS References
 description: Reference tables for COSAS
-version: 0.9002
-date: 2021-07-09
+version: 0.9003
+date: 2021-07-12
 defaults:
   idAttribute: false
   dataType: string
@@ -162,31 +162,7 @@ entities:
       - name: genes
         label: Genes
         label-nl: Genes
-        dataType: mref
-        refEntity: cosasrefs_genes_by_test
-    
-  # ~ cosasrefs_genes_by_test ~
-  # Create a reference entity where each row is a test code and a gene
-  # This entity should be linked in `cosasrefs_test_codes`
-  - name: genes_by_test
-    label: Genes by test
-    label-nl: Genen per test
-    description: List of genes by test
-    description-nl: Lijst van genen per test
-    attributes:
-      - name: id
-        label: ID
-        label-nl: ID
-        description: Test Code
-        description-nl: Test Code
-        idAttribute: true
-        nillable: false
-        dataType: string
-      - name: genes
-        label: Genes
-        label-nl: Genen
-        lookupAttribute: true
-        labelAttribute: true
+        dataType: text
 
   # ~ cosasrefs_lab_indications ~
   # A reference entity for lab indications
