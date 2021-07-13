@@ -1,8 +1,8 @@
 name: cosasportal
 label: COSAS Portal
 description: Staging tables for raw data extracts
-version: 0.9001
-date: 2021-07-09
+version: 0.9002
+date: 2021-07-13
 defaults:
   idAttribute: false
   dataType: string
@@ -21,6 +21,7 @@ entities:
       - name: Geboortedatum
       - name: Geslacht
       - name: Familieleden
+        dataType: text
       - name: UMCG_moeder
       - name: UMCG_vader
       - name: processed
@@ -69,6 +70,7 @@ entities:
       - name: DNA_NUMMER
       - name: MATERIAAL
       - name: UITSLAG_TEKST
+        dataType: text
       - name: UITSLAGCODE
       - name: AANDOENING_CODE
       - name: id
@@ -94,6 +96,7 @@ entities:
       - name: SGA_CLASSIFICATION
       - name: SGA_CYTOBAND
       - name: SGA_DECIPHER_SYNDROMES
+        dataType: text
       - name: SGA_DGV_SIMILARITY
       - name: SGA_EVENT
       - name: SGA_EVIDENCE_SCORE
@@ -104,11 +107,14 @@ entities:
       - name: SGA_MOSAIC_PERCENTAGE
       - name: SGA_NO_OF_PROBES
       - name: SGA_NOTES
+        dataType: text
       - name: SGA_OMIM_MORBID_MAP
+        dataType: text
       - name: SGA_OMIM_MORBIDMAP_COUNT
       - name: SGA_OVERERVING
       - name: SGA_PROBE_MEDIAN
       - name: SGA_REFSEQ_CODING_GENES
+        dataType: text
       - name: SGA_REFSEQ_CODING_GENES_COUNT
       - name: SGA_REGIONS_UMCG_CNV_NL_COUNT
       - name: SGA_SIMILAR_PREVIOUS_CASES
