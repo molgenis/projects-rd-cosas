@@ -1,16 +1,17 @@
 {
   "name": "molgenis-cosas",
   "version": "1.0.0",
-  "description": "The `molgenis-cosas` repository contains all of the code and scripts used to create the samples database. The EMX is defined in a series of `.yml` files (see `data/_emx`) and converted using the `yml_to_emx` function.",
+  "description": "The `molgenis-cosas` repository contains all of the code and scripts used to create and maintain the samples database.",
   "main": "index.js",
-  "directories": {
-    "man": "man"
-  },
   "scripts": {
     "build-cosas": "Rscript R/cosas_emx.R cosas",
     "build-cosasrefs": "Rscript R/cosas_emx.R cosasrefs",
     "build-cosasportal": "Rscript R/cosas_emx.R cosasportal",
-    "build": "npm run build-cosas && npm run build-cosasrefs && npm run build-cosasportal"
+    "import-cosas": "mcmd import -p emx/cosas/cosas.xlsx",
+    "import-cosasrefs": "mcmd import -p emx/cosas-refs/cosasrefs.xlsx",
+    "import-cosasportal": "mcmd import -p emx/cosas-portal/cosasportal.xlsx",
+    "build": "npm run build-cosas && npm run build-cosasrefs && npm run build-cosasportal",
+    "import": "npm run import-cosas && npm run import-cosasrefs && npm run import-cosasportal"
   },
   "repository": {
     "type": "git",
