@@ -1,8 +1,8 @@
 name: cosasrefs
 label: COSAS References
 description: Reference tables for COSAS
-version: 0.9003
-date: 2021-07-12
+version: 0.9004
+date: 2021-07-13
 defaults:
   idAttribute: false
   dataType: string
@@ -14,15 +14,66 @@ defaults:
 # Define entities below and include instructions for use
 # Data can also be defined here.
 entities:
-  
-  # ~ cosasrefs_diagnostic_certainty ~
-  # Certainty of the diagnosis
+
+  # ~ cosasrefs_condition_codes ~
+  # Reference entity for all disorder (condition) codes
   #
-  # Create reference entity for the certainty of the diagnosis. This entity
-  # should be used for all diagnostic data elements (ie., primary, secondary,
-  # extra, etc.)
+  - name: condition_codes
+    label: Condition
+    label-nl: Aandoening
+    description: General disease codes
+    description-nl: Aandoening codes
+    attributes:
+      - name: id
+        label: ID
+        label-nl: ID
+        idAttribute: true
+        nillable: false
+        dataType: string
+      - name: name
+        label: Name
+        label-nl: Naam
+        lookupAttribute: true
+        labelAttribute: true
+
+  # @name cosasrefs_diagnoses
+  # @description reference entity for all diagnostic codes. The purpose of which
+  #     is to link diagnosis codes with the definitions and other metadata.
+  # @section Instructions for use
+  # Diagnostic codes and description are usually returned in the same string.
+  #   1. Split strings at the colon (`:`)
+  #   2. Validate that the first element contains only numbers
+  #   3. If TRUE, the code is the first element and name is the second
+  #   4. Recode "-" to blanks or NA's
   #
-  # Instructions for use:
+  - name: diagnoses
+    label: Diagnoses
+    label-nl: Diagnoses
+    description: Diagnostic codes and descriptions
+    description-nl: Diagnostische codes en beschrijvingen
+    attributes:
+      - name: id
+        label: ID
+        label-nl: ID
+        idAttribute: true
+        nillable: false
+        dataType: string
+      - name: cineas_code
+        label: CINEAS code
+        label-nl: CINEAS code
+        description: Diagnostic code (e.g., 12345)
+        description-nl: Diagnostische code (bijv, 12345)
+        lookupAttribute: true
+        labelAttribute: true
+      - name: cineas_description
+        label: Diagnosis
+        label-nl: Diagnose
+
+  # @name cosasrefs_diagnostic_certainty
+  # @description Create reference entity for the certainty of the diagnosis.
+  #     This entity should be used for all diagnostic data elements
+  #     (i.e., primary, secondary, extra, etc.)
+  # @section Instructions for use:
   #   - If referencing use, `cosasrefs_diagnostic_certainty`
   #   - Data should be transformed
   #       1. lowercase
@@ -53,121 +104,9 @@ entities:
         label: Description
         label-nl: Omschrijving
 
-  # ~ cosasrefs_diagnoses ~
-  # Diagnostic Codes
-  #
-  # Create a reference entity for all diagnostic codes. The purpose of which
-  # is to link diagnosis codes with the definitions and other metadata.
-  #
-  # Instructions for use:
-  # Diagnostic codes and description are usually returned in the same string.
-  #   1. Split strings at the colon (`:`)
-  #   2. Validate that the first element contains only numbers
-  #   3. If TRUE, the code is the first element and name is the second
-  #   4. Recode "-" to blanks or NA's
-  #
-  - name: diagnoses
-    label: Diagnoses
-    label-nl: Diagnoses
-    description: Diagnostic codes and descriptions
-    description-nl: Diagnostische codes en beschrijvingen
-    attributes:
-      - name: id
-        label: ID
-        label-nl: ID
-        idAttribute: true
-        nillable: false
-        dataType: string
-      - name: cineas_code
-        label: CINEAS code
-        label-nl: CINEAS code
-        description: Diagnostic code (e.g., 12345)
-        description-nl: Diagnostische code (bijv, 12345)
-        lookupAttribute: true
-        labelAttribute: true
-      - name: cineas_description
-        label: Diagnosis
-        label-nl: Diagnose
-        
-  # ~ cosasrefs_material_types ~
-  #
-  # Create a reference entity for material types.
-  #
-  # Instructions for use:
-  #   1. lower all new values
-  #   2. Validate new data: make sure all values exist. If NOT, update entity
-  #   3. Map new types to reference entity
-  #
-  - name: material_types
-    label: Material Types
-    label-nl: Materiaaltype
-    description: Categories for material type
-    description-nl: Categoriën voor materiaaltype
-    attributes:
-      - name: id
-        label: ID
-        label-nl: ID
-        idAttribute: true
-        nillable: false
-        dataType: string
-      - name: material
-        label: Material
-        label-nl: Materiaal
-        lookupAttribute: true
-        labelAttribute: true
-  
-  # ~ cosasrefs_condition_codes ~
-  # Reference entity for all disorder (condition) codes
-  #
-  - name: condition_codes
-    label: Condition
-    label-nl: Aandoening
-    description: General disease codes
-    description-nl: Aandoening codes
-    attributes:
-      - name: id
-        label: ID
-        label-nl: ID
-        idAttribute: true
-        nillable: false
-        dataType: string
-      - name: name
-        label: Name
-        label-nl: Naam
-        lookupAttribute: true
-        labelAttribute: true
-
-  # ~ cosasrefs_test_codes ~
-  # Reference entity for all tests codes and descriptions
-  - name: test_codes
-    label: Test codes
-    label-nl: Testcodes
-    description: Test codes and descriptions (e.g., NX, NG)
-    description-nl: Testcodes and beschrijvingen (bijv., NX, NG)
-    attributes:
-      - name: id
-        label: ID
-        label-nl: ID
-        idAttribute: true
-        nillable: false
-        dataType: string
-      - name: code
-        label: Code
-        label-nl: Code
-        lookupAttribute: true
-        labelAttribute: true
-      - name: description
-        label: Description
-        label-nl: Beschrijving
-      - name: genes
-        label: Genes
-        label-nl: Genes
-        dataType: text
-
-  # ~ cosasrefs_lab_indications ~
-  # A reference entity for lab indications
-  #
-  # INSTRUCTIONS FOR USE:
+  # @name cosasrefs_lab_indications
+  # @description reference entity for lab indications
+  # @section instructions for use
   #   1. Reference entity using: `cosasrefs_lab_indications`
   #   2. Clean new values (lower, spaces => "-")
   #   3. Validate new values and update entity accordingly
@@ -192,7 +131,34 @@ entities:
         lookupAttribute: true
         labelAttribute: true
 
-  # ~ cosasrefs_phenotypic_sex ~
+  # @name cosasrefs_material_types
+  # @description Create a reference entity for material types.
+  # @section Instructions for use:
+  #   1. lower all new values
+  #   2. Validate new data: make sure all values exist. If NOT, update entity
+  #   3. Map new types to reference entity
+  #
+  - name: material_types
+    label: Material Types
+    label-nl: Materiaaltype
+    description: Categories for material type
+    description-nl: Categoriën voor materiaaltype
+    attributes:
+      - name: id
+        label: ID
+        label-nl: ID
+        idAttribute: true
+        nillable: false
+        dataType: string
+      - name: material
+        label: Material
+        label-nl: Materiaal
+        lookupAttribute: true
+        labelAttribute: true
+  
+
+  # @name cosasrefs_phenotypic_sex
+  # @description FairGenomes-COSAS mapped reference entity for sex
   - name: phenotypic_sex
     label: Phenotypic Sex
     label-nl: Phenotypic Geslacht
@@ -237,6 +203,49 @@ entities:
         codesystem: PATO
         code: 0000384
         iri: http://purl.obolibrary.org/obo/PATO_0000384
-        
+  
+  # @name cosasrefs_test_codes
+  # @description Reference entity for all tests codes and descriptions
+  - name: test_codes
+    label: Test codes
+    label-nl: Testcodes
+    description: Test codes and descriptions (e.g., NX, NG)
+    description-nl: Testcodes and beschrijvingen (bijv., NX, NG)
+    attributes:
+      - name: id
+        label: ID
+        label-nl: ID
+        idAttribute: true
+        nillable: false
+        dataType: string
+      - name: code
+        label: Code
+        label-nl: Code
+        lookupAttribute: true
+        labelAttribute: true
+      - name: description
+        label: Description
+        label-nl: Beschrijving
+      - name: genes
+        label: Genes
+        label-nl: Genes
+        dataType: text
+
+  # @name cosasrefs_test_genes
+  # @description Reference entity for all available genes
+  - name: test_genes
+    label: Gene List
+    label-nl: Gene Lijst
+    description: List of genes
+    description-nl: Lijst van genen
+    attributes:
+      - name: gene
+        label: Gene
+        label-nl: Gen
+        nillable: false
+        idAttribute: true
+        labelAttribute: true
+        lookupAttribute: true
+        dataType: string
 
 

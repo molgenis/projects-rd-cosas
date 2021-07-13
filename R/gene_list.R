@@ -63,13 +63,33 @@ for (name in sheetnames) {
         col_names = "genes"
     ) %>%
     pull(genes) %>%
-        paste0(., collapse = ", ") %>%
+        unique() %>%
+        paste0(., collapse = ",") %>%
         as_tibble() %>%
         rename("genes" = value) %>%
         mutate(id = name) %>%
         select(id, genes)
     main <- main %>% bind_rows(., raw)
 }
+
+# isolate unique genes
+genes <- main %>%
+    select(genes) %>%
+    pull(genes) %>%
+    paste0(., collapse = ",") %>%
+    strsplit(x = ., split = ",") %>%
+    `[[`(1) %>%
+    as_tibble() %>%
+    rename(gene = 1) %>%
+    distinct()
+
+readr::write_csv(genes, "data/cosasrefs_test_genes.csv")
+
+
+############### STOP ####################
+### IMPORT GENE LIST BEORE CONTINUING ###
+
+#'//////////////////////////////////////
 
 
 # merge panel metadata with genes
@@ -82,6 +102,7 @@ df <- main %>%
 
 
 new_coderefs <- coderefs %>% left_join(df, by = "id")
+
 
 m$prep(new_coderefs) %>%
     m$push(table = "cosasrefs_test_codes", x = .)
