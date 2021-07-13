@@ -1,7 +1,7 @@
 name: cosasportal
 label: COSAS Portal
 description: Staging tables for raw data extracts
-version: 0.9002
+version: 0.9003
 date: 2021-07-13
 defaults:
   idAttribute: false
@@ -9,6 +9,9 @@ defaults:
   nillable: true
   lookupAttribute: false
 entities:
+
+  # @name cosasportal_patients
+  # @description staging table for raw patient metadata extracts
   - name: patients
     label: Patients
     label-nl: Patiënten
@@ -36,6 +39,9 @@ entities:
         auto: true
         nillable: false
         lookupAttribute: true
+  
+  # @name cosasportal_diagnoses
+  # @description staging table for raw diagnostic data per patient
   - name: diagnoses
     label: Diagnoses
     label-nl: Diagnoses
@@ -56,6 +62,9 @@ entities:
         auto: true
         nillable: false
         lookupAttribute: true
+  
+  # @name cosasportal_samples
+  # @description staging table for raw sample metadata
   - name: samples
     label: Samples
     label-nl: Samples
@@ -80,6 +89,9 @@ entities:
         auto: true
         nillable: false
         lookupAttribute: true
+
+  # @name cosasportal_labs_array_adlas
+  # @description staging table for array metadata from ADLAS
   - name: labs_array_adlas
     label: Labs array ADLAS
     label-nl: Labs array ADLAS
@@ -125,6 +137,9 @@ entities:
         auto: true
         nillable: false
         lookupAttribute: true
+  
+  # @name cosasportal_labs_array_darwin
+  # @description staging table for array metadata from darwin
   - name: labs_array_darwin
     label: Labs array Darwin
     label-nl: Labs array Darwin
@@ -145,6 +160,9 @@ entities:
         auto: true
         nillable: false
         lookupAttribute: true
+
+  # @name cosasportal_labs_ngs_adlas
+  # @description staging table for NGS metadata from ADLAS
   - name: labs_ngs_adlas
     label: Labs NGS Adlas
     label-nl: Labs NGS Adlas
@@ -172,6 +190,9 @@ entities:
         auto: true
         nillable: false
         lookupAttribute: true
+
+  # @name cosasportal_labs_ngs_darwin
+  # @description staging table for NSG metadata from Darwin
   - name: labs_ngs_darwin
     label: Labs NGS Darwin
     label-nl: Labs NGS Darwin
@@ -198,3 +219,36 @@ entities:
         auto: true
         nillable: false
         lookupAttribute: true
+
+
+  # @name cosasportal_bench_cnv
+  # @description staging table for CNV data from UMCG bench
+  - name: bench_cnv
+    label: UMCG BenchCNV
+    label-nl: UMCG BenchCNV
+    description: Staging table for CNV exports
+    description-nl: stadiëringstabel voor CNV-gegevens
+    attributes:
+      - name: primid
+        description: UMCG Number
+        description-nl: UMCG nummber
+      - name: secid
+        description: Family Number
+        description-nl: Familie Number
+      - name: externalid
+      - name: gender
+      - name: comment
+        dataType: text
+      - name: phenotype
+        description: HPO code (HPO:1234567)
+        description-nl: HPO code (HPO:1234567)
+        dataType: text
+      - name: created
+      - name: id
+        description: auto generated Molgenis ID
+        description-nl: automatisch gegenereerde Molgenis-ID
+        idAttribute: true
+        auto: true
+        nillable: false
+        lookupAttribute: true
+
