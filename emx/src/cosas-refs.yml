@@ -1,7 +1,7 @@
 name: cosasrefs
 label: COSAS References
 description: Reference tables for COSAS
-version: 0.9004
+version: 0.9005
 date: 2021-07-13
 defaults:
   idAttribute: false
@@ -156,6 +156,24 @@ entities:
         lookupAttribute: true
         labelAttribute: true
   
+  # @name cosasrefs_phenotyp
+  # @description HPO ontology
+  # @refs 
+  - name: phenotype
+    label: Phenotype
+    label-nl: Phenotype
+    description: Human Phenotype Ontology (release)
+    description-nl: Human Phenotype Ontology (release)
+    attributes:
+      - name: codesystem
+      - name: code
+        idAttribute: true
+        nillable: false
+        dataType: string
+      - name: value
+      - name: description
+        dataType: text
+      - name: iri
 
   # @name cosasrefs_phenotypic_sex
   # @description FairGenomes-COSAS mapped reference entity for sex

@@ -2,7 +2,7 @@
 #' FILE: cosas_emx.R
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-03-16
-#' MODIFIED: 2021-07-09
+#' MODIFIED: 2021-07-13
 #' PURPOSE: convert EMX yaml into CSVs
 #' STATUS: working
 #' PACKAGES: dplyr
@@ -47,19 +47,20 @@ if (args == "cosasportal") {
             `label-nl` = label.nl,
             `description-nl` = description.nl
         )
-
-    openxlsx::createWorkbook() %T>%
-        openxlsx::addWorksheet(., "packages") %T>%
-        openxlsx::addWorksheet(., "entities") %T>%
-        openxlsx::addWorksheet(., "attributes") %T>%
-        openxlsx::writeData(., "packages", cosas_portal$packages) %T>%
-        openxlsx::writeData(., "entities", cosas_portal$entities) %T>%
-        openxlsx::writeData(., "attributes", cosas_portal$attributes) %T>%
-        openxlsx::saveWorkbook(
-            wb = .,
-            file = "emx/cosas-portal/cosasportal.xlsx",
-            overwrite = TRUE
-        )
+    invisible(
+        openxlsx::createWorkbook() %T>%
+            openxlsx::addWorksheet(., "packages") %T>%
+            openxlsx::addWorksheet(., "entities") %T>%
+            openxlsx::addWorksheet(., "attributes") %T>%
+            openxlsx::writeData(., "packages", cosas_portal$packages) %T>%
+            openxlsx::writeData(., "entities", cosas_portal$entities) %T>%
+            openxlsx::writeData(., "attributes", cosas_portal$attributes) %T>%
+            openxlsx::saveWorkbook(
+                wb = .,
+                file = "emx/cosas-portal/cosasportal.xlsx",
+                overwrite = TRUE
+            )
+    )
 }
 
 #'//////////////////////////////////////
@@ -80,36 +81,38 @@ if (args == "cosasrefs") {
             `description-nl` = description.nl
         )
 
-    openxlsx::createWorkbook() %T>%
-        openxlsx::addWorksheet(., "packages") %T>%
-        openxlsx::addWorksheet(., "entities") %T>%
-        openxlsx::addWorksheet(., "attributes") %T>%
-        openxlsx::addWorksheet(., "cosasrefs_diagnostic_certainty") %T>%
-        openxlsx::addWorksheet(., "cosasrefs_lab_indications") %T>%
-        openxlsx::addWorksheet(., "cosasrefs_phenotypic_sex") %T>%
-        openxlsx::writeData(., "packages", cosas_refs$packages) %T>%
-        openxlsx::writeData(., "entities", cosas_refs$entities) %T>%
-        openxlsx::writeData(., "attributes", cosas_refs$attributes) %T>%
-        openxlsx::writeData(
-            wb = .,
-            sheet = "cosasrefs_diagnostic_certainty",
-            x = cosas_refs$cosasrefs_diagnostic_certainty
-        ) %T>%
-        openxlsx::writeData(
-            wb = .,
-            sheet = "cosasrefs_lab_indications",
-            x = cosas_refs$cosasrefs_lab_indications
-        ) %T>%
-        openxlsx::writeData(
-            wb = .,
-            sheet = "cosasrefs_phenotypic_sex",
-            x = cosas_refs$cosasrefs_phenotypic_sex
-        ) %T>%
-        openxlsx::saveWorkbook(
-            wb = .,
-            file = "emx/cosas-refs/cosasrefs.xlsx",
-            overwrite = TRUE
-        )
+    invisible(
+        openxlsx::createWorkbook() %T>%
+            openxlsx::addWorksheet(., "packages") %T>%
+            openxlsx::addWorksheet(., "entities") %T>%
+            openxlsx::addWorksheet(., "attributes") %T>%
+            openxlsx::addWorksheet(., "cosasrefs_diagnostic_certainty") %T>%
+            openxlsx::addWorksheet(., "cosasrefs_lab_indications") %T>%
+            openxlsx::addWorksheet(., "cosasrefs_phenotypic_sex") %T>%
+            openxlsx::writeData(., "packages", cosas_refs$packages) %T>%
+            openxlsx::writeData(., "entities", cosas_refs$entities) %T>%
+            openxlsx::writeData(., "attributes", cosas_refs$attributes) %T>%
+            openxlsx::writeData(
+                wb = .,
+                sheet = "cosasrefs_diagnostic_certainty",
+                x = cosas_refs$cosasrefs_diagnostic_certainty
+            ) %T>%
+            openxlsx::writeData(
+                wb = .,
+                sheet = "cosasrefs_lab_indications",
+                x = cosas_refs$cosasrefs_lab_indications
+            ) %T>%
+            openxlsx::writeData(
+                wb = .,
+                sheet = "cosasrefs_phenotypic_sex",
+                x = cosas_refs$cosasrefs_phenotypic_sex
+            ) %T>%
+            openxlsx::saveWorkbook(
+                wb = .,
+                file = "emx/cosas-refs/cosasrefs.xlsx",
+                overwrite = TRUE
+            )
+    )
 }
 
 #'//////////////////////////////////////
@@ -131,16 +134,18 @@ if (args == "cosas") {
             `description-nl` = description.nl
         )
 
-    openxlsx::createWorkbook() %T>%
-        openxlsx::addWorksheet(., "packages") %T>%
-        openxlsx::addWorksheet(., "entities") %T>%
-        openxlsx::addWorksheet(., "attributes") %T>%
-        openxlsx::writeData(., "packages", cosas$packages) %T>%
-        openxlsx::writeData(., "entities", cosas$entities) %T>%
-        openxlsx::writeData(., "attributes", cosas$attributes) %T>%
-        openxlsx::saveWorkbook(
-            wb = .,
-            file = "emx/cosas/cosas.xlsx",
-            overwrite = TRUE
-        )
+    invisible(
+        openxlsx::createWorkbook() %T>%
+            openxlsx::addWorksheet(., "packages") %T>%
+            openxlsx::addWorksheet(., "entities") %T>%
+            openxlsx::addWorksheet(., "attributes") %T>%
+            openxlsx::writeData(., "packages", cosas$packages) %T>%
+            openxlsx::writeData(., "entities", cosas$entities) %T>%
+            openxlsx::writeData(., "attributes", cosas$attributes) %T>%
+            openxlsx::saveWorkbook(
+                wb = .,
+                file = "emx/cosas/cosas.xlsx",
+                overwrite = TRUE
+            )
+    )
 }
