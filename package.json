@@ -10,6 +10,9 @@
     "import-cosas": "mcmd import -p emx/cosas/cosas.xlsx",
     "import-cosasrefs": "mcmd import -p emx/cosas-refs/cosasrefs.xlsx",
     "import-cosasportal": "mcmd import -p emx/cosas-portal/cosasportal.xlsx",
+    "cosas": "npm run build-cosas && npm run import-cosas",
+    "cosasrefs": "npm run build-cosasrefs && npm run import-cosasrefs",
+    "cosasportal": "npm run build-cosasportal && npm run import-cosasportal",
     "build": "npm run build-cosas && npm run build-cosasrefs && npm run build-cosasportal",
     "import": "npm run import-cosas && npm run import-cosasrefs && npm run import-cosasportal"
   },
