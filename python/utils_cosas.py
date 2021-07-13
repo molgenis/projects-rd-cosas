@@ -2,9 +2,9 @@
 #' FILE: cosas_utils.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-07-08
-#' MODIFIED: 2021-07-08
+#' MODIFIED: 2021-07-12
 #' PURPOSE: COSAS tools
-#' STATUS: in.progress
+#' STATUS: working; on.going
 #' PACKAGES: *see below*
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
@@ -16,8 +16,7 @@ import requests
 import json
 import yaml
 import os
-import re
-import csv
+import pandas as pd
 
 from urllib.parse import quote_plus
 from datetime import datetime
@@ -248,6 +247,22 @@ def load_json(path):
         file.close()
     return data
 
+
+# @title read_xlsx
+# @description read xlsx file and return as list of dictionaries
+# @param path location of the file to read
+# @param nrows number of rows to read
+# @param converters dictionary containing attribute-data type mappings
+# @return a list of dictionaries
+def read_xlsx(path, nrows = None, converters = None):
+    data = pd.read_excel(
+        path,
+        engine = 'openpyxl',
+        nrows = nrows,
+        converters = converters,
+        dtype = str
+    )
+    return data.to_dict('records')
 
 # @title timestamp
 # @description generate a timestamp in H:M:S.ms format

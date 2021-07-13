@@ -9,7 +9,7 @@
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
-import python.cosas_utils as cosastools
+import python.utils_cosas as cosastools
 import pandas as pd
 import re
 
