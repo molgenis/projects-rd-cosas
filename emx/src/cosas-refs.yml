@@ -1,8 +1,8 @@
 name: cosasrefs
 label: COSAS References
 description: Reference tables for COSAS
-version: 0.9005
-date: 2021-07-13
+version: 0.9008
+date: 2021-07-14
 defaults:
   idAttribute: false
   dataType: string
@@ -104,6 +104,47 @@ entities:
         label: Description
         label-nl: Omschrijving
 
+  # @name cosasrefs_inclusion_status
+  # @description a reference entity that describes
+  - name: inclusion_status
+    label: Inclusion Status
+    label-nl: Status van opneming
+    description: Patient inclusion status categories
+    description-nl: Categorieën van patiënten-inclusiestatus
+    attributes:
+      - name: id
+        label: ID
+        label-nl: ID
+        idAttribute: true
+        nillable: false
+        dataType: string
+      - name: value
+        label: Value
+        label-nl: Value
+        description: FairGenomes value
+        description-nl: FairGenomes value
+      - name: description
+        label: Description
+        label-nl: Beschrijving
+        description: FairGenomes description
+        description-nl: FairGenomes beschrijving
+      - name: codesystem
+        label: Codesystem
+        label-nl: Codesystem
+        description: FairGenomes codesystem
+        description-nl: FairGenomes codesystem
+      - name: code
+        label: Code
+        label-nl: Code
+        description: FairGenomes code
+        description-nl: FairGenomes code
+      - name: iri
+        label: IRI
+        label-nl: IRI
+        description: FairGenomes IRI
+        description-nl: FairGenomes IRI
+        dataType: hyperlink
+
   # @name cosasrefs_lab_indications
   # @description reference entity for lab indications
   # @section instructions for use
@@ -155,6 +196,32 @@ entities:
         label-nl: Materiaal
         lookupAttribute: true
         labelAttribute: true
+      - name: value
+        label: Value
+        label-nl: Value
+        description: FairGenomes material type
+        description-nl: FairGenomes materiaal type
+      - name: description
+        label: Description
+        label-nl: Beschrijving
+        description: FairGenomes description
+        description-nl: FairGenomes beschrijving
+      - name: codesystem
+        label: Codesystem
+        label-nl: Codesystem
+        description: FairGenomes codesystem
+        description-nl: FairGenomes codesystem
+      - name: code
+        label: Code
+        label-nl: Code
+        description: FairGenomes code
+        description-nl: FairGenomes code
+      - name: iri
+        label: IRI
+        label-nl: IRI
+        description: FairGenomes iri
+        description-nl: FairGenomes iri
+        dataType: hyperlink
   
   # @name cosasrefs_phenotyp
   # @description HPO ontology
@@ -162,17 +229,19 @@ entities:
   - name: phenotype
     label: Phenotype
     label-nl: Phenotype
-    description: Human Phenotype Ontology (release)
-    description-nl: Human Phenotype Ontology (release)
+    description: Fair Genomes Phenotype (v0.3)
+    description-nl: Fair Genomes Phenotype (v0.3)
     attributes:
+      - name: value
+        labelAttribute: true
+      - name: description
+        dataType: text
       - name: codesystem
       - name: code
         idAttribute: true
         nillable: false
+        lookupAttribute: true
         dataType: string
-      - name: value
-      - name: description
-        dataType: text
       - name: iri
 
   # @name cosasrefs_phenotypic_sex
