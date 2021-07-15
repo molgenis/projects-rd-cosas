@@ -22,12 +22,12 @@ source("R/utils_yaml_convert.R")
 args <- commandArgs(trailingOnly = TRUE)
 
 
-# @name remove.files
-# @description Remove all files in a given directory
-# @param dir path to folder
-remove.files <- function(dir) {
-    invisible(sapply(list.files(dir, full.names = TRUE), file.remove))
-}
+#' @name remove.files
+#' @description Remove all files in a given directory
+#' @param dir path to folder
+# remove.files <- function(dir) {
+#     invisible(sapply(list.files(dir, full.names = TRUE), file.remove))
+# }
 
 
 #'//////////////////////////////////////
@@ -36,31 +36,44 @@ remove.files <- function(dir) {
 #' Convert COSAS Portal
 
 if (args == "cosasportal") {
+    cli::cli_alert_info("Generating EMX for {.val cosasportal}")
 
-    cosas_portal <- yml_to_emx(
-        path = "emx/src/cosas-portal.yml",
-        attr_entity_has_pkg = TRUE
-    )
+    input <- "emx/src/cosas-portal.yml"
+    output <- "emx/cosas-portal/cosasportal.xlsx"
 
-    cosas_portal$attributes <- cosas_portal$attributes %>%
-        dplyr::rename(
-            `label-nl` = label.nl,
-            `description-nl` = description.nl
-        )
-    invisible(
-        openxlsx::createWorkbook() %T>%
+    # compile emx
+    tryCatch({
+        cosas_portal <- yml_to_emx(path = "emx/src/cosas-portal.yml")
+        cosas_portal$attributes <- cosas_portal$attributes %>%
+            dplyr::rename(
+                `label-nl` = label.nl,
+                `description-nl` = description.nl
+            )
+        cli::cli_alert_success("Compiled {.file {input}}")
+    }, warning = function(warn) {
+        cli::cli_alert_warning("Unable to compile {.file {input}}: \n {.val {warn}}")
+    }, error = function(err) {
+        cli::cli_alert_danger("Unable to compile {.file {input}}: \n {.val {err}}")
+    })
+
+    # write emx
+    tryCatch({
+        invisible(
+            openxlsx::createWorkbook() %T>%
             openxlsx::addWorksheet(., "packages") %T>%
             openxlsx::addWorksheet(., "entities") %T>%
             openxlsx::addWorksheet(., "attributes") %T>%
             openxlsx::writeData(., "packages", cosas_portal$packages) %T>%
             openxlsx::writeData(., "entities", cosas_portal$entities) %T>%
             openxlsx::writeData(., "attributes", cosas_portal$attributes) %T>%
-            openxlsx::saveWorkbook(
-                wb = .,
-                file = "emx/cosas-portal/cosasportal.xlsx",
-                overwrite = TRUE
-            )
-    )
+            openxlsx::saveWorkbook(wb = ., file = output, overwrite = TRUE)
+        )
+        cli::cli_alert_success("Saved {.file {output}}")
+    }, warning = function(warn) {
+        cli::cli_alert_warning("Failed to save {.file {output}}:\n{.val {warn}}")
+    }, error = function(err) {
+        cli::cli_alert_danger("Failed to save {.file {output}}:\n{.val {err}}")
+    })
 }
 
 #'//////////////////////////////////////
@@ -69,50 +82,50 @@ if (args == "cosasportal") {
 #' Convert COSAS References
 
 if (args == "cosasrefs") {
+    cli::cli_alert_info("Generating EMX for {.val cosasrefs}")
 
-    cosas_refs <- yml_to_emx(
-        path = "emx/src/cosas-refs.yml",
-        attr_entity_has_pkg = TRUE
-    )
+    input <- "emx/src/cosas-refs.yml"
+    output <- "emx/cosas-refs/cosasrefs.xlsx"
 
-    cosas_refs$attributes <- cosas_refs$attributes %>%
-        dplyr::rename(
-            `label-nl` = label.nl,
-            `description-nl` = description.nl
-        )
+    # compile emx
+    tryCatch({
+        cosas_refs <- yml_to_emx(path = input)
+        cosas_refs$attributes <- cosas_refs$attributes %>%
+            dplyr::rename(
+                `label-nl` = label.nl,
+                `description-nl` = description.nl
+            )
+        cli::cli_alert_success("Compiled {.file {input}}")
+    }, warning = function(warn) {
+        cli::cli_alert_warning("Unable to compile {.file {input}}: \n {.val {warn}}")
+    }, error = function(err) {
+        cli::cli_alert_danger("Unable to compile {.file {input}}: \n {.val {err}}")
+    })
 
-    invisible(
-        openxlsx::createWorkbook() %T>%
+    # write emx
+    tryCatch({
+        invisible(
+            openxlsx::createWorkbook() %T>%
             openxlsx::addWorksheet(., "packages") %T>%
             openxlsx::addWorksheet(., "entities") %T>%
             openxlsx::addWorksheet(., "attributes") %T>%
-            openxlsx::addWorksheet(., "cosasrefs_diagnostic_certainty") %T>%
-            openxlsx::addWorksheet(., "cosasrefs_lab_indications") %T>%
             openxlsx::addWorksheet(., "cosasrefs_phenotypic_sex") %T>%
             openxlsx::writeData(., "packages", cosas_refs$packages) %T>%
             openxlsx::writeData(., "entities", cosas_refs$entities) %T>%
             openxlsx::writeData(., "attributes", cosas_refs$attributes) %T>%
             openxlsx::writeData(
                 wb = .,
-                sheet = "cosasrefs_diagnostic_certainty",
-                x = cosas_refs$cosasrefs_diagnostic_certainty
-            ) %T>%
-            openxlsx::writeData(
-                wb = .,
-                sheet = "cosasrefs_lab_indications",
-                x = cosas_refs$cosasrefs_lab_indications
-            ) %T>%
-            openxlsx::writeData(
-                wb = .,
                 sheet = "cosasrefs_phenotypic_sex",
                 x = cosas_refs$cosasrefs_phenotypic_sex
             ) %T>%
-            openxlsx::saveWorkbook(
-                wb = .,
-                file = "emx/cosas-refs/cosasrefs.xlsx",
-                overwrite = TRUE
-            )
-    )
+            openxlsx::saveWorkbook(wb = ., file = output, overwrite = TRUE)
+        )
+        cli::cli_alert_success("Saved {.file {output}}")
+    }, warning = function(warn) {
+        cli::cli_alert_warning("Failed to save {.file {output}}:\n{.val {warn}}")
+    }, error = function(err) {
+        cli::cli_alert_danger("Failed to save {.file {output}}:\n{.val {err}}")
+    })
 }
 
 #'//////////////////////////////////////
@@ -121,31 +134,42 @@ if (args == "cosasrefs") {
 #' Convert COSAS package
 
 if (args == "cosas") {
+    cli::cli_alert_info("Generating EMX for {.val cosas}")
 
-    cosas <- yml_to_emx(
-        path = "emx/src/cosas.yml",
-        attr_entity_has_pkg = TRUE
-    )
+    input <- "emx/src/cosas.yml"
+    output <- "emx/cosas/cosas.xlsx"
 
+    # compile emx
+    tryCatch({
+        cosas <- yml_to_emx(path = input)
+        cosas$attributes <- cosas$attributes %>%
+            dplyr::rename(
+                `label-nl` = label.nl,
+                `description-nl` = description.nl
+            )
+        cli::cli_alert_success("Compiled {.file {input}}")
+    }, warning = function(warn) {
+        cli::cli_alert_warning("Unable to compile {.file {input}}: \n {.val {warn}}")
+    }, error = function(err) {
+        cli::cli_alert_danger("Unable to compile {.file {input}}: \n {.val {err}}")
+    })
 
-    cosas$attributes <- cosas$attributes %>%
-        dplyr::rename(
-            `label-nl` = label.nl,
-            `description-nl` = description.nl
-        )
-
-    invisible(
-        openxlsx::createWorkbook() %T>%
+    # write emx
+    tryCatch({
+        invisible(
+            openxlsx::createWorkbook() %T>%
             openxlsx::addWorksheet(., "packages") %T>%
             openxlsx::addWorksheet(., "entities") %T>%
             openxlsx::addWorksheet(., "attributes") %T>%
             openxlsx::writeData(., "packages", cosas$packages) %T>%
             openxlsx::writeData(., "entities", cosas$entities) %T>%
             openxlsx::writeData(., "attributes", cosas$attributes) %T>%
-            openxlsx::saveWorkbook(
-                wb = .,
-                file = "emx/cosas/cosas.xlsx",
-                overwrite = TRUE
-            )
-    )
+            openxlsx::saveWorkbook(wb = ., file = output, overwrite = TRUE)
+        )
+        cli::cli_alert_success("Saved {.file {output}}")
+    }, warning = function(warn) {
+        cli::cli_alert_warning("Failed to save {.file {output}}:\n{.val {warn}}")
+    }, error = function(err) {
+        cli::cli_alert_danger("Failed to save {.file {output}}:\n{.val {err}}")
+    })
 }
