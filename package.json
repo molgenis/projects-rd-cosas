@@ -4,6 +4,7 @@
   "description": "The `molgenis-cosas` repository contains all of the code and scripts used to create and maintain the samples database.",
   "main": "index.js",
   "scripts": {
+    "refresh-py": "python3 python/_refresh.py",
     "molgenis-config": "mcmd config set host https://cosas-acc.gcc.rug.nl/",
     "build-cosas": "Rscript R/cosas_emx.R cosas",
     "build-cosasrefs": "Rscript R/cosas_emx.R cosasrefs",

@@ -2,21 +2,25 @@
 #' FILE: cosas_utils.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-07-08
-#' MODIFIED: 2021-07-12
+#' MODIFIED: 2021-07-15
 #' PURPOSE: COSAS tools
 #' STATUS: working; on.going
 #' PACKAGES: *see below*
-#' COMMENTS: NA
+#' COMMENTS: define all methods that you wish to use in `_refresh.py` inside
+#'      the comment boundaries:
+#'          # @cosastools start
+#'          # @cosastools end
 #'////////////////////////////////////////////////////////////////////////////
 
+import yaml
+import pandas as pd
 
+# @cosastools start
 import molgenis.client as molgenis
 import mimetypes
 import requests
 import json
-import yaml
 import os
-import pandas as pd
 
 from urllib.parse import quote_plus
 from datetime import datetime
@@ -227,6 +231,21 @@ def dict_filter(data, attr, value):
 def dict_select(data, keys):
     return list(map(lambda x: {k: v for k, v in x.items() if k in keys}, data))
 
+# @title timestamp
+# @description generate a timestamp in H:M:S.ms format
+def timestamp():
+    return datetime.utcnow().strftime('%H:%M:%S.%f')[:-3]
+
+# @title Status Message
+# @description Prints a message with a timestamp
+def status_msg(msg):
+    print('[' + timestamp() + '] ' + str(msg))
+
+# @cosastools end
+
+#'/////////////////////////////////////////////////////////
+
+# define methods for local use
 
 # @title load_config
 # @description load yaml configuration file
@@ -247,7 +266,6 @@ def load_json(path):
         file.close()
     return data
 
-
 # @title read_xlsx
 # @description read xlsx file and return as list of dictionaries
 # @param path location of the file to read
@@ -263,13 +281,3 @@ def read_xlsx(path, nrows = None, converters = None):
         dtype = str
     )
     return data.to_dict('records')
-
-# @title timestamp
-# @description generate a timestamp in H:M:S.ms format
-def timestamp():
-    return datetime.utcnow().strftime('%H:%M:%S.%f')[:-3]
-
-# @title Status Message
-# @description Prints a message with a timestamp
-def status_msg(msg):
-    print('[' + timestamp() + '] ' + str(msg))
