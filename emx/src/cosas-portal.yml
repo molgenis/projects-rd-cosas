@@ -1,8 +1,8 @@
 name: cosasportal
 label: COSAS Portal
 description: Staging tables for raw data extracts
-version: 0.9003
-date: 2021-07-13
+version: 0.9004
+date: 2021-07-15
 defaults:
   idAttribute: false
   dataType: string
@@ -55,6 +55,11 @@ entities:
       - name: EXTRADIAGNOSE_ZEKERHEID
       - name: DATUM_EERSTE_CONSULT
       - name: OND_ID
+      - name: processed
+        label: processed
+        label-nl: processed
+        dataType: bool
+        defaultValue: false
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -82,6 +87,11 @@ entities:
         dataType: text
       - name: UITSLAGCODE
       - name: AANDOENING_CODE
+      - name: processed
+        label: processed
+        label-nl: processed
+        dataType: bool
+        defaultValue: false
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -130,6 +140,11 @@ entities:
       - name: SGA_REFSEQ_CODING_GENES_COUNT
       - name: SGA_REGIONS_UMCG_CNV_NL_COUNT
       - name: SGA_SIMILAR_PREVIOUS_CASES
+      - name: processed
+        label: processed
+        label-nl: processed
+        dataType: bool
+        defaultValue: false
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -153,6 +168,11 @@ entities:
       - name: BatchNaam
       - name: CallRate
       - name: StandaardDeviatie
+      - name: processed
+        label: processed
+        label-nl: processed
+        dataType: bool
+        defaultValue: false
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -183,6 +203,11 @@ entities:
       - name: AMPLICON
       - name: ALLELFREQUENTIE
       - name: OVERERVING
+      - name: processed
+        label: processed
+        label-nl: processed
+        dataType: bool
+        defaultValue: false
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -212,6 +237,11 @@ entities:
       - name: GenomeBuild
       - name: CallRate
       - name: StandaardDeviatie
+      - name: processed
+        label: processed
+        label-nl: processed
+        dataType: bool
+        defaultValue: false
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -244,6 +274,11 @@ entities:
         description-nl: HPO code (HPO:1234567)
         dataType: text
       - name: created
+      - name: processed
+        label: processed
+        label-nl: processed
+        dataType: bool
+        defaultValue: false
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
