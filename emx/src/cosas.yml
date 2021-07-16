@@ -1,8 +1,8 @@
 name: cosas
 label: COSAS
 description: The Catalogue of Sequence Array and Samples
-version: 0.9003
-date: 2021-07-14
+version: 0.9004
+date: 2021-07-16
 defaults:
   idAttribute: false
   dataType: string
@@ -33,7 +33,7 @@ entities:
         label: Bioloigical Sex
         label-nl: Biologisch Geslacht
         dataType: categorical
-        refEntity: cosasrefs_phenotypic_sex
+        refEntity: cosasrefs_biological_sex
       - name: maternal_id
         label: Maternal ID
         label-nl: Maternale ID  
