@@ -1,8 +1,8 @@
 name: cosasrefs
 label: COSAS References
 description: Reference tables for COSAS
-version: 0.9008
-date: 2021-07-14
+version: 0.9009
+date: 2021-07-16
 defaults:
   idAttribute: false
   dataType: string
@@ -14,6 +14,53 @@ defaults:
 # Define entities below and include instructions for use
 # Data can also be defined here.
 entities:
+
+  # @name cosasrefs_biological_sex
+  # @description FairGenomes-COSAS mapped reference entity for sex
+  - name: biological_sex
+    label: Biological Sex
+    label-nl: Biologisch Geslacht
+    description: Categories for biological sex
+    description-nl: Categoriën voor biologish geslacht
+    attributes:
+        - name: id
+          label: ID
+          label-nl: ID
+          idAttribute: true
+          nillable: false
+          dataType: string
+          lookupAttribute: true
+          labelAttribute: true
+        - name: value
+          label: Value
+          label-nl: Value
+        - name: description
+          label: Description
+          label-nl: Omschrijving
+        - name: codesystem
+          label: Code system
+          label-nl: Code system
+        - name: code
+          label: Code
+          label-nl: Code
+        - name: iri
+          label: iri
+          label-nl: iri
+          dataType: hyperlink
+    data:
+      - id: vrouw
+        value: female
+        description: A biological sex quality inhering in an individual or a population that only produces gametes that can be fertilised by male gametes.
+        codesystem: PATO
+        code: 0000383
+        iri: http://purl.obolibrary.org/obo/PATO_0000383
+
+      - id: man
+        value: male
+        description: A biological sex quality inhering in an individual or a population whose sex organs contain only male gametes.
+        codesystem: PATO
+        code: 0000384
+        iri: http://purl.obolibrary.org/obo/PATO_0000384
 
   # ~ cosasrefs_condition_codes ~
   # Reference entity for all disorder (condition) codes
@@ -244,53 +291,6 @@ entities:
         dataType: string
       - name: iri
 
-  # @name cosasrefs_phenotypic_sex
-  # @description FairGenomes-COSAS mapped reference entity for sex
-  - name: phenotypic_sex
-    label: Phenotypic Sex
-    label-nl: Phenotypic Geslacht
-    description: Categories for phenotypic sex
-    description-nl: Categoriën voor phenotypic geslacht
-    attributes:
-        - name: id
-          label: ID
-          label-nl: ID
-          idAttribute: true
-          nillable: false
-          dataType: string
-          lookupAttribute: true
-          labelAttribute: true
-        - name: value
-          label: Value
-          label-nl: Value
-        - name: description
-          label: Description
-          label-nl: Omschrijving
-        - name: codesystem
-          label: Code system
-          label-nl: Code system
-        - name: code
-          label: Code
-          label-nl: Code
-        - name: iri
-          label: iri
-          label-nl: iri
-          dataType: hyperlink
-    data:
-      - id: vrouw
-        value: female
-        description: A biological sex quality inhering in an individual or a population that only produces gametes that can be fertilised by male gametes.
-        codesystem: PATO
-        code: 0000383
-        iri: http://purl.obolibrary.org/obo/PATO_0000383
-
-      - id: man
-        value: male
-        description: A biological sex quality inhering in an individual or a population whose sex organs contain only male gametes.
-        codesystem: PATO
-        code: 0000384
-        iri: http://purl.obolibrary.org/obo/PATO_0000384
-  
   # @name cosasrefs_test_codes
   # @description Reference entity for all tests codes and descriptions
   - name: test_codes
