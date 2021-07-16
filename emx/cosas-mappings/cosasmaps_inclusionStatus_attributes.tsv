@@ -1,3 +1,0 @@
-name	dataType	idAttribute	labelAttribute	entity	refEntity
-cosas_overleden	string	TRUE	TRUE	inclusionStatus	
-fg_id	xref	FALSE	FALSE	inclusionStatus	fair-genomes_personal_inclusionstatus
