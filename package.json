@@ -16,7 +16,8 @@
     "cosasrefs": "npm run build-cosasrefs && npm run import-cosasrefs",
     "cosasportal": "npm run build-cosasportal && npm run import-cosasportal",
     "build": "npm run build-cosas && npm run build-cosasrefs && npm run build-cosasportal",
-    "import": "npm run import-cosas && npm run import-cosasrefs && npm run import-cosasportal"
+    "import": "npm run import-cosas && npm run import-cosasrefs && npm run import-cosasportal",
+    "copy-emx": "sh shell/cosas_copy_emx.sh"
   },
   "repository": {
     "type": "git",
