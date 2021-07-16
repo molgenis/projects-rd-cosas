@@ -109,14 +109,14 @@ if (args == "cosasrefs") {
             openxlsx::addWorksheet(., "packages") %T>%
             openxlsx::addWorksheet(., "entities") %T>%
             openxlsx::addWorksheet(., "attributes") %T>%
-            openxlsx::addWorksheet(., "cosasrefs_phenotypic_sex") %T>%
+            openxlsx::addWorksheet(., "cosasrefs_biological_sex") %T>%
             openxlsx::writeData(., "packages", cosas_refs$packages) %T>%
             openxlsx::writeData(., "entities", cosas_refs$entities) %T>%
             openxlsx::writeData(., "attributes", cosas_refs$attributes) %T>%
             openxlsx::writeData(
                 wb = .,
-                sheet = "cosasrefs_phenotypic_sex",
-                x = cosas_refs$cosasrefs_phenotypic_sex
+                sheet = "cosasrefs_biological_sex",
+                x = cosas_refs$cosasrefs_biological_sex
             ) %T>%
             openxlsx::saveWorkbook(wb = ., file = output, overwrite = TRUE)
         )
