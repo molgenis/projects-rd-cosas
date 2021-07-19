@@ -21,7 +21,7 @@
 import os
 
 # define files that you would like to manage here
-files = ['python/cosas_mapping_initial.py']
+files = ['python/cosas_mapping.py']
 
 # @name read_script
 # @description read lines of a python file
