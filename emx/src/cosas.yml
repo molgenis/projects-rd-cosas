@@ -1,8 +1,8 @@
 name: cosas
 label: COSAS
 description: The Catalogue of Sequence Array and Samples
-version: 0.9004
-date: 2021-07-16
+version: 0.9005
+date: 2021-07-19
 defaults:
   idAttribute: false
   dataType: string
@@ -108,6 +108,12 @@ entities:
         dataType: categorical
         refEntity: cosasrefs_diagnostic_certainty
         nillable: true
+      - name: date_first_consult
+        label: First Consult Date
+        label-nl: Datum eerst consult
+        description: first time seen in the clinic
+        description-nl: eerst op poli gezien
+        dataType: date
       - name: ond_id
         label: Public information research ID
         label-nl: Voorlichtingsonderzoek
