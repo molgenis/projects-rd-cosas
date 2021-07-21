@@ -1,8 +1,8 @@
 name: cosasportal
 label: COSAS Portal
 description: Staging tables for raw data extracts
-version: 0.9004
-date: 2021-07-15
+version: 0.9005
+date: 2021-07-21
 defaults:
   idAttribute: false
   dataType: string
@@ -32,6 +32,10 @@ entities:
         label-nl: processed
         dataType: bool
         defaultValue: false
+      - name: date_processed
+        label: Date Processed
+        label-nl: Date Processed
+        dataType: dateTime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -60,6 +64,10 @@ entities:
         label-nl: processed
         dataType: bool
         defaultValue: false
+      - name: date_processed
+        label: Date Processed
+        label-nl: Date Processed
+        dataType: dateTime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -92,6 +100,10 @@ entities:
         label-nl: processed
         dataType: bool
         defaultValue: false
+      - name: date_processed
+        label: Date Processed
+        label-nl: Date Processed
+        dataType: dateTime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -145,6 +157,10 @@ entities:
         label-nl: processed
         dataType: bool
         defaultValue: false
+      - name: date_processed
+        label: Date Processed
+        label-nl: Date Processed
+        dataType: dateTime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -173,6 +189,10 @@ entities:
         label-nl: processed
         dataType: bool
         defaultValue: false
+      - name: date_processed
+        label: Date Processed
+        label-nl: Date Processed
+        dataType: dateTime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -208,6 +228,10 @@ entities:
         label-nl: processed
         dataType: bool
         defaultValue: false
+      - name: date_processed
+        label: Date Processed
+        label-nl: Date Processed
+        dataType: dateTime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -242,6 +266,10 @@ entities:
         label-nl: processed
         dataType: bool
         defaultValue: false
+      - name: date_processed
+        label: Date Processed
+        label-nl: Date Processed
+        dataType: dateTime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -279,6 +307,10 @@ entities:
         label-nl: processed
         dataType: bool
         defaultValue: false
+      - name: date_processed
+        label: Date Processed
+        label-nl: Date Processed
+        dataType: dateTime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
