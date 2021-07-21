@@ -269,7 +269,7 @@ entities:
         description: FairGenomes iri
         description-nl: FairGenomes iri
         dataType: hyperlink
-  
+
   # @name cosasrefs_phenotyp
   # @description HPO ontology
   # @refs 
