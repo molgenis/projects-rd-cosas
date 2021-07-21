@@ -10,6 +10,7 @@
 #'////////////////////////////////////////////////////////////////////////////
 
 import pandas as pd
+import re
 
 # @cosastools start
 import molgenis.client as molgenis
@@ -243,13 +244,15 @@ def status_msg(msg):
 # @description read xlsx file and return as list of dictionaries
 # @param path location of the file to read
 # @param nrows number of rows to read
+# @param usecols a list of column indeces to load
 # @param converters dictionary containing attribute-data type mappings
 # @return a list of dictionaries
-def read_xlsx(path, nrows = None, converters = None):
+def read_xlsx(path, nrows = None, usecols = None, converters = None):
     data = pd.read_excel(
         path,
         engine = 'openpyxl',
         nrows = nrows,
+        usecols = usecols,
         converters = converters,
         dtype = str
     )
@@ -323,6 +326,7 @@ def map_cosas_diagnoses(data):
     for d in data:
         tmp = {
             'umcg_numr': d.get('UMCG_NUMBER'),
+            'family_numr': None,
             'primary_dx': d.get('HOOFDDIAGNOSE'),
             'primary_dx_certainty': d.get('HOOFDDIAGNOSE_ZEKERHEID'),
             'extra_dx': d.get('EXTRADIAGNOSE'),
@@ -342,6 +346,157 @@ def map_cosas_diagnoses(data):
         out.append(tmp)
     return out
 
+# @title Map Bench CNV data
+# @name mape_bench_cnv
+# @description map bench cnv portal data into RD3 terminology
+# @param data raw data export
+# @return a list of dictionaries
+def map_bench_cnv(data):
+    # f = "%d/%m/%Y"
+    f = "%Y-%m-%d %H:%M:%S"
+    out = []
+    for d in data:
+        tmp = {
+            'id': d.get('primid'),
+            'maternal_id': None, # maternal ID
+            'umcg_numr': None, # either patient or fetus ID
+            'family_numr': d.get('secid'),
+            'biological_sex': d.get('gender'),
+            'phenotype': d.get('phenotype'),
+            'date_created': d.get('created'),
+            'is_fetus': False,
+            'linked_umcg_numr': None,
+            'linked_twin_numr': None
+        }
+        # process HPO codes: convert double space to comma separated str
+        # remove leading `HP:` so that values can be mapped to FairGenomes
+        if tmp['phenotype']:
+            if tmp['phenotype'].rstrip() == '':
+                tmp['phenotype'] = None
+            else:
+                values = tmp['phenotype'].rstrip().split()
+                values = [val.replace('HP:', '') for val in values]
+                tmp['phenotype'] = ','.join(values)
+        # convert `date_created` as date (if applicable)
+        if str(tmp['date_created'] != 'nan'):
+            tmp['date_created'] = datetime.strptime(
+                str(tmp['date_created']), f
+            ).date()
+        out.append(tmp)
+        # update is_fetus status and process IDs. We need to find:
+        #   1) maternal ID: everything before the "F"
+        #   2) umcg_numr of the fetus: string with "F"
+        #   3) umcg_numr if the fetus is born: everything after the "F"
+        #
+        # Later on, we will calculate which ones are twins
+        if 'F' in tmp['id']:
+            tmp['is_fetus'] = True
+            # Pattern Set 1: 99999F, 99999F1, 99999F1.2
+            fend = re.search(r'((F)|(F[-_])|(F[0-9]{,2})|(F[0-9]\\.[0-9]))$', tmp['id'])
+            if fend:
+                tmp['maternal_id'] = fend.string.replace(fend.group(0), '')
+                tmp['umcg_numr'] = fend.string
+            else:
+                # Patern Set 2: 99999F-88888, 99999F_88888
+                fmid = re.search(r'^([0-9]{2,}(F)?[-_=][0-9]{2,})$', tmp['id'])
+                if fmid:
+                    ids = re.split(r'[-_]', fmid.string)
+                    tmp['maternal_id'] = ids[0].replace('F', '')
+                    tmp['umcg_numr'] = ids[0].replace(ids.groups(0),'')
+                    tmp['linked_umcg_numr'] = ids[1]
+                else:
+                    status_msg(
+                        'F detected in {}, but pattern is unexpected'
+                        .format(tmp['id'])
+                    )
+        else:
+            tmp['umcg_numr'] = tmp['mid']
+    return out
+
+# @title Map COSAS Samples
+# @name map_cosas_samples
+# @description map `cosasportal_samples` into `cosas_samples`
+# @param data export from `cosasportal_samples`
+def map_cosas_samples(data):
+    out = []
+    for d in data:
+        tmp = {
+            'umcg_numr': d.get('UMCG_NUMMER'),
+            'family_numr': None,
+            'request_id': d.get('ADVVRG_ID'),
+            'sample_id': d.get('MONSTER_ID'),
+            'dna_numr': d.get('DNA_NUMMER'),
+            'material_type': d.get('MATERIAAL'),
+            'lab_indication': None,
+            'test_code': d.get('TEST_CODE').lower(),
+            'test_date': None,
+            'test_result': d.get('UITSLAG_TEKST'),
+            'test_result_status': d.get('UITSLAGCODE'),
+            'disorder_code': d.get('AANDOENING_CODE').lower()
+        }
+        out.append(tmp)
+    return out
+
+# @title Map Array Adlas Data
+# @name map_array_adlas
+# @description Pull relevant columns and map to COSAS terminology
+# @param data raw data from the portal
+# @return a list of dictionaries
+def map_array_adlas(data):
+    out = []
+    for d in data:
+        tmp = {
+            'umcg_numr': d.get('UMCG_NUMBER'),
+            'family_numr': None,
+            'request_id': d.get('ADVVRG_ID'),
+            'dna_numr': d.get('DNA_NUMMER'),
+            'test_id': d.get('TEST_ID'),
+            'test_code': d.get('TEST_CODE'),
+            'lab_indication': d.get('SGA_CLASSIFICATION'),
+            'test_result': d.get('SGA_DECIPHER_SYNDROMES')
+        }
+        out.append(tmp)
+    return out
+
+# @title Map Array data from Darwin
+# @name map_array_darwin
+# @description pull relevant columns and map to COSAS terminology
+# @param data raw data from the portal
+# @return a list of dictionaries
+def map_array_darwin(data):
+    # f = "%d/%m/%Y"
+    f = "%Y-%m-%d %H:%M:%S"
+    out = []
+    for d in data:
+        tmp = {
+            'umcg_numr': d.get('UmcgNr'),
+            'test_code': d.get('TestId'),
+            'test_date': d.get('TestDatum'),
+            'lab_indication': d.get('Indicatie')
+        }
+        if str(tmp['test_date']) != 'nan':
+            tmp['test_date'] = datetime.strptime(str(tmp['test_date']), f).date()
+        out.append(tmp)
+    return out
+
+# @title Map NGS data from Adlas
+# @name map_ngs_adlas
+# @description pull relevant columns and map to COSAS terminology
+# @param data raw data from the portal
+# @return a list of dictionaries
+def map_ngs_adlas(data):
+    out = []
+    for d in data:
+        tmp = {
+            'umcg_numr': d.get('UMCG_NUMBER'),
+            'family_numr': None,
+            'request_id': d.get('ADVRRG_ID'),
+            'dna_numr': d.get('DNA_NUMMER'),
+            'test_id': d.get('TEST_ID'),
+            'test_code': d.get('TEST_CODE')
+        }
+        out.append(tmp)
+    return out
 
 # @title Find date of first consult
 # @name calc__first__date
@@ -364,183 +519,253 @@ def calc__first__date(data, id, date):
             out.append(tmp)
     return out
 
-
-# @title Merge first date consult data with patients
-# @name merge__patient__dates
-# @param patients object containing patient metadata
-# @param dates object containing dates per ID
-# @return the patients object with dates added where applicable
-def merge__patient__dates(patients, dates):
-    for p in patients:
-        results = dict_filter(data = dates, attr = 'umcg_numr', value = p['umcg_numr'])
-        if results:
-            p['date_first_consult'] = results[0].get('date_first_consult')
-
+# @title Merge Attribute
+# @name merge__attr
+# @description merge attribute from one object into another
+# @param data_x main object that will receive the new data
+# @param data_y object that has the data you wish to merge
+# @param id name of the attribute that has the IDs
+# @param attr the name of attribute you wish to join
+# @return ...
+def merge_attr(data_x, data_y, id, attr):
+    for d in data_x:
+        result = dict_filter(data = data_y, attr = id, value= d[id])
+        if result:
+            d[attr] = result[0].get(attr)
+        else:
+            d[attr] = None
 
 
 
 #'/////////////////////////////////////////////////////////////////////////////
 
-# define flags
-should = {
-    'map': {
-        'cosas_patients_date_first_consult': False
-    },
-    'push': {
-        'cosas_patients': False,
-        'cosas_diagnoses': False,
-        'cosas_samples': False,
-        'cosas_labs_array': False,
-        'cosas_labs_ngs': False,
-    },
-    'update': {
-        'cosas_patients_date_first_consult': False
-    }
-}
+# ~ 1 ~
+# LOAD
+# For the initial COSAS import, we will semi-manually map the datasets.
+# From all data extracts, load the raw excel workbooks and process. 
 
-status_msg("Starting COSAS mapping! :-)")
-
-# init session
-host = "https://cosas-acc.gcc.rug.nl/api/"
-token = '${molgenisToken}'
-cosas = molgenis(url = host, token = token)
-
-# pull all portal data
-status_msg('Pulling data from portal...')
-
-cosas_patients = cosas.get(entity = 'cosas_patients', batch_size = 10000)
-# cosas_patient_ids = attr_flatten(
-#     data = cosas_patients,
-#     attr = 'umcg_numr',
-#     distinct = True
-# )
-
-# portal_patients = cosas.get(
-#     entity = 'cosasportal_patients',
-#     q = 'processed=="false"',
-#     batch_size = 10000
-# )
-
-# portal_diagnoses = cosas.get(
-#     entity = 'cosasportal_diagnoses',
-#     q = 'processed=="false"',
-#     batch_size = 10000
-# )
-
-# bench_cnv = cosas.get(
-#     entity = 'cosasportal_bench_cnv',
-#     q = 'processed=="false"',
-#     batch_size = 10000
-# )
-
-# DEV ONLY - simulate initial upload only
-cosas_patient_ids = []
+nrows = 500  # temp set row limits (for testing purposes only)
 portal_patients = read_xlsx(
     path = 'data/cosasportal/cosasportal_patients.xlsx',
-    nrows = 500
+    nrows = nrows
 )
 
 portal_diagnoses = read_xlsx(
     path = 'data/cosasportal/cosasportal_diagnoses.xlsx',
-    nrows = 500
+    nrows = nrows
 )
 
-# bench_cnv = read_xlsx(
-#     path = 'data/cosasportal/cosasportal_bench_cnv.xlsx'
-# )
+portal_samples = read_xlsx(
+    path = 'data/cosasportal/cosasportal_samples.xlsx',
+    nrows = nrows
+)
 
+portal_array_adlas = read_xlsx(
+    path = 'data/cosasportal/cosasportal_array_adlas.xlsx',
+    nrows = nrows
+)
+
+portal_array_darwin = read_xlsx(
+    path = 'data/cosasportal/cosasportal_array_darwin.xlsx',
+    nrows = nrows
+)
+
+portal_ngs_adlas = read_xlsx(
+    path = 'data/cosasportal/cosasportal_ngs_aldas.xlsx',
+    nrows = nrows
+)
+
+portal_ngs_darwin = read_xlsx(
+    path = 'data/cosasportal/cosasportal_ngs_darwin.xlsx',
+    nrows = nrows
+)
+
+bench_cnv = read_xlsx(
+    path = 'data/cosasportal/cosasportal_bench_cnv.xlsx',
+    nrows = nrows
+)
+
+
+#//////////////////////////////////////
+
+# ~ 2 ~
+# map all portal objects into COSAS terminology
+portal_patients_mapped = map_cosas_patients(data = portal_patients)
+portal_diagnoses_mapped = map_cosas_diagnoses(data = portal_diagnoses)
+portal_samples_mapped = map_cosas_samples(data = portal_samples)
+portal_array_adlas_mapped = map_array_adlas(data = portal_array_adlas)
+portal_array_darwin_mapped = map_array_darwin(data = portal_array_darwin)
+portal_ngs_adlas_mapped = map_ngs_adlas(data = portal_ngs_adlas)
+portal_ngs_darwin_mapped = map_ngs_adlas(data = portal_ngs_darwin)
+portal_benchcnv_mapped = map_bench_cnv(data = bench_cnv)
+
+
+
+#//////////////////////////////////////
+
+# ~ 3 ~ 
+# Merge attributes into mapped objects
+
+# calculate the earliest consult date
+portal_patients_visit_dates = calc__first__date(
+    data = portal_diagnoses_mapped,
+    id = 'umcg_numr',
+    date = 'date_first_consult'
+)
+
+merge_attr(
+    data_x = portal_patients_mapped,
+    data_y = portal_patients_visit_dates,
+    id = 'umcg_numr',
+    attr = 'date_first_consult'
+)
+
+# copy `family_numr` into `cosas_diagnoses`
+merge_attr(
+    data_x = portal_diagnoses_mapped,
+    data_y = portal_patients_mapped,
+    id = 'umcg_numr',
+    attr = 'family_numr'
+)
+
+# copy `family_numr` into `cosas_samples`
+merge_attr(
+    data_x = portal_samples_mapped,
+    data_y = portal_patients_mapped,
+    id = 'umcg_numr',
+    attr = 'family_numr'
+)
+
+
+#//////////////////////////////////////////////////////////////////////////////
+#
+#  POTENTIAL CODE FOR LIVE CONNECTION
+# 
+# status_msg("Starting COSAS mapping! :-)")
+# 
+# init session
+# host = "https://cosas-acc.gcc.rug.nl/api/"
+# token = '${molgenisToken}'
+# cosas = molgenis(url = host, token = token)
+# 
+# pull all portal data
+# status_msg('Pulling data from portal...')
+# 
+# cosas_patients = cosas.get(entity = 'cosas_patients', batch_size = 10000)
+# cosas_patient_ids = []
+#
+# merge__patient__dates(
+#     patients = portal_patients_mapped,
+#     dates = portal_patients_visit_dates
+# )
 # map `cosasportal_patients`
-should_map_consult_dates = False
-if portal_patients:
-    status_msg('Mapping patient portal table...')
-    portal_patients_mapped = map_cosas_patients(data = portal_patients)
-    #
-    # update flag that indicates consult date data should be merged
-    #
-    if portal_patients_mapped:
-        should['push']['cosas_patients'] = True
-        should['map']['cosas_patients_date_first_consult'] = True
-        status_msg(
-            "Mapped patients (NROW: {})"
-            .format(len(portal_patients_mapped))
-        )
-else:
-    status_msg('Data in `cosasportal_patients` is already processed :-p')
+# define flags
+# should = {
+#     'map': {
+#         'cosas_patients_date_first_consult': False
+#     },
+#     'push': {
+#         'cosas_patients': False,
+#         'cosas_diagnoses': False,
+#         'cosas_samples': False,
+#         'cosas_labs_array': False,
+#         'cosas_labs_ngs': False,
+#     },
+#     'update': {
+#         'cosas_patients_date_first_consult': False
+#     }
+# }
+# should_map_consult_dates = False
+# if portal_patients:
+#     status_msg('Mapping patient portal table...')
+#     portal_patients_mapped = map_cosas_patients(data = portal_patients)
+#     #
+#     # update flag that indicates consult date data should be merged
+#     #
+#     if portal_patients_mapped:
+#         should['push']['cosas_patients'] = True
+#         should['map']['cosas_patients_date_first_consult'] = True
+#         status_msg(
+#             "Mapped patients (NROW: {})"
+#             .format(len(portal_patients_mapped))
+#         )
+# else:
+#     status_msg('Data in `cosasportal_patients` is already processed :-p')
 
 # map `cosasportal_diagnoses`
-if portal_diagnoses:
-    status_msg('Mapping diagnoses table...')
-    portal_diagnoses_mapped = map_cosas_diagnoses(data = portal_diagnoses)
-    status_msg(
-        "Mapped diagnoses (NROW: {})"
-        .format(len(portal_diagnoses_mapped))
-    )
-    # find the date of first consult and merge with patients metadat
-    portal_patients_visit_dates = calc__first__date(
-        data = portal_diagnoses_mapped,
-        id = 'umcg_numr',
-        date = 'date_first_consult'
-    )
-    # should the we join with `cosasportal_patients`?
-    if should['map']['cosas_patients_date_first_consult']:
-        status_msg('Merging consult date data with patients...')
-        merge__patient__dates(
-            patients = portal_patients_mapped,
-            dates = portal_patients_visit_dates
-        )
-    else:
-        # otherwise, attempt to locate cases to update
-        status_msg('No patient data available to merge. Attempting to locate potential updates')
-        if cosas_patient_ids:
-            status_msg('Finding cases to update')
-            cosas_patients_visit_dates = []
-            for d in portal_patients_visit_dates:
-                result = dict_filter(
-                    data = cosas_patients,
-                    attr = 'umcg_numr',
-                    value = d['umcg_numr']
-                )
-                if result:
-                    d['id'] = result[0].get('id')
-                    cosas_patients_visit_dates.append(d)
-            if cosas_patients_visit_dates:
-                status_msg(
-                    'Rows to update {}'
-                    .format(len(cosas_patients_visit_dates))
-                )
-                should['update']['cosas_patients_date_first_consult']
-            else:
-                status_msg('No consult dates to update')
-        else:
-            status_msg('No IDs exist. Unable to run updates')
-else:
-    status_msg("Data in `cosasportal_diagnoses` is already processed. :-)")
+# if portal_diagnoses:
+#     status_msg('Mapping diagnoses table...')
+#     portal_diagnoses_mapped = map_cosas_diagnoses(data = portal_diagnoses)
+#     status_msg(
+#         "Mapped diagnoses (NROW: {})"
+#         .format(len(portal_diagnoses_mapped))
+#     )
+#     # find the date of first consult and merge with patients metadat
+#     portal_patients_visit_dates = calc__first__date(
+#         data = portal_diagnoses_mapped,
+#         id = 'umcg_numr',
+#         date = 'date_first_consult'
+#     )
+#     # should the we join with `cosasportal_patients`?
+#     if should['map']['cosas_patients_date_first_consult']:
+#         status_msg('Merging consult date data with patients...')
+#         merge__patient__dates(
+#             patients = portal_patients_mapped,
+#             dates = portal_patients_visit_dates
+#         )
+#     else:
+#         # otherwise, attempt to locate cases to update
+#         status_msg('No patient data available to merge. Attempting to locate potential updates')
+#         if cosas_patient_ids:
+#             status_msg('Finding cases to update')
+#             cosas_patients_visit_dates = []
+#             for d in portal_patients_visit_dates:
+#                 result = dict_filter(
+#                     data = cosas_patients,
+#                     attr = 'umcg_numr',
+#                     value = d['umcg_numr']
+#                 )
+#                 if result:
+#                     d['id'] = result[0].get('id')
+#                     cosas_patients_visit_dates.append(d)
+#             if cosas_patients_visit_dates:
+#                 status_msg(
+#                     'Rows to update {}'
+#                     .format(len(cosas_patients_visit_dates))
+#                 )
+#                 should['update']['cosas_patients_date_first_consult']
+#             else:
+#                 status_msg('No consult dates to update')
+#         else:
+#             status_msg('No IDs exist. Unable to run updates')
+# else:
+#     status_msg("Data in `cosasportal_diagnoses` is already processed. :-)")
 
 #'/////////////////////////////////////
 
 # upload data
-status_msg('Pushing data...')
+# status_msg('Pushing data...')
 
 # push to `cosas_patients`
-if should['push']['cosas_patients']:
-    status_msg('Pushing new data to cosas_patients')
-    cosas.update_table(
-        data = portal_patients_mapped,
-        entity = 'cosas_patients'
-    )
+# if should['push']['cosas_patients']:
+#     status_msg('Pushing new data to cosas_patients')
+#     cosas.update_table(
+#         data = portal_patients_mapped,
+#         entity = 'cosas_patients'
+#     )
 
 # update `date_firsts_consult` in `cosas_patients`
-if should['update']['cosas_patients_date_first_consult']:
-    status_msg('Updating consult date data')
-    cosas_patients_date_first_consult_updates = dict_select(
-        data = cosas_patients_visit_dates,
-        keys = ['id', 'date_first_consult']
-    )
-    cosas.batch_update_one_attr(
-        entity = 'cosas_patients',
-        attr = 'date_first_consult',
-        values = cosas_patients_date_first_consult_updates
-    )
+# if should['update']['cosas_patients_date_first_consult']:
+#     status_msg('Updating consult date data')
+#     cosas_patients_date_first_consult_updates = dict_select(
+#         data = cosas_patients_visit_dates,
+#         keys = ['id', 'date_first_consult']
+#     )
+#     cosas.batch_update_one_attr(
+#         entity = 'cosas_patients',
+#         attr = 'date_first_consult',
+#         values = cosas_patients_date_first_consult_updates
+#     )
 
 # triage portal data
 # status_msg('Triaging portal data...')
