@@ -1,8 +1,8 @@
 name: cosas
 label: COSAS
 description: The Catalogue of Sequence Array and Samples
-version: 0.9005
-date: 2021-07-19
+version: 0.9007
+date: 2021-07-21
 defaults:
   idAttribute: false
   dataType: string
@@ -37,14 +37,25 @@ entities:
       - name: maternal_id
         label: Maternal ID
         label-nl: Maternale ID  
+        dataType: xref
+        refEntity: cosas_patients
       - name: paternal_id
         label: Paternal ID
         label-nl: Paternal ID
+        dataType: xref
+        refEntity: cosas_patients
       - name: linked_family_ids
         label: Linked Family IDs
         label-nl: Gekoppelde Familie-ID's
         dataType: mref
         refEntity: cosas_patients
+      - name: phenotype
+        label: Phenotype
+        label-nl: Phenotype
+        description: HPO terms
+        description-nl: HPO terms
+        dataType: mref
+        refEntity: cosasrefs_phenotype
       - name: is_desceased
         label: Is Deceased
         label-nl: Overlijden
@@ -61,13 +72,22 @@ entities:
         label: Is fetus
         label-nl: Is foetus
         dataType: bool
-        defaultValue: false
+      - name: twin_status
+        label: Twin Status
+        label-nl: Tweelingstatus
+        dataType: bool
       - name: date_first_consult
         label: First Consult Date
         label-nl: Datum eerst consult
         description: first time seen in the clinic
         description-nl: eerst op poli gezien
         dataType: date
+      - name: date_last_updated
+        label: Date last updated
+        label-nl: Datum laatste bijwerking
+        description: Date lasted updated in COSAS
+        description-nl: Datum laatste bijwerking in COSAS
+        dataType: dateTime
   - name: diagnoses
     label: Diagnoses
     label-nl: Diagnoses
@@ -119,6 +139,12 @@ entities:
         label-nl: Voorlichtingsonderzoek
         dataType: string
         nillable: true
+      - name: date_last_updated
+        label: Date last updated
+        label-nl: Datum laatste bijwerking
+        description: Date lasted updated in COSAS
+        description-nl: Datum laatste bijwerking in COSAS
+        dataType: dateTime
       - name: id
         label: id
         label-nl: id
@@ -161,13 +187,11 @@ entities:
         label-nl: Lab indicatie
         dataType: xref
         refEntity: cosasrefs_lab_indications
-        nillable: true
       - name: test_code
         label: Test code
         label-nl: Test code
         dataType: xref
         refEntity: cosasrefs_test_codes
-        nillable: true
       - name: test_date
         label: Test date
         label-nl: Testdatum
@@ -175,6 +199,7 @@ entities:
       - name: test_result
         label: Test result
         label-nl: Testresultaat
+        dataType: text
       - name: test_result_status
         label: Test result status
         label-nl: Status testresultaat
@@ -184,6 +209,12 @@ entities:
         dataType: xref
         refEntity: cosasrefs_condition_codes
         nillable: true
+      - name: date_last_updated
+        label: Date last updated
+        label-nl: Datum laatste bijwerking
+        description: Date lasted updated in COSAS
+        description-nl: Datum laatste bijwerking in COSAS
+        dataType: dateTime
       - name: id
         label: id
         label-nl: id
@@ -213,12 +244,19 @@ entities:
       - name: dna_numr
         label: DNA number
         label-nl: DNA nummer
+      - name: lab_indication
+        label: Lab Indication
+        label-nl: Lab indicatie
+        dataType: xref
+        refEntity: cosasrefs_lab_indications
       - name: test_id
         label: Test ID
         label-nl: Test-ID
+      - name: test_code
+        label: Test Code
+        label-nl: Test Code
         dataType: xref
         refEntity: cosasrefs_test_codes
-        nillable: true
       - name: test_date
         label: Test date
         label-nl: Testdatum
@@ -226,6 +264,15 @@ entities:
       - name: test_result
         label: Test Result
         label-nl: Testresultaat
+        description: SGA Decipher Syndromes
+        description-nl: SGA Decipher Syndromes
+        dateType: text
+      - name: date_last_updated
+        label: Date last updated
+        label-nl: Datum laatste bijwerking
+        description: Date lasted updated in COSAS
+        description-nl: Datum laatste bijwerking in COSAS
+        dataType: dateTime
       - name: id
         label: id
         label-nl: id
@@ -286,6 +333,12 @@ entities:
       - name: genome_build
         label: Genome Build
         label-nl: Genome Build
+      - name: date_last_updated
+        label: Date last updated
+        label-nl: Datum laatste bijwerking
+        description: Date lasted updated in COSAS
+        description-nl: Datum laatste bijwerking in COSAS
+        dataType: dateTime
       - name: id
         label: id
         label-nl: id
@@ -334,6 +387,12 @@ entities:
         label: Date created
         label-nl: Datum aangemaakt
         dataType: date
+      - name: date_last_updated
+        label: Date last updated
+        label-nl: Datum laatste bijwerking
+        description: Date lasted updated in COSAS
+        description-nl: Datum laatste bijwerking in COSAS
+        dataType: dateTime
       - name: id
         label: id
         label-nl: id
