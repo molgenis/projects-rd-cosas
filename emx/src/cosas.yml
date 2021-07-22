@@ -1,8 +1,8 @@
 name: cosas
 label: COSAS
 description: The Catalogue of Sequence Array and Samples
-version: 0.9007
-date: 2021-07-21
+version: 0.9008
+date: 2021-07-22
 defaults:
   idAttribute: false
   dataType: string
@@ -49,11 +49,11 @@ entities:
         label-nl: Gekoppelde Familie-ID's
         dataType: mref
         refEntity: cosas_patients
-      - name: phenotype
-        label: Phenotype
-        label-nl: Phenotype
-        description: HPO terms
-        description-nl: HPO terms
+      - name: hpo_codes
+        label: HPO Codes
+        label-nl: HPO Codes
+        description: HPO codes
+        description-nl: HPO codes
         dataType: mref
         refEntity: cosasrefs_phenotype
       - name: is_desceased
@@ -72,7 +72,7 @@ entities:
         label: Is fetus
         label-nl: Is foetus
         dataType: bool
-      - name: twin_status
+      - name: is_twin
         label: Twin Status
         label-nl: Tweelingstatus
         dataType: bool
@@ -261,12 +261,6 @@ entities:
         label: Test date
         label-nl: Testdatum
         dataType: date
-      - name: test_result
-        label: Test Result
-        label-nl: Testresultaat
-        description: SGA Decipher Syndromes
-        description-nl: SGA Decipher Syndromes
-        dateType: text
       - name: date_last_updated
         label: Date last updated
         label-nl: Datum laatste bijwerking
@@ -324,6 +318,9 @@ entities:
       - name: sequencing_type
         label: Sequencing type
         label-nl: Sequencing Type
+      - name: seqtype
+        label: Seq Type
+        label-nl: Seq Type
       - name: capturing_kit
         label: Capturing Kit
         label-nl: Capturing Kit
