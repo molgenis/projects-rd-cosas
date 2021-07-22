@@ -434,6 +434,9 @@ def map_cosas_samples(data):
             'test_result_status': d.get('UITSLAGCODE'),
             'disorder_code': d.get('AANDOENING_CODE').lower()
         }
+        # recode `material_type`
+        if tmp['material_type'] != '':
+            tmp['material_type'] = tmp['material_type'].lower().replace(' ', '-')
         out.append(tmp)
     return out
 
@@ -474,6 +477,10 @@ def map_array_darwin(data):
             'test_date': d.get('TestDatum'),
             'lab_indication': d.get('Indicatie')
         }
+        # recode `lab_indication`
+        if tmp['lab_indication'] != '':
+            tmp['lab_indication'] = tmp['lab_indication'].lower().replace(' ', '-')
+        # set `test_date` as date object
         if str(tmp['test_date']) != 'nan':
             tmp['test_date'] = datetime.strptime(str(tmp['test_date']), f).date()
         out.append(tmp)
@@ -495,6 +502,36 @@ def map_ngs_adlas(data):
             'test_id': d.get('TEST_ID'),
             'test_code': d.get('TEST_CODE')
         }
+        out.append(tmp)
+    return out
+
+# @title Map NGS data from Darwin
+# @name map_ngs_darwin
+# @description pull relevant columns and map to COSAS terminology
+# @param data raw data from the portal
+def map_ngs_darwin(data):
+    # f = "%d/%m/%Y"
+    f = "%Y-%m-%d %H:%M:%S"
+    out = []
+    for d in data:
+        tmp ={
+            'umcg_numr': d.get('UmcgNr'),
+            'test_code': d.get('TestId'),
+            'test_date': d.get('TestDatum'),
+            'lab_indication': d.get('Indicatie'),
+            'sequencer': d.get('Sequencer'),
+            'prep_kit': d.get('PrepKit'),
+            'sequencing_type': d.get('SequencingType'),
+            'capturing_kit': d.get('CapturingKit'),
+            'batch': d.get('BatchNaam'),
+            'genome_build': d.get('GenomeBuild')
+        }
+        # recode `lab_indciation`
+        if tmp['lab_indication'] != '':
+            tmp['lab_indication'] = tmp['lab_indication'].lower().replace(' ', '-')
+        # convert `test_date` to date object
+        if str(tmp['test_date']) != 'nan':
+            tmp['test_date'] = datetime.strptime(str(tmp['test_date']), f).date()
         out.append(tmp)
     return out
 
@@ -571,7 +608,7 @@ portal_array_darwin = read_xlsx(
 )
 
 portal_ngs_adlas = read_xlsx(
-    path = 'data/cosasportal/cosasportal_ngs_aldas.xlsx',
+    path = 'data/cosasportal/cosasportal_ngs_adlas.xlsx',
     nrows = nrows
 )
 
@@ -596,7 +633,7 @@ portal_samples_mapped = map_cosas_samples(data = portal_samples)
 portal_array_adlas_mapped = map_array_adlas(data = portal_array_adlas)
 portal_array_darwin_mapped = map_array_darwin(data = portal_array_darwin)
 portal_ngs_adlas_mapped = map_ngs_adlas(data = portal_ngs_adlas)
-portal_ngs_darwin_mapped = map_ngs_adlas(data = portal_ngs_darwin)
+portal_ngs_darwin_mapped = map_ngs_darwin(data = portal_ngs_darwin)
 portal_benchcnv_mapped = map_bench_cnv(data = bench_cnv)
 
 
@@ -635,6 +672,10 @@ merge_attr(
     id = 'umcg_numr',
     attr = 'family_numr'
 )
+
+def merge_samples_array(data, adlas, darwin):
+    for d in data:
+        a = dict_filter()
 
 
 #//////////////////////////////////////////////////////////////////////////////
