@@ -49,13 +49,6 @@ entities:
         label-nl: Gekoppelde Familie-ID's
         dataType: mref
         refEntity: cosas_patients
-      - name: hpo_codes
-        label: HPO Codes
-        label-nl: HPO Codes
-        description: HPO codes
-        description-nl: HPO codes
-        dataType: mref
-        refEntity: cosasrefs_phenotype
       - name: is_desceased
         label: Is Deceased
         label-nl: Overlijden
@@ -76,6 +69,9 @@ entities:
         label: Twin Status
         label-nl: Tweelingstatus
         dataType: bool
+      - name: linked_patient_id
+        label: Linked Patient ID
+        label-nl: Gekoppelde patientnummer
       - name: date_first_consult
         label: First Consult Date
         label-nl: Datum eerst consult
@@ -88,11 +84,11 @@ entities:
         description: Date lasted updated in COSAS
         description-nl: Datum laatste bijwerking in COSAS
         dataType: dateTime
-  - name: diagnoses
-    label: Diagnoses
-    label-nl: Diagnoses
-    description: Diagnoses and certainty of diagnoses per patient
-    description-nl: Diagnoses en zekerheid van diagnoses per patiënt
+  - name: clinical
+    label: Clinical
+    label-nl: Clinical
+    description: Findings and circumstances relating to the examination and treatment of a patient
+    description-nl: Bevindingen en omstandigheden in verband met het onderzoek en de behandeling van een patiënt
     attributes:
       - name: umcg_numr
         label: UMCG Number
@@ -104,6 +100,11 @@ entities:
       - name: family_numr
         label: Family Number
         label-nl: Familie Nummer
+      - name: event_type
+        label: Event Type
+        label-nl: Gebeurtenistype
+        description: Event is either diagnosis or HPO
+        description-nl: Gebeurtenis is diagnose of HPO
       - name: primary_dx
         label: Primary Diagnoses
         label-nl: Primaire diagnose
@@ -134,6 +135,13 @@ entities:
         description: first time seen in the clinic
         description-nl: eerst op poli gezien
         dataType: date
+      - name: hpo
+        label: HPO Codes
+        label-nl: HPO Codes
+        description: HPO codes
+        description-nl: HPO codes
+        dataType: mref
+        refEntity: cosasrefs_phenotype
       - name: ond_id
         label: Public information research ID
         label-nl: Voorlichtingsonderzoek
