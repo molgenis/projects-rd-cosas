@@ -1,8 +1,8 @@
 name: cosasrefs
 label: COSAS References
 description: Reference tables for COSAS
-version: 0.9009
-date: 2021-07-16
+version: 0.9010
+date: 2021-07-23
 defaults:
   idAttribute: false
   dataType: string
@@ -48,19 +48,24 @@ entities:
           label-nl: iri
           dataType: hyperlink
     data:
-      - id: vrouw
+      - id: female
         value: female
         description: A biological sex quality inhering in an individual or a population that only produces gametes that can be fertilised by male gametes.
         codesystem: PATO
         code: 0000383
         iri: http://purl.obolibrary.org/obo/PATO_0000383
-
-      - id: man
+      - id: male
         value: male
         description: A biological sex quality inhering in an individual or a population whose sex organs contain only male gametes.
         codesystem: PATO
         code: 0000384
         iri: http://purl.obolibrary.org/obo/PATO_0000384
+      - id: unknown
+        value: unknown
+        description: A proper value is applicable, but not known.
+        codesystem: HL7
+        code: UNK
+        iri: http://terminology.hl7.org/CodeSystem/v3-NullFlavor#UNK
 
   # ~ cosasrefs_condition_codes ~
   # Reference entity for all disorder (condition) codes
