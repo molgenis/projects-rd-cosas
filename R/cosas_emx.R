@@ -2,7 +2,7 @@
 #' FILE: cosas_emx.R
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-03-16
-#' MODIFIED: 2021-07-13
+#' MODIFIED: 2021-07-26
 #' PURPOSE: convert EMX yaml into CSVs
 #' STATUS: working
 #' PACKAGES: dplyr
@@ -110,6 +110,7 @@ if (args == "cosasrefs") {
             openxlsx::addWorksheet(., "entities") %T>%
             openxlsx::addWorksheet(., "attributes") %T>%
             openxlsx::addWorksheet(., "cosasrefs_biological_sex") %T>%
+            openxlsx::addWorksheet(., "cosasrefs_inclusion_status") %T>%
             openxlsx::writeData(., "packages", cosas_refs$packages) %T>%
             openxlsx::writeData(., "entities", cosas_refs$entities) %T>%
             openxlsx::writeData(., "attributes", cosas_refs$attributes) %T>%
@@ -117,6 +118,11 @@ if (args == "cosasrefs") {
                 wb = .,
                 sheet = "cosasrefs_biological_sex",
                 x = cosas_refs$cosasrefs_biological_sex
+            ) %T>%
+            openxlsx::writeData(
+                wb = .,
+                sheet = "cosasrefs_inclusion_status",
+                x = cosas_refs$cosasrefs_inclusion_status
             ) %T>%
             openxlsx::saveWorkbook(wb = ., file = output, overwrite = TRUE)
         )
