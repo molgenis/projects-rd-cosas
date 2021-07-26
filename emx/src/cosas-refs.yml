@@ -196,6 +196,19 @@ entities:
         description: FairGenomes IRI
         description-nl: FairGenomes IRI
         dataType: hyperlink
+    data:
+      - id: N
+        value: Alive
+        description: Showing characteristics of life; displaying signs of life.
+        codesystem: NCIT
+        code: C37987
+        iri: http://purl.obolibrary.org/obo/NCIT_C37987
+      - id: Y
+        value: Dead
+        description: The cessation of life.
+        codesystem: NCIT
+        code: C28554
+        iri: http://purl.obolibrary.org/obo/NCIT_C28554
 
   # @name cosasrefs_lab_indications
   # @description reference entity for lab indications
