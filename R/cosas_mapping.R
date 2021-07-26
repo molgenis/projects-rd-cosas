@@ -2,7 +2,7 @@
 #' FILE: cosas_mapping.R
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-07-22
-#' MODIFIED: 2021-07-23
+#' MODIFIED: 2021-07-26
 #' PURPOSE: Mapping portal tables to main pkg
 #' STATUS: in.progress
 #' PACKAGES: dplyr, tidyr, stringr, purrr
@@ -78,20 +78,30 @@ mappings$patients <- function(data) {
             "date_deceased" = Overlijdensdatum
         ) %>%
         mutate(
-            # format `dob`
-            dob = format(dob, "%Y-%m-%d"),
-            # clean `biological_sex`
             biological_sex = case_when(
                 tolower(biological_sex) == "vrouw" ~ "female",
                 tolower(biological_sex) == "man" ~ "male"
             ),
-            # clean `linked_family_ids`
             linked_family_ids = gsub(", ", ",", linked_family_ids),
-            # set deceased status
             is_deceased = case_when(
                 !is.na(date_deceased) &
-                    class(date_deceased)[1] == "POSIXct" ~ "ja",
-                TRUE ~ "nee"
+                    class(date_deceased)[1] == "POSIXct" ~ "Y",
+                TRUE ~ "N"
+            ),
+            age_at_death = purrr::map2_chr(
+                date_deceased, dob,
+                function(date_deceased, dob) {
+                    if (!is.na(date_deceased)) {
+                        as.numeric(date_deceased - dob) / 365.25
+                    } else {
+                        NA
+                    }
+                }
+            ),
+            dob = format(dob, "%Y-%m-%d"),
+            date_deceased = purrr::map_chr(
+                date_deceased,
+                function(x) format(as.Date(x), "%Y-%m-%d")
             )
         )
 }
@@ -340,6 +350,7 @@ mappings$bench_cnv <- function(data) {
 
 #' ~ 1 ~
 # load raw portal objects
+cli::cli_alert_info("Reading portal datasets")
 
 portal_patients <- readxl::read_xlsx(
     path = "data/cosasportal/cosasportal_patients.xlsx",
@@ -394,6 +405,7 @@ portal_bench_cnv <- readxl::read_xlsx(
 #' ~ 2 ~
 #' Map Objects into COSAS Terminology
 
+cli::cli_alert_info("Mapping portal data objects")
 cosas_patients_mapped <- mappings$patients(portal_patients)
 cosas_diagnoses_mapped <- mappings$diagnoses(portal_diagnoses)
 cosas_samples_mapped <- mappings$samples(portal_samples)
@@ -413,35 +425,46 @@ cosas_bench_cnv_mapped <- mappings$bench_cnv(portal_bench_cnv)
 # fetus status. This is important as fetus records will be binded to
 # `cosas_patients` as new rows. Both fetus and non-fetus cases will be added
 # to `cosas_clinical`.
-cosas_patients_mapped %>%
-    bind_rows(
+cli::cli_alert_info("Filtering {.val benchCNV} and calcuating earliest date")
+cosas_fetuses <- cosas_bench_cnv_mapped %>%
+    filter(family_numr %in% cosas_patients_mapped$family_numr, is_fetus) %>%
+    # this will get rid of the IDs with multiple HPO entries
+    # this information will be added later in the clinical table
+    distinct(
+        umcg_numr, family_numr, biological_sex, maternal_id,
+        is_fetus, is_twin, linked_patient_id
+    ) %>%
+    # calculate and join earliest date seen
+    left_join(
         cosas_bench_cnv_mapped %>%
-            filter(
-                family_numr %in% cosas_patients_mapped$family_numr,
-                is_fetus
+            select(umcg_numr, date_created) %>%
+            filter(!is.na(date_created)) %>%
+            group_by(umcg_numr) %>%
+            mutate(
+                date_first_consult = lubridate::ymd(date_created)
             ) %>%
-            select(
-                umcg_numr,
-                family_numr,
-                biological_sex,
-                is_fetus,
-                is_twin,
-                linked_patient_id
-            )
-    ) %>%
-    arrange(family_numr, umcg_numr)
+            summarize(
+                date_first_consult = min(date_first_consult, na.rm = TRUE)
+            ),
+        by = "umcg_numr"
+    )
 
-cosas_bench_cnv_mapped %>%
-    filter(
-        family_numr %in% cosas_patients_mapped$family_numr,
-        is_fetus
-    ) %>%
-    group_by(umcg_numr) %>%
-    summarize(
-        count = length(umcg_numr)
-    ) %>%
-    arrange(-count)
+# bind fetus cases to main patients
+cosas_patients_fetuses <- cosas_patients_mapped %>%
+    bind_rows(cosas_fetuses) %>%
+    arrange(umcg_numr)
 
+# code to check for multiple entries per fetus
+# cosas_bench_cnv_mapped %>%
+#     filter(
+#         family_numr %in% cosas_patients_mapped$family_numr,
+#         is_fetus
+#     ) %>%
+#     group_by(umcg_numr) %>%
+#     summarize(
+#         count = length(umcg_numr)
+#     ) %>%
+#     arrange(-count)
 
 #' //////////////////////////////////////
 
@@ -455,10 +478,16 @@ cosas_labs_array <- cosas_array_adlas_mapped %>%
         by = c("umcg_numr", "test_code")
     ) %>%
     left_join(
-        cosas_patients_mapped %>%
-            distinct(umcg_numr, family_numr),
+        cosas_patients_fetuses %>%
+            select(umcg_numr, family_numr, biological_sex) %>%
+            distinct(umcg_numr, family_numr, .keep_all = TRUE),
         by = "umcg_numr"
-    )
+    ) %>%
+     mutate(
+        date_last_updated = utils$timestamp()
+    ) %>%
+    select(umcg_numr, family_numr, biological_sex, everything()) %>%
+    arrange(umcg_numr)
 
 # create: `cosas_labs_ngs`
 cosas_labs_ngs <- cosas_ngs_adlas_mapped %>%
@@ -466,15 +495,29 @@ cosas_labs_ngs <- cosas_ngs_adlas_mapped %>%
         cosas_ngs_darwin_mapped %>%
             distinct(umcg_numr, test_code, .keep_all = TRUE),
         by = c("umcg_numr", "test_code")
-    )
+    ) %>%
+    left_join(
+        cosas_patients_fetuses %>%
+            select(umcg_numr, family_numr, biological_sex) %>%
+            distinct(umcg_numr, family_numr, .keep_all = TRUE),
+        by = "umcg_numr"
+    ) %>%
+    mutate(
+        date_last_updated = utils$timestamp()
+    ) %>%
+    select(umcg_numr, family_numr, biological_sex, everything()) %>%
+    arrange(umcg_numr)
 
 
 # merge: earliest `date_first_consult` per patient into patients
-cosas_patients <- cosas_patients_mapped %>%
+cosas_patients <- cosas_patients_fetuses %>%
     left_join(
         cosas_diagnoses_mapped %>%
             select(umcg_numr, date_first_consult) %>%
-            filter(!is.na(date_first_consult)) %>%
+            filter(
+                !is.na(date_first_consult),
+                umcg_numr %in% cosas_patients_fetuses$umcg_numr
+            ) %>%
             group_by(umcg_numr) %>%
             mutate(
                 date_first_consult = lubridate::ymd(date_first_consult)
@@ -483,6 +526,15 @@ cosas_patients <- cosas_patients_mapped %>%
                 date_first_consult = min(date_first_consult, na.rm = TRUE)
             ),
         by = "umcg_numr"
+    ) %>%
+    tidyr::unite(
+        data = .,
+        col = "date_first_consult",
+        c("date_first_consult.x", "date_first_consult.y"),
+        na.rm = TRUE
+    ) %>%
+    mutate(
+        date_first_consult = na_if(date_first_consult, "")
     )
 
 
@@ -520,28 +572,61 @@ cosas_samples <- cosas_samples_mapped %>%
         test_id = na_if(test_id, ""),
         test_date = na_if(test_date, ""),
         date_last_updated = utils$timestamp()
-    )
+    ) %>%
+    arrange(umcg_numr, sample_id)
 
-
-#' //////////////////////////////////////
-
-
-#' ~ 4 ~
-#' Prep Data
-#' arrange, add timestamps, etc
-
-
-# finalize: `cosas_patients_mapped`
-
-# finalize: `cosas_diagnoses_mapped`
-
-# finalize: `cosas_samples_mapped`
-cosas_samples_mapped %>%
-    arrange(family_numr, umcg_numr, sample_id) %>%
+# create: `cosas_clinical`
+cosas_clinical <- cosas_diagnoses_mapped %>%
+    rename(date = date_first_consult) %>%
+    mutate(
+        keep = case_when(
+            is.na(primary_dx) &
+            is.na(primary_dx_certainty) &
+            is.na(extra_dx) &
+            is.na(extra_dx_certainty) &
+            is.na(date) &
+            is.na(ond_id) ~ FALSE,
+            TRUE ~ TRUE
+        )
+    ) %>%
+    filter(keep) %>%
+    select(-keep) %>%
+    mutate(
+        event_type = case_when(
+            is.na(primary_dx) & is.na(extra_dx) & !is.na(ond_id) ~ "OND",
+            !is.na(primary_dx) ~ "DX",
+            TRUE ~ NA_character_
+        )
+    ) %>%
+    arrange(umcg_numr) %>%
+    bind_rows(
+        cosas_bench_cnv_mapped %>%
+            select(umcg_numr, hpo, date = date_created) %>%
+            filter(umcg_numr %in% cosas_patients$umcg_numr) %>%
+            mutate(
+                date = as.character(date),
+                event_type = "HPO"
+            )
+    ) %>%
+    left_join(
+        cosas_patients_fetuses %>%
+            select(umcg_numr, family_numr) %>%
+            filter(umcg_numr %in% cosas_diagnoses_mapped$umcg_numr),
+        by = "umcg_numr"
+    ) %>%
     select(
-        umcg_numr, family_numr, request_id, sample_id, dna_numr,
-        material_type, lab_indication, test_id, test_code, test_date,
-        test_result, test_result_status, disorder_code
+        umcg_numr,
+        family_numr,
+        date,
+        event_type,
+        primary_dx,
+        primary_dx_certainty,
+        extra_dx,
+        extra_dx_certainty,
+        hpo,
+        ond_id
+    ) %>%
+    arrange(umcg_numr) %>%
+    mutate(
+        date_last_updated = utils$timestamp()
     )
-
-# ...
