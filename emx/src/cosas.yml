@@ -1,8 +1,8 @@
 name: cosas
 label: COSAS
 description: The Catalogue of Sequence Array and Samples
-version: 0.9008
-date: 2021-07-22
+version: 0.9011
+date: 2021-07-26
 defaults:
   idAttribute: false
   dataType: string
@@ -58,6 +58,14 @@ entities:
         label: Date of Death
         label-nl: Overlijdensdatum
         dataType: date
+      - name: age_at_death
+        label: Age at death
+        label-nl: Leeftijd bij overlijden
+        description: The age at which death occurred
+        description-nl: De leeftijd waarop het overlijden plaatsvond
+        dataType: int
+        rangeMin: 0
+        rangeMax: 130
       - name: consanguinity
         label: Consanguinity
         label-nl: consanguiniteit
@@ -68,6 +76,8 @@ entities:
       - name: is_twin
         label: Twin Status
         label-nl: Tweelingstatus
+        description: Has twin or is suspected of having a twin
+        description-nl: Heeft een tweeling of wordt ervan verdacht een tweeling te hebben
         dataType: bool
       - name: linked_patient_id
         label: Linked Patient ID
@@ -105,6 +115,10 @@ entities:
         label-nl: Gebeurtenistype
         description: Event is either diagnosis or HPO
         description-nl: Gebeurtenis is diagnose of HPO
+      - name: date
+        label: Date
+        label-nl: Datum
+        dataType: date
       - name: primary_dx
         label: Primary Diagnoses
         label-nl: Primaire diagnose
@@ -129,12 +143,6 @@ entities:
         dataType: categorical
         refEntity: cosasrefs_diagnostic_certainty
         nillable: true
-      - name: date_first_consult
-        label: First Consult Date
-        label-nl: Datum eerst consult
-        description: first time seen in the clinic
-        description-nl: eerst op poli gezien
-        dataType: date
       - name: hpo
         label: HPO Codes
         label-nl: HPO Codes
