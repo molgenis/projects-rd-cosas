@@ -1,8 +1,8 @@
 name: cosas
 label: COSAS
 description: The Catalogue of Sequence Array and Samples
-version: 0.9011
-date: 2021-07-26
+version: 0.9014
+date: 2021-07-27
 defaults:
   idAttribute: false
   dataType: string
@@ -49,7 +49,7 @@ entities:
         label-nl: Gekoppelde Familie-ID's
         dataType: mref
         refEntity: cosas_patients
-      - name: is_desceased
+      - name: is_deceased
         label: Is Deceased
         label-nl: Overlijden
         dataType: categorical
@@ -63,9 +63,7 @@ entities:
         label-nl: Leeftijd bij overlijden
         description: The age at which death occurred
         description-nl: De leeftijd waarop het overlijden plaatsvond
-        dataType: int
-        rangeMin: 0
-        rangeMax: 130
+        dataType: decimal
       - name: consanguinity
         label: Consanguinity
         label-nl: consanguiniteit
@@ -203,6 +201,9 @@ entities:
         label-nl: Lab indicatie
         dataType: xref
         refEntity: cosasrefs_lab_indications
+      - name: test_id
+        label: Test ID
+        label-nl: Test-ID
       - name: test_code
         label: Test code
         label-nl: Test code
@@ -312,19 +313,23 @@ entities:
       - name: dna_numr
         label: DNA number
         label-nl: DNA nummer
+      - name: lab_indication
+        label: Lab Indication
+        label-nl: Lab indicatie
+        dataType: xref
+        refEntity: cosasrefs_lab_indications
       - name: test_id
         label: Test ID
         label-nl: Test-ID
+      - name: test_code
+        label: Test Code
+        label-nl: Test Code
         dataType: xref
         refEntity: cosasrefs_test_codes
-        nillable: true
       - name: test_date
         label: Test date
         label-nl: Testdatum
         dataType: date
-      - name: test_result
-        label: Test Result
-        label-nl: Testresultaat
       - name: sequencer
         label: Sequencer
         label-nl: Sequencer
