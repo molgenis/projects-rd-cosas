@@ -17,7 +17,8 @@
     "cosasportal": "npm run build-cosasportal && npm run import-cosasportal",
     "build": "npm run build-cosas && npm run build-cosasrefs && npm run build-cosasportal",
     "import": "npm run import-cosas && npm run import-cosasrefs && npm run import-cosasportal",
-    "copy-emx": "sh shell/cosas_copy_emx.sh"
+    "copy-emx": "sh shell/cosas_copy_emx.sh",
+    "zip": "zip -r _zip/cosas_datasets.zip emx data && mv _zip/cosas_datasets.zip ~/Documents/OneDrive\\ -\\ UMCG/projects/cosas/"
   },
   "repository": {
     "type": "git",
