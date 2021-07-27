@@ -331,6 +331,14 @@ entities:
       - name: description
         label: Description
         label-nl: Beschrijving
+      - name: label
+        label: Label
+        label-nl: Label
+        dataType: text
+      - name: panel
+        label: Panel
+        label-nl: Panel
+        dataType: text
       - name: genes
         label: Genes
         label-nl: Genes
