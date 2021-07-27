@@ -12,11 +12,15 @@
 
 # pkgs
 suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(magrittr))
+
+args <- commandArgs(trailingOnly = TRUE)
 
 #' //////////////////////////////////////
 
 #' ~ 0 ~
 #' Define methods and mappings
+cli::cli_alert_info("Initializing Methods...")
 
 #' @name utils
 #' @description various methods to assist with mapping
@@ -88,16 +92,16 @@ mappings$patients <- function(data) {
                     class(date_deceased)[1] == "POSIXct" ~ "Y",
                 TRUE ~ "N"
             ),
-            age_at_death = purrr::map2_chr(
+            age_at_death = as.numeric(purrr::map2_chr(
                 date_deceased, dob,
                 function(date_deceased, dob) {
                     if (!is.na(date_deceased)) {
-                        as.numeric(date_deceased - dob) / 365.25
+                        (date_deceased - dob) / 365.25
                     } else {
                         NA
                     }
                 }
-            ),
+            )),
             dob = format(dob, "%Y-%m-%d"),
             date_deceased = purrr::map_chr(
                 date_deceased,
@@ -248,16 +252,17 @@ mappings$ngs_adlas <- function(data) {
 mappings$ngs_darwin <- function(data) {
     data %>%
         select(
-            "umcg_numr" = UmcgNr,
-            "test_code" = TestId,
-            "test_date" = TestDatum,
-            "lab_indication" = Indicatie,
-            "sequencer" = Sequencer,
-            "prep_kit" = PrepKit,
-            "sequencing_type" = `Sequencing Type`,
-            "seqtype" = SeqType,
-            "capturing_kit" = CapturingKit,
-            "batch" = BatchNaam,
+            umcg_numr = UmcgNr,
+            test_code = TestId,
+            test_date = TestDatum,
+            lab_indication = Indicatie,
+            sequencer = Sequencer,
+            prep_kit = PrepKit,
+            sequencing_type = `Sequencing Type`,
+            seqtype = SeqType,
+            capturing_kit = CapturingKit,
+            batch = BatchNaam,
+            genome_build = GenomeBuild
         ) %>%
         mutate(
             test_code = purrr::map_chr(test_code, tolower),
@@ -346,61 +351,87 @@ mappings$bench_cnv <- function(data) {
     return(d)
 }
 
-#' //////////////////////////////////////
+#'////////////////////////////////////////////////////////////////////////////
 
 #' ~ 1 ~
 # load raw portal objects
 cli::cli_alert_info("Reading portal datasets")
 
 portal_patients <- readxl::read_xlsx(
-    path = "data/cosasportal/cosasportal_patients.xlsx",
+    path = "_raw/cosasportal_patients.xlsx",
     sheet = 1,
     col_types = c("text", "date", "text", "date", rep("text", 4)),
 )
 
 portal_diagnoses <- readxl::read_xlsx(
-    path = "data/cosasportal/cosasportal_diagnoses.xlsx",
+    path = "_raw/cosasportal_diagnoses.xlsx",
     sheet = 1,
     col_types = c(rep("text", 5), "date", "text")
 )
 
 portal_samples <- readxl::read_xlsx(
-    path = "data/cosasportal/cosasportal_samples.xlsx",
+    path = "_raw/cosasportal_samples.xlsx",
     sheet = 1,
     col_types = "text"
 )
 
 portal_array_adlas <- readxl::read_xlsx(
-    path = "data/cosasportal/cosasportal_array_adlas.xlsx",
+    path = "_raw/cosasportal_array_adlas.xlsx",
     sheet = 1,
     col_types = c(rep("text", 29))
 )
 
 portal_array_darwin <- readxl::read_xlsx(
-    path = "data/cosasportal/cosasportal_array_darwin.xlsx",
+    path = "_raw/cosasportal_array_darwin.xlsx",
     sheet = 1,
     col_types = c(rep("text", 2), "date", rep("text", 4))
 )
 
 portal_ngs_adlas <- readxl::read_xlsx(
-    path = "data/cosasportal/cosasportal_ngs_adlas.xlsx",
+    path = "_raw/cosasportal_ngs_adlas.xlsx",
     sheet = 1,
     col_types = c(rep("text", 14))
 )
 
 portal_ngs_darwin <- readxl::read_xlsx(
-    path = "data/cosasportal/cosasportal_ngs_darwin.xlsx",
+    path = "_raw/cosasportal_ngs_darwin.xlsx",
     sheet = 1,
     col_types = c(rep("text", 2), "date", rep("text", 10))
 )
 
 portal_bench_cnv <- readxl::read_xlsx(
-    path = "data/cosasportal/cosasportal_bench_cnv.xlsx",
+    path = "_raw/cosasportal_bench_cnv.xlsx",
     sheet = 1,
     col_types = c(rep("text", 6), "date")
 )
 
-#' //////////////////////////////////////
+# write cosasportal
+cli::cli_alert_info("Writing portal data to file...")
+openxlsx::createWorkbook() %T>%
+    openxlsx::addWorksheet(., "cosasportal_labs_array_adlas") %T>%
+    openxlsx::addWorksheet(., "cosasportal_labs_array_darwin") %T>%
+    openxlsx::addWorksheet(., "cosasportal_bench_cnv") %T>%
+    openxlsx::addWorksheet(., "cosasportal_diagnoses") %T>%
+    openxlsx::addWorksheet(., "cosasportal_labs_ngs_adlas") %T>%
+    openxlsx::addWorksheet(., "cosasportal_labs_ngs_darwin") %T>%
+    openxlsx::addWorksheet(., "cosasportal_patients") %T>%
+    openxlsx::addWorksheet(., "cosasportal_samples") %T>%
+    openxlsx::writeData(
+        ., "cosasportal_labs_array_adlas", portal_array_adlas
+    ) %T>%
+    openxlsx::writeData(
+        ., "cosasportal_labs_array_darwin", portal_array_darwin
+    ) %T>%
+    openxlsx::writeData(., "cosasportal_bench_cnv", portal_bench_cnv) %T>%
+    openxlsx::writeData(., "cosasportal_diagnoses", portal_diagnoses) %T>%
+    openxlsx::writeData(., "cosasportal_labs_ngs_adlas", portal_ngs_adlas) %T>%
+    openxlsx::writeData(., "cosasportal_labs_ngs_darwin", portal_ngs_darwin) %T>%
+    openxlsx::writeData(., "cosasportal_patients", portal_patients) %T>%
+    openxlsx::writeData(., "cosasportal_samples", portal_samples) %T>%
+    openxlsx::saveWorkbook(., "data/cosasportal/cosasportal.xlsx", TRUE)
+
+#'////////////////////////////////////////////////////////////////////////////
+
 
 #' ~ 2 ~
 #' Map Objects into COSAS Terminology
@@ -415,9 +446,217 @@ cosas_ngs_adlas_mapped <- mappings$ngs_adlas(portal_ngs_adlas)
 cosas_ngs_darwin_mapped <- mappings$ngs_darwin(portal_ngs_darwin)
 cosas_bench_cnv_mapped <- mappings$bench_cnv(portal_bench_cnv)
 
-#' //////////////////////////////////////
+#'////////////////////////////////////////////////////////////////////////////
+
 
 #' ~ 3 ~
+#' Create `cosasrefs_*` datasets
+
+
+cosasrefs <- structure(list(), class = "cosasrefs")
+
+# Create: `cosasrefs_diagnoses`
+cosasrefs$diagnoses <- portal_diagnoses %>%
+    select(diagnosis = HOOFDDIAGNOSE) %>%
+    bind_rows(
+        portal_diagnoses %>%
+            select(diagnosis = EXTRA_DIAGNOSE)
+    ) %>%
+    distinct(diagnosis) %>%
+    filter(!is.na(diagnosis), diagnosis != "-") %>%
+    mutate(
+        cineas_code = purrr::map_chr(
+            diagnosis,
+            function(x) {
+                strsplit(x, ":") %>%
+                    unlist(.) %>%
+                    .[1] %>%
+                    tolower(.)
+            }
+        ),
+        cineas_description = purrr::map_chr(
+            diagnosis,
+            function(x) {
+                strsplit(x, ":") %>%
+                    unlist(.) %>%
+                    .[2] %>%
+                    trimws(.) %>%
+                    tools::toTitleCase(.)
+            }
+        ),
+        id = paste0("dx_", cineas_code)
+    ) %>%
+    select(id, cineas_code, cineas_description) %>%
+    arrange(id)
+
+# Create: `cosasrefs_diagnostic_certainty`
+cosasrefs$diagnostic_certainty <- portal_diagnoses %>%
+    select(certainty = HOOFDDIAGNOSE_ZEKERHEID) %>%
+    bind_rows(
+        portal_diagnoses %>%
+            select(certainty = EXTRA_DIAGNOSE_ZEKERHEID)
+    ) %>%
+    distinct(certainty) %>%
+    filter(!is.na(certainty), certainty != "-") %>%
+    mutate(
+        id = tolower(stringr::str_replace_all(certainty, " ", "-")),
+        certainty = tools::toTitleCase(certainty)
+    ) %>%
+    select(id, certainty) %>%
+    arrange(id)
+
+# Create: `cosasrefs_condition_codes`
+cosasrefs$condition_codes <- portal_samples %>%
+    distinct(AANDOENING_CODE) %>%
+    filter(!is.na(AANDOENING_CODE)) %>%
+    mutate(
+        id = tolower(AANDOENING_CODE),
+        name = AANDOENING_CODE
+    ) %>%
+    select(id, name) %>%
+    arrange(id)
+
+# Create: `cosasrefs_material_types`
+cosasrefs$material_types <- portal_samples %>%
+    distinct(MATERIAAL) %>%
+    filter(!is.na(MATERIAAL)) %>%
+    mutate(
+        id = tolower(stringr::str_replace_all(MATERIAAL, " ", "-")),
+        material = tools::toTitleCase(MATERIAAL)
+    ) %>%
+    select(id, material) %>%
+    distinct(id, .keep_all = TRUE) %>%
+    arrange(id)
+
+
+#'//////////////////////////////////////
+
+# Create: `cosasrefs_test_codes` (add geneticlines mappings)
+gl <- readxl::read_xlsx(
+    path = "_raw/geneticlines2021-03-10_15_52_37.366.xlsx",
+    sheet = "geneticlines_ADLAStest"
+)
+
+# compile genes
+genes <- readxl::excel_sheets("_raw/testcodes_ngs_array.xlsx") %>%
+    .[. != "Actieve Testcodes"] %>%
+    purrr::map(., function(name) {
+        cli::cli_alert_info("Processing sheet {.val {name}}")
+        readxl::read_excel(
+            path = "_raw/testcodes_ngs_array.xlsx",
+            sheet = name,
+            col_names = "genes"
+        ) %>%
+            pull(genes) %>%
+            unique(.) %>%
+            paste0(., collapse = ",") %>%
+            as_tibble(.) %>%
+            mutate(id = name) %>%
+            select(id, genes = value)
+    }) %>%
+    bind_rows()
+
+# build dataset
+cosasrefs$test_codes <- portal_samples %>%
+    select(TEST_CODE) %>%
+    bind_rows(
+        gl %>%
+            select(TEST_CODE)
+    ) %>%
+    distinct(TEST_CODE) %>%
+    arrange(TEST_CODE) %>%
+    left_join(
+        portal_samples %>%
+            select(TEST_CODE, TEST_OMS) %>%
+            distinct(TEST_CODE, .keep_all = TRUE),
+        by = "TEST_CODE"
+    ) %>%
+    left_join(
+        gl %>%
+            select(-labelPanel),
+        by = "TEST_CODE"
+    ) %>%
+    mutate(
+        id = tolower(TEST_CODE),
+        TEST_OMS = purrr::map2_chr(
+            TEST_OMS.x, TEST_OMS.y,
+            function(x, y) {
+                if (is.na(x) & !is.na(y)) {
+                    y
+                } else if (!is.na(x) & is.na(y)) {
+                    x
+                } else if (!is.na(x) & !is.na(y)) {
+                    x
+                } else {
+                    paste0("999_", x, ";", y)
+                }
+            }
+        )
+    ) %>%
+    select(id, code = TEST_CODE, description = TEST_OMS, label, panel)
+
+
+# bind genes to `cosasrefs_test_codes`
+cosasrefs$test_codes <- cosasrefs$test_codes %>%
+    left_join(
+        genes %>%
+            filter(id %in% cosasrefs$test_codes$code),
+        by = c("code" = "id")
+    )
+
+# create: `cosasrefs_genes`
+cosasrefs$genes <- genes %>%
+    select(genes) %>%
+    pull(genes) %>%
+    paste0(., collapse = ",") %>%
+    strsplit(x = ., split = ",") %>%
+    `[[`(1) %>%
+    as_tibble() %>%
+    rename(gene = 1) %>%
+    distinct()
+
+#'//////////////////////////////////////
+
+# Create: `cosasrefs_lab_indications`
+cosasrefs$lab_indications <- portal_array_darwin %>%
+    select(indication = Indicatie) %>%
+    bind_rows(
+        portal_ngs_darwin %>%
+            select(indication = Indicatie)
+    ) %>%
+    distinct(indication) %>%
+    filter(!is.na(indication)) %>%
+    mutate(
+        id = tolower(stringr::str_replace_all(indication, " ", "-"))
+    ) %>%
+    select(id, indication) %>%
+    arrange(id)
+
+# write cosasrefs
+openxlsx::createWorkbook() %T>%
+    openxlsx::addWorksheet(., "cosasrefs_diagnoses") %T>%
+    openxlsx::addWorksheet(., "cosasrefs_diagnostic_certainty") %T>%
+    openxlsx::addWorksheet(., "cosasrefs_condition_codes") %T>%
+    openxlsx::addWorksheet(., "cosasrefs_material_types") %T>%
+    openxlsx::addWorksheet(., "cosasrefs_test_codes") %T>%
+    openxlsx::addWorksheet(., "cosasrefs_test_genes") %T>%
+    openxlsx::addWorksheet(., "cosasrefs_lab_indications") %T>%
+    openxlsx::writeData(., "cosasrefs_diagnoses", cosasrefs$diagnoses) %T>%
+    openxlsx::writeData(
+        .,
+        "cosasrefs_diagnostic_certainty",
+        cosasrefs$diagnostic_certainty
+    ) %T>%
+    openxlsx::writeData(., "cosasrefs_condition_codes", cosasrefs$condition_codes) %T>%
+    openxlsx::writeData(., "cosasrefs_material_types", cosasrefs$material_types) %T>%
+    openxlsx::writeData(., "cosasrefs_test_codes", cosasrefs$test_codes) %T>%
+    openxlsx::writeData(., "cosasrefs_test_genes", cosasrefs$genes) %T>%
+    openxlsx::writeData(., "cosasrefs_lab_indications", cosasrefs$lab_indications) %T>%
+    openxlsx::saveWorkbook(., "data/cosasrefs/cosasrefs.xlsx", TRUE)
+
+#'////////////////////////////////////////////////////////////////////////////
+
+#' ~ 4 ~
 #' Clean datasets
 
 # prepare bench_cnv dataset
@@ -468,7 +707,7 @@ cosas_patients_fetuses <- cosas_patients_mapped %>%
 
 #' //////////////////////////////////////
 
-#' ~ 4 ~
+#' ~ 5 ~
 #' Merge Data
 
 # create: `cosas_labs_array`
@@ -479,14 +718,14 @@ cosas_labs_array <- cosas_array_adlas_mapped %>%
     ) %>%
     left_join(
         cosas_patients_fetuses %>%
-            select(umcg_numr, family_numr, biological_sex) %>%
+            select(umcg_numr, family_numr) %>%
             distinct(umcg_numr, family_numr, .keep_all = TRUE),
         by = "umcg_numr"
     ) %>%
      mutate(
         date_last_updated = utils$timestamp()
     ) %>%
-    select(umcg_numr, family_numr, biological_sex, everything()) %>%
+    select(umcg_numr, family_numr, everything()) %>%
     arrange(umcg_numr)
 
 # create: `cosas_labs_ngs`
@@ -498,14 +737,14 @@ cosas_labs_ngs <- cosas_ngs_adlas_mapped %>%
     ) %>%
     left_join(
         cosas_patients_fetuses %>%
-            select(umcg_numr, family_numr, biological_sex) %>%
+            select(umcg_numr, family_numr) %>%
             distinct(umcg_numr, family_numr, .keep_all = TRUE),
         by = "umcg_numr"
     ) %>%
     mutate(
         date_last_updated = utils$timestamp()
     ) %>%
-    select(umcg_numr, family_numr, biological_sex, everything()) %>%
+    select(umcg_numr, family_numr, everything()) %>%
     arrange(umcg_numr)
 
 
@@ -534,7 +773,8 @@ cosas_patients <- cosas_patients_fetuses %>%
         na.rm = TRUE
     ) %>%
     mutate(
-        date_first_consult = na_if(date_first_consult, "")
+        date_first_consult = na_if(date_first_consult, ""),
+        date_last_updated = utils$timestamp()
     )
 
 
@@ -630,3 +870,17 @@ cosas_clinical <- cosas_diagnoses_mapped %>%
     mutate(
         date_last_updated = utils$timestamp()
     )
+
+# write files
+openxlsx::createWorkbook() %T>%
+    openxlsx::addWorksheet(., "cosas_patients") %T>%
+    openxlsx::addWorksheet(., "cosas_clinical") %T>%
+    openxlsx::addWorksheet(., "cosas_samples") %T>%
+    openxlsx::addWorksheet(., "cosas_labs_array") %T>%
+    openxlsx::addWorksheet(., "cosas_labs_ngs") %T>%
+    openxlsx::writeData(., "cosas_patients", cosas_patients) %T>%
+    openxlsx::writeData(., "cosas_clinical", cosas_clinical) %T>%
+    openxlsx::writeData(., "cosas_samples", cosas_samples) %T>%
+    openxlsx::writeData(., "cosas_labs_array", cosas_labs_array) %T>%
+    openxlsx::writeData(., "cosas_labs_ngs", cosas_labs_ngs) %T>%
+    openxlsx::saveWorkbook(., "data/cosas/cosas.xlsx", TRUE)
