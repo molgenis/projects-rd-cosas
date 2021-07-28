@@ -6,9 +6,9 @@
   "scripts": {
     "refresh-py": "python3 python/_refresh.py",
     "molgenis-config": "mcmd config set host https://cosas-acc.gcc.rug.nl/",
-    "build-cosas": "Rscript R/cosas_emx.R cosas",
-    "build-cosasrefs": "Rscript R/cosas_emx.R cosasrefs",
-    "build-cosasportal": "Rscript R/cosas_emx.R cosasportal",
+    "build-cosas": "Rscript R/emx_build.R cosas",
+    "build-cosasrefs": "Rscript R/emx_build.R cosasrefs",
+    "build-cosasportal": "Rscript R/emx_build.R cosasportal",
     "import-cosas": "mcmd import -p emx/cosas/cosas.xlsx",
     "import-cosasrefs": "mcmd import -p emx/cosas-refs/cosasrefs.xlsx",
     "import-cosasportal": "mcmd import -p emx/cosas-portal/cosasportal.xlsx",
@@ -18,7 +18,7 @@
     "build": "npm run build-cosas && npm run build-cosasrefs && npm run build-cosasportal",
     "import": "npm run import-cosas && npm run import-cosasrefs && npm run import-cosasportal",
     "copy-emx": "sh shell/cosas_copy_emx.sh",
-    "zip": "zip -r _zip/cosas_datasets.zip emx data && mv _zip/cosas_datasets.zip ~/Documents/OneDrive\\ -\\ UMCG/projects/cosas/"
+    "zip": "zip -r _zip/cosas_datasets.zip emx/cosas emx/cosas-portal emx/cosas-refs data  -x \"**/.DS_Store\" && mv _zip/cosas_datasets.zip ~/Documents/OneDrive\\ -\\ UMCG/projects/cosas/"
   },
   "repository": {
     "type": "git",
