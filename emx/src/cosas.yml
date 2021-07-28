@@ -1,8 +1,8 @@
 name: cosas
 label: COSAS
 description: The Catalogue of Sequence Array and Samples
-version: 0.9014
-date: 2021-07-27
+version: 0.9015
+date: 2021-07-28
 defaults:
   idAttribute: false
   dataType: string
@@ -37,18 +37,13 @@ entities:
       - name: maternal_id
         label: Maternal ID
         label-nl: Maternale ID  
-        dataType: xref
-        refEntity: cosas_patients
       - name: paternal_id
         label: Paternal ID
         label-nl: Paternal ID
-        dataType: xref
-        refEntity: cosas_patients
       - name: linked_family_ids
         label: Linked Family IDs
         label-nl: Gekoppelde Familie-ID's
-        dataType: mref
-        refEntity: cosas_patients
+        dataType: text
       - name: is_deceased
         label: Is Deceased
         label-nl: Overlijden
@@ -61,8 +56,8 @@ entities:
       - name: age_at_death
         label: Age at death
         label-nl: Leeftijd bij overlijden
-        description: The age at which death occurred
-        description-nl: De leeftijd waarop het overlijden plaatsvond
+        description: The age at which death occurred (in years)
+        description-nl: De leeftijd waarop het overlijden plaatsvond (in jaren)
         dataType: decimal
       - name: consanguinity
         label: Consanguinity
