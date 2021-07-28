@@ -1,8 +1,8 @@
 #'////////////////////////////////////////////////////////////////////////////
-#' FILE: cosas_emx.R
+#' FILE: emx_build.R
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-03-16
-#' MODIFIED: 2021-07-26
+#' MODIFIED: 2021-07-28
 #' PURPOSE: convert EMX yaml into CSVs
 #' STATUS: working
 #' PACKAGES: dplyr
