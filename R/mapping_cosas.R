@@ -2,9 +2,9 @@
 #' FILE: cosas_mapping.R
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-07-22
-#' MODIFIED: 2021-07-26
+#' MODIFIED: 2021-07-29
 #' PURPOSE: Mapping portal tables to main pkg
-#' STATUS: in.progress
+#' STATUS: working
 #' PACKAGES: dplyr, tidyr, stringr, purrr
 #' COMMENTS: NA
 #' ////////////////////////////////////////////////////////////////////////////
@@ -14,7 +14,7 @@ suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(magrittr))
 
 # data
-source("R/mapping_cosasportal.R")
+source("R/_load.R")
 
 #' //////////////////////////////////////
 
@@ -270,85 +270,88 @@ mappings$ngs_darwin <- function(data) {
 #' @param data output from `cosasportal_bench_cnv`
 #' @return a tibble
 mappings$bench_cnv <- function(data) {
-    d <- data %>%
+    # set fetus ID patterns
+    patterns <- list(
+        fetus = "^([0-9]{2,}F([0-9]{,2})?)$", # pure fetus cases
+        twins = "^([0-9]{2,}F[0-9]{1}\\.[0-9]{1})$", # twins
+        linked = "^([0-9]{2,}(F)?([0-9]{1,})?-[0-9]{2,})$" # linked IDs
+    )
+
+    portal_bench_cnv %>%
         select(
-            umcg_numr = primid,
+            id = primid,
             family_numr = secid,
             biological_sex = gender,
             hpo = Phenotype,
             date_created = created
         ) %>%
         mutate(
-            umcg_numr = purrr::map_chr(
-                umcg_numr,
-                function(x) {
-                    y <- gsub("([_=])", "-", x)
-                    gsub("((\\s+)|(\\(snp\\)))", "", y)
+            # standarize ID column:
+            #   - standarize separators
+            #   - remove trailing characters, spaces, etc.
+            id = purrr::map_chr(
+                id, function(x) {
+                    gsub("([_=])", "-", x) %>%
+                        gsub("((\\s+)|(\\(snp\\))|([-]OND))", "", .) %>%
+                        gsub("([-])$", "", .)
                 }
             ),
-            maternal_id = NA,
-            is_fetus = NA,
-            is_twin = NA,
-            biological_sex = case_when(
-                biological_sex == "F" ~ "female",
-                biological_sex == "M" ~ "male",
-                biological_sex == "U" ~ "unknown"
+            # use the patterns to determine ID type
+            id_type = purrr::map_chr(id, function(x) {
+                if (grepl(patterns$fetus, x)) {
+                    "fetus"
+                } else if (grepl(patterns$twin, x)) {
+                    "twin"
+                } else if (grepl(patterns$linked, x)) {
+                    "linked"
+                } else {
+                    "default"
+                }
+            }),
+            # create umcg_numr based on linked vs the rest
+            umcg_numr = purrr::map2_chr(
+                id, id_type, function(id, type) {
+                    if (type == "linked") {
+                        unlist(strsplit(id, "_"))[1]
+                    } else {
+                        id
+                    }
+                }
             ),
-            # hpo = case_when(
-            #     !is.na(hpo) ~ stringr::str_replace_all(hpo, "\\s+", ","),
-            #     TRUE ~ NA_character_
-            # ),
-            hpo = purrr::map_chr(
-                hpo, function(x) {
-                    if (!is.na(x)) {
-                        strsplit(x, "\\s+") %>%
-                            unlist(.) %>%
-                            unique(.) %>%
-                            stringr::str_replace_all(., "HP:", "") %>%
-                            paste0(., collapse = ",")
+            # create fetus status column
+            is_fetus = purrr::map_lgl(id_type, function(type) {
+                type %in% c("fetus", "twin", "linked")
+            }),
+            # created twin status column
+            is_twin = purrr::map_lgl(id_type, function(type) type == "twin"),
+            # extract maternal ID based on ID type
+            maternal_id = purrr::map2_chr(
+                id, id_type, function(id, type) {
+                    if (type %in% c("fetus", "twin")) {
+                        unlist(strsplit(id, "F"))[1] %>%
+                            gsub("F", "", .)
+                    } else if (type == "linked") {
+                        unlist(strsplit(id, "-"))[1] %>%
+                            gsub("F", "", .)
                     } else {
                         NA_character_
                     }
                 }
             ),
-            date_created = as.Date(date_created),
-            linked_patient_id = NA
-        )
-
-    # pattern for twin detection
-    p1 <- "^([0-9]{2,}F[0-9]{1}\\.[0-9]{1})$"
-    # pattern for linked ID
-    p2 <- "^([0-9]{2,}(F)?([0-9]{1,})?-[0-9]{2,})$"
-    # process fetus metadata
-    for (i in seq_len(NROW(d))) {
-        if (grepl("F", d$umcg_numr[i])) {
-            d$is_fetus[i] <- TRUE
-            # extract maternal ID for pure fetus cases
-            if (grepl("^([0-9]{2,}F)$", d$umcg_numr[i])) {
-                d$maternal_id[i] <- gsub("F", "", d$umcg_numr[i])
-            }
-            # detect if patient is a twin
-            if (grepl(p1, d$umcg_numr[i])) {
-                str <- unlist(strsplit(d$umcg_numr[i], "F"))
-                d$is_twin[i] <- TRUE
-                d$maternal_id[i] <- gsub("F", "", str[1])
-            } else {
-                d$is_twin[i] <- FALSE
-            }
-            # process IDs that indicate fetus was born
-            if (grepl(p2, d$umcg_numr[i])) {
-                str <- unlist(strsplit(d$umcg_numr[i], "-"))
-                d$umcg_numr[i] <- str[1]
-                d$maternal_id[i] <- gsub("F", "", str[1])
-                d$linked_patient_id[i] <- str[2]
-            }
-        } else {
-            d$is_fetus[i] <- FALSE
-            d$is_twin[i] <- FALSE
-        }
-    }
-    return(d)
+            # if the ID type is linked, extract the linked ID
+            linked_patient_id = purrr::map2_chr(
+                id, id_type, function(id, type) {
+                    if (type == "linked") {
+                        unlist(strsplit(id, "-"))[2]
+                    } else {
+                        NA_character_
+                    }
+                }
+            )
+        ) %>%
+        select(umcg_numr, family_numr, everything(), -id, -id_type)
 }
+
 
 #'////////////////////////////////////////////////////////////////////////////
 
