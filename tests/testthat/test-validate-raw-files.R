@@ -118,7 +118,7 @@ testthat::test_that("cosasporatal_samples is valid", {
     file <- readxl::read_xlsx(
         path = "../../_raw/cosasportal_samples.xlsx",
         sheet = 1,
-        col_types = rep("text", 20)
+        col_types = "text"
     )
 
     count <- validate_vars(vars, colnames(file))
@@ -171,7 +171,7 @@ testthat::test_that("cosasportal_array_adlas is valid", {
     file <- readxl::read_xlsx(
         path = "../../_raw/cosasportal_array_adlas.xlsx",
         sheet = 1,
-        col_types = rep("text", 28)
+        col_types = "text"
     )
 
     count <- validate_vars(vars, colnames(file))
@@ -244,7 +244,7 @@ testthat::test_that("cosasportal_ngs_adlas is valid", {
     file <- readxl::read_xlsx(
         path = "../../_raw/cosasportal_ngs_adlas.xlsx",
         sheet = 1,
-        col_types = rep("text", 14)
+        col_types = "text"
     )
 
     count <- validate_vars(vars, colnames(file))
@@ -282,7 +282,7 @@ testthat::test_that("cosasportal_ngs_darwin is valid", {
     file <- readxl::read_xlsx(
         path = "../../_raw/cosasportal_ngs_darwin.xlsx",
         sheet = 1,
-        col_types = c()
+        col_types = c(rep("text", 2), "date", rep("text", 10))
     )
 
     count <- validate_vars(vars, colnames(file))
