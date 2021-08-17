@@ -94,11 +94,14 @@ utils$recode_dx_certainty <- function(x) {
 #' @param x string containing a sex code
 #' @return a string
 utils$recode_sex <- function(x) {
-    vals <- list("vrouw" = "female", "man" = "male")
+    vals <- list(
+        "vrouw" = "female", "f" = "female",
+        "man" = "male", "m" = "male"
+    )
     if (!tolower(x) %in% names(vals))
         return(NA_character_)
 
-    return(vals[[tolower(x)]])
+    vals[[tolower(x)]]
 }
 
 #' @name utils$timestamp
@@ -482,26 +485,31 @@ mappings$ngs_adlas <- function(data) {
 mappings$ngs_darwin <- function(data) {
     data.table::setDT(data)
 
-    vars <- c(
-        "UmcgNr",
-        "TestId",
-        "TestDatum",
-        "Indicatie",
-        "Sequencer",
-        "PrepKit",
-        "Sequencing Type",
-        "SeqType",
-        "CapturingKit",
-        "BatchNaam",
-        "GenomeBuild"
-    )
-    data[, ..vars]
+    data[, `:=`(
+        # UmcgNr, TestId, TestDatum, # standard attributes
+        # Indicatie, Sequencer, PrepKit, Sequencing Type, # standard attributes
+        # SeqType, CapturingKit, BatchNaam, GenomeBuild, # standard attributes
+        CallRate = NULL,
+        StandaardDeviatie = NULL
+    )]
     data.table::setnames(
         data,
-        old = vars,
+        old = c(
+            "UmcgNr",
+            "TestId",
+            "TestDatum",
+            "Indicatie",
+            "Sequencer",
+            "PrepKit",
+            "Sequencing Type",
+            "SeqType",
+            "CapturingKit",
+            "BatchNaam",
+            "GenomeBuild"
+        ),
         new = c(
             "umcgID", # "UmcgNr"
-            "testID", # "TestId"
+            "testCode", # "TestId"
             "testDate", # "TestDatum"
             "labIndication", # "Indicatie"
             "sequencer", # "Sequencer"
@@ -510,7 +518,7 @@ mappings$ngs_darwin <- function(data) {
             "seqType", # "SeqType"
             "capturingKit", # "CapturingKit"
             "batchName", # "BatchNaam"
-            "genomeBuild", # "GenomeBuild"
+            "genomeBuild" # "GenomeBuild"
         )
     )
 
@@ -524,9 +532,10 @@ mappings$ngs_darwin <- function(data) {
         labIndication = purrr::map_chr(labIndication, utils$as_string_id)
     )]
 
+    data[, umcgID := as.integer(umcgID)]
     data.table::setorder(data, umcgID)
-    data.table::unique(data)
-    return(data)
+    data[, umcgID := as.character(umcgID)]
+    return(unique(data, by = c("umcgID", "testCode")))
 }
 
 #' @title Map Bench CNV Export
@@ -543,18 +552,18 @@ mappings$bench_cnv <- function(data) {
     )
 
     data.table::setDT(data)
-
-    vars <- c("primid", "secid", "gender", "Phenotype", "created")
-    data[, ..vars]
+    data[, `:=`(
+        # primid, secid, # standard vars
+        externalid = NULL,
+        # gender = NULL, # keep
+        comment = NULL
+        # Phenotype, created # keep
+    )]
     data.table::setnames(
         data,
-        old = vars,
+        old = c("primid", "secid", "gender", "Phenotype", "created"),
         new = c(
-            "id",
-            "familyID",
-            "biologicalSex",
-            "observedPhenotype",
-            "dateCreated"
+            "id", "familyID", "biologicalSex", "observedPhenotype", "dateofDiagnosis"
         )
     )
 
@@ -566,7 +575,7 @@ mappings$bench_cnv <- function(data) {
     # 5) create twin status column
     # 6) extract maternal ID
     # 7) extract linked ID
-    # 8) format dateCreated
+    # 8) format dateofDiagnosis
     data[, `:=`(
         id = purrr::map_chr(id, function(x) {
             x1 <- gsub("([_=])", "-", x)
@@ -574,20 +583,36 @@ mappings$bench_cnv <- function(data) {
             gsub("([-])$", "", x2)
         }),
         idType = purrr::map_chr(id, function(x) {
-            purrr::map_chr(patterns, function(p) {
-                if (grepl(p, x)) {
-                    names(patterns[p])
-                } else {
-                    "default"
-                }
-            })
-        }),
+            if (grepl(patterns$fetus, x)) {
+                "fetus"
+            } else if (grepl(patterns$twin, x)) {
+                "twin"
+            } else if (grepl(patterns$linked, x)) {
+                "linked"
+            } else {
+                "default"
+            }
+        })
+    )][, `:=`(
         umcgID = purrr::map2_chr(id, idType, function(id, type) {
             if (type != "linked")
                 return(id)
             unlist(strsplit(id, "_"))[1]
         }),
-        fetusStatus = purrr::map_chr(idType, function(type) type %in% names(patterns)),
+        biologicalSex = purrr::map_chr(biologicalSex, utils$recode_sex),
+        observedPhenotype = purrr::map_chr(
+            observedPhenotype, function(values) {
+                if (is.na(values))
+                    return(NA_character_)
+
+                c1 <- unlist(strsplit(values, "\\s+"))
+                c2 <- gsub("HP:", "", c1)
+                paste0(unique(c2), collapse = ",")
+            }
+        ),
+        fetusStatus = purrr::map_chr(
+            idType, function(type) type %in% names(patterns)
+        ),
         twinStatus = purrr::map_chr(idType, function(type) type == "twin"),
         maternalID = purrr::map2_chr(id, idType, function(id, type) {
             if (type %in% c("fetus", "twin")) {
@@ -603,12 +628,15 @@ mappings$bench_cnv <- function(data) {
         linkedPatientID = purrr::map2_chr(id, idType, function(id, type) {
             if (type != "linked")
                 return(NA_character_)
-            return(unlist(strsplit(id, "-"))[2])
+            unlist(strsplit(id, "-"))[2]
         }),
-        dateCreated = purrr::map_chr(dateCreated, utils$as_ymd)
+        dateofDiagnosis = purrr::map_chr(dateofDiagnosis, utils$as_ymd)
     )]
 
-    data[, c(id, idType) := NULL]
-    data.table::setorder(data, umcgID)
-    return(data)
+    data[, `:=`(id = NULL, idType = NULL)]
+    # data[, umcgID := as.integer(umcgID)]
+    # data.table::setorder(data, umcgID)
+    # data[, umcgID := as.character(umcgID)]
+
+    return(data[])
 }

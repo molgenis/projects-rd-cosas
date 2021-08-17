@@ -2,23 +2,18 @@
 #' FILE: cosas_mapping.R
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-07-22
-#' MODIFIED: 2021-07-29
+#' MODIFIED: 2021-08-17
 #' PURPOSE: Mapping portal tables to main pkg
 #' STATUS: working
-#' PACKAGES: dplyr, tidyr, stringr, purrr
+#' PACKAGES: data.table, purrr
 #' COMMENTS: NA
 #' ////////////////////////////////////////////////////////////////////////////
-
-# pkgs
-library2("dplyr")
-library2("magrittr")
-# library2("data.table")
 
 source("R/_load.R")
 source("R/utils_mapping.R")
 
 
-#' Map Objects into COSAS Terminology
+#' Map into COSAS Terminology
 cli::cli_alert_info("Mapping portal data objects into COSAS terminology")
 cosas_patients_mapped <- mappings$patients(portal_patients)
 cosas_diagnoses_mapped <- mappings$diagnoses(portal_diagnoses)
@@ -26,16 +21,13 @@ cosas_samples_mapped <- mappings$samples(portal_samples)
 cosas_array_adlas_mapped <- mappings$array_adlas(portal_array_adlas)
 cosas_array_darwin_mapped <- mappings$array_darwin(portal_array_darwin)
 cosas_ngs_adlas_mapped <- mappings$ngs_adlas(portal_ngs_adlas)
-
-## --- PICKUP HERE --- ##
-source("R/utils_mapping.R")
 cosas_ngs_darwin_mapped <- mappings$ngs_darwin(portal_ngs_darwin)
 cosas_bench_cnv_mapped <- mappings$bench_cnv(portal_bench_cnv)
 
 #'//////////////////////////////////////
 
 
-#' Clean datasets
+#### ==== PICK UP HERE ==== ####
 
 # prepare bench_cnv dataset
 # pull cases that exist in the main patients tables, and then split by
