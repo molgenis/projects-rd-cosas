@@ -2,7 +2,7 @@
 #' FILE: _load.R
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-07-29
-#' MODIFIED: 2021-08-16
+#' MODIFIED: 2021-08-17
 #' PURPOSE: load and combine portal files (if desired)
 #' STATUS: working
 #' PACKAGES: readxl, openxlsx
@@ -27,7 +27,12 @@ portal_diagnoses <- readxl::read_xlsx(
 portal_samples <- readxl::read_xlsx(
     path = "_raw/cosasportal_samples.xlsx",
     sheet = 1,
-    col_types = "text"
+    col_types = c(
+        rep("text", 2), "date",
+        rep("text", 6), "date",
+        rep("text", 5), "date",
+        rep("text", 4)
+    )
 )
 
 portal_array_adlas <- readxl::read_xlsx(
