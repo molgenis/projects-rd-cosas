@@ -2,7 +2,7 @@
 #' FILE: utils_mapping.R
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-08-16
-#' MODIFIED: 2021-08-16
+#' MODIFIED: 2021-08-17
 #' PURPOSE: methods for `mapping_cosas.R`
 #' STATUS: in.progress
 #' PACKAGES: data.table, dplyr, purrr, stringr
@@ -65,15 +65,27 @@ utils$format_dx_code <- function(x) {
     paste0("dx_", stringr::str_split(x, ":", n = 2, simplify = TRUE)[[1]])
 }
 
-#' @name utils$format_dx_certainty
-#' @description given a certainty string, format for COSAS
-#' @return a string
+#' @name utils$recode_dx_certainty
+#' @description given a certainty value, format and recode values
+#' @param x a string containing a certainty rating
 #' @describeIn utils
-utils$format_dx_certainty <- function(x) {
-    if (x == "-")
-        return(NA_character_)
+#' @return a string
+utils$recode_dx_certainty <- function(x) {
+    opts <- list(
+        "niet-zeker" = "provisional",
+        "onzeker" = "provisional",
+        "zeker" = "confirmed",
+        "zeker-niet" = "unconfirmed"
+    )
 
-    utils$as_string_id(x)
+    val <- NA_character_
+    if (x != "-")
+        val <- tolower(gsub(" ", "-", x))
+
+    if (val %in% names(opts))
+        val <- opts[[val]]
+
+    return(val)
 }
 
 
@@ -83,10 +95,10 @@ utils$format_dx_certainty <- function(x) {
 #' @return a string
 utils$recode_sex <- function(x) {
     vals <- list("vrouw" = "female", "man" = "male")
-    if (!tolower(x) %in% names(values))
+    if (!tolower(x) %in% names(vals))
         return(NA_character_)
 
-    vals[tolower(x)]
+    return(vals[[tolower(x)]])
 }
 
 #' @name utils$timestamp
@@ -132,12 +144,12 @@ mappings$patients <- function(data) {
         new = c(
             "umcgID",
             "familyID",
-            "dob",
+            "dateOfBirth",
             "biologicalSex",
             "maternalID",
             "paternalID",
             "linkedFamilyIDs",
-            "dateDeceased"
+            "dateOfDeath"
         )
     )
 
@@ -150,17 +162,26 @@ mappings$patients <- function(data) {
     # 6) formate date of death
     data[, `:=`(
         biologicalSex = purrr::map_chr(biologicalSex, utils$recode_sex),
-        linkedFamilyIds = gsub(", ", ",", linkedFamilyIDs),
-        isDeceased = purrr::map_lgl(dateDeceased, utils$is_posixct),
-        ageAtDeath = purrr::map2_chr(dob, dateDeceased, utils$calc_age),
-        dob = purrr::map_chr(dob, utils$as_ymd),
-        dateDeceased = purrr::map_chr(dateDeceased, utils$as_ymd)
+        linkedFamilyIDs = gsub("[\\,]\\s+", ",", linkedFamilyIDs),
+        inclusionStatus = purrr::map_chr(dateOfDeath, function(x) {
+            if (!is.na(x)) {
+                "deceased"
+            } else {
+                "alive"
+            }
+        }),
+        ageAtDeath = purrr::map2_chr(dateOfBirth, dateOfDeath, utils$calc_age),
+        dateOfBirth = purrr::map_chr(dateOfBirth, utils$as_ymd),
+        dateOfDeath = purrr::map_chr(dateOfDeath, utils$as_ymd)
     )]
 
     # sort by ID
+    data[, umcgID := as.integer(umcgID)]
     data.table::setorder(data, umcgID)
+    data[, umcgID := as.character(umcgID)]
 
-    return(data)
+
+    return(data[])
 }
 
 
@@ -187,11 +208,11 @@ mappings$diagnoses <- function(data) {
         ),
         new = c(
             "umcgID",
-            "primaryDx",
-            "primaryDxCertainty",
-            "extraDx",
-            "extraDxCertainty",
-            "dateFirstConsult",
+            "clinicalDiagnosis",
+            "clinicalDiagnosisCertainty",
+            "secondaryDiagnosis",
+            "secondaryDiagnosisCertainty",
+            "dateOfDiagnosis",
             "ondID"
         )
     )
@@ -203,20 +224,22 @@ mappings$diagnoses <- function(data) {
     # 4) form certainty of extra diagnosis
     # 5) format date
     data[, `:=`(
-        primaryDx = purrr::map_chr(primaryDx, utils$format_dx_code),
-        primaryDxCertainty = purrr::map_chr(
-            primaryDxCertainty, utils$format_dx_certainty
+        clinicalDiagnosis = purrr::map_chr(clinicalDiagnosis, utils$format_dx_code),
+        clinicalDiagnosisCertainty = purrr::map_chr(
+            clinicalDiagnosisCertainty, utils$recode_dx_certainty
         ),
-        extraDx = purrr::map_chr(extraDx, utils$format_dx_code),
-        extraDxCertainty = purrr::map_chr(
-            extraDxCertainty, utils$format_dx_certainty
+        secondaryDiagnosis = purrr::map_chr(secondaryDiagnosis, utils$format_dx_code),
+        secondaryDiagnosisCertainty = purrr::map_chr(
+            secondaryDiagnosisCertainty, utils$recode_dx_certainty
         ),
-        dateFirstConsult = purrr::map_chr(dateFirstConsult, utils$as_ymd)
+        dateOfDiagnosis = purrr::map_chr(dateOfDiagnosis, utils$as_ymd)
     )]
 
+    data[, umcgID := as.integer(umcgID)]
     data.table::setorder(data, umcgID)
+    data[, umcgID := as.character(umcgID)]
 
-    return(data)
+    return(data[])
 }
 
 #' @name mappings$samples
@@ -283,7 +306,7 @@ mappings$samples <- function(data) {
             "labResultID", # "LABUITSLAG_ID"
             # "", # "LABUITSLAG_CODE", # for RefEntity
             "labResultAvailability", # "LABRESULTS",
-            "authorized", # "AUTHORISED"
+            "authorizedStatus" # "AUTHORISED"
         )
     )
 
@@ -292,14 +315,20 @@ mappings$samples <- function(data) {
     # 2) lowercase test_code (to match with refEntity)
     # 3) lower disorderCode
     data[, `:=`(
+        requestDate = purrr::map_chr(requestDate, utils$as_ymd),
+        resultDate = purrr::map_chr(resultDate, utils$as_ymd),
+        labResultDate = purrr::map_chr(labResultDate, utils$as_ymd),
         materialType = purrr::map_chr(materialType, utils$as_string_id),
         testCode = tolower(testCode),
         disorderCode = tolower(disorderCode)
     )]
 
+    # sort by ID
+    data[, umcgID := as.integer(umcgID)]
     data.table::setorder(data, umcgID)
+    data[, umcgID := as.character(umcgID)]
 
-    return(data)
+    return(data[])
 }
 
 
@@ -310,23 +339,55 @@ mappings$samples <- function(data) {
 mappings$array_adlas <- function(data) {
     data.table::setDT(data)
 
-    # reduce dataset to select columns (add more if applicable)
-    vars <- c("UMCG_NUMBER", "ADVVRG_ID", "DNA_NUMMER", "TEST_ID", "TEST_CODE")
-    data[, ..vars]
+    # reduce dataset to select columns (explicitly state which columns to remove)
+    data[, `:=`(
+        # UMCG_NUMBER, ADVVRG_ID, DNA_NUMMER, TEST_ID, TEST_CODE, # standard variables
+        TEST_OMS = NULL,
+        # SGA_CHROMOSOME_REGION = NULL,
+        SGA_CLASSIFICATION = NULL,
+        SGA_CYTOBAND = NULL,
+        # SGA_DECIPHER_SYNDROMES = NULL,
+        SGA_DGV_SIMILARITY = NULL,
+        SGA_EVENT = NULL,
+        SGA_EVIDENCE_SCORE = NULL,
+        SGA_HMRELATED_GENES = NULL,
+        SGA_HMRELATED_GENES_COUNT = NULL,
+        SGA_LENGTH = NULL,
+        SGA_MOSAIC = NULL,
+        SGA_MOSAIC_PERCENTAGE = NULL,
+        SGA_NO_OF_PROBES = NULL,
+        SGA_NOTES = NULL,
+        SGA_OMIM_MORBID_MAP = NULL,
+        SGA_OMIM_MORBIDMAP_COUNT = NULL,
+        SGA_PROBE_MEDIAN = NULL,
+        SGA_REFSEQ_CODING_GENES = NULL,
+        SGA_REFSEQ_CODING_GENES_COUNT = NULL,
+        SGA_REGIONS_UMCG_CNV_NL_COUNT = NULL,
+        SGA_SIMILAR_PREVIOUS_CASES = NULL,
+        SGA_OVERERVING = NULL
+    )]
+
     data.table::setnames(
         data,
-        old = vars,
-        new = c("umcgID", "requestID", "dnaID", "testID", "testCode")
+        old = c(
+            "UMCG_NUMBER", "ADVVRG_ID", "DNA_NUMMER", "TEST_ID", "TEST_CODE",
+            "SGA_CHROMOSOME_REGION", "SGA_DECIPHER_SYNDROMES"
+        ),
+        new = c(
+            "umcgID", "requestID", "dnaID", "testID", "testCode",
+            "chromosomeRegion", "decipherSyndromes"
+        )
     )
 
     # format data
     # 1) lowercase testCode
     data[, testCode := tolower(testCode)]
 
+    data[, umcgID := as.integer(umcgID)]
     data.table::setorder(data, umcgID)
-    data.table::unique(data) # remove if more columns are added
+    data[, umcgID := as.character(umcgID)]
 
-    return(data)
+    return(data[])
 }
 
 #' @name mappings$array_darwin
@@ -336,13 +397,17 @@ mappings$array_adlas <- function(data) {
 mappings$array_darwin <- function(data) {
     data.table::setDT(data)
 
-    # select columns of interest and rename
-    vars <- c("UmcgNr", "TestId", "TestDatum", "Indicatie")
-    data[, ..vars]
+    # explicitly define columns to remove
+    data[, `:=`(
+        # UmcgNr, TestId, TestDatum, Indicatie # standard variables
+        BatchNaam = NULL,
+        CallRate = NULL,
+        StandaardDeviatie = NULL
+    )]
     data.table::setnames(
         data,
-        old = vars,
-        new = c("umcgID", "testID", "testDate", "labIndication")
+        old = c("UmcgNr", "TestId", "TestDatum", "Indicatie"),
+        new = c("umcgID", "testCode", "testDate", "labIndication")
     )
 
     # format data
@@ -355,9 +420,11 @@ mappings$array_darwin <- function(data) {
         labIndication = purrr::map_chr(labIndication, utils$as_string_id)
     )]
 
+    data[, umcgID := as.integer(umcgID)]
     data.table::setorder(data, umcgID)
-    data.table::unique(data) # remove if more columns are added
-    return(data)
+    data[, umcgID := as.character(umcgID)]
+
+    return(unique(data, by = c("umcgID", "testCode")))
 }
 
 #' @name mappings$ngs_adlas
@@ -367,21 +434,45 @@ mappings$array_darwin <- function(data) {
 mappings$ngs_adlas <- function(data) {
     data.table::setDT(data)
 
-    vars <- c("UMCG_NUMBER", "ADVVRG_ID", "DNA_NUMMER", "TEST_ID", "TEST_CODE")
-    data[, ..vars]
+    data[, `:=`(
+        # UMCG_NUMBER, ADVVRG_ID, DNA_NUMMER, TEST_ID, TEST_CODE,
+        TEST_OMS = NULL,
+        # GEN = NULL,
+        # MUTATIE = NULL,
+        KLASSE = NULL,
+        NM_NUMMER = NULL,
+        LRGS_NUMMER = NULL,
+        AMPLICON = NULL,
+        # ALLELFREQUENTIE = NULL,
+        OVERERVING = NULL
+    )]
     data.table::setnames(
         data,
-        old = vars,
-        new = c("umcgID", "requestID", "dnaID", "testID", "testCode")
+        old = c(
+            "UMCG_NUMBER", "ADVVRG_ID", "DNA_NUMMER",
+            "TEST_ID", "TEST_CODE", "GEN", "MUTATIE", "ALLELFREQUENTIE"
+        ),
+        new = c(
+            "umcgID", "requestID", "dnaID", "testID",
+            "testCode", "gene", "mutation", "alleleFrequency"
+        )
     )
 
     # format data
     # 1) lower testcode
-    data[, testCode := tolower(testCode)]
+    data[, `:=`(
+        testCode = tolower(testCode),
+        alleleFrequency = purrr::map_chr(alleleFrequency, function(x) {
+            if (x %in% c("-", "_"))
+                return(NA_character_)
+            tolower(x)
+        })
+    )]
 
+    data[, umcgID := as.integer(umcgID)]
     data.table::setorder(data, umcgID)
-    data.table::unique(data)
-    return(data)
+    data[, umcgID := as.character(umcgID)]
+    return(data[])
 }
 
 #' @name mappings$ngs_darwin
@@ -496,8 +587,8 @@ mappings$bench_cnv <- function(data) {
                 return(id)
             unlist(strsplit(id, "_"))[1]
         }),
-        isFetus = purrr::map_chr(idType, function(type) type %in% names(patterns)),
-        isTwin = purrr::map_chr(idType, function(type) type == "twin"),
+        fetusStatus = purrr::map_chr(idType, function(type) type %in% names(patterns)),
+        twinStatus = purrr::map_chr(idType, function(type) type == "twin"),
         maternalID = purrr::map2_chr(id, idType, function(id, type) {
             if (type %in% c("fetus", "twin")) {
                 split <- unlist(strsplit(id, "F"))[1]
@@ -512,7 +603,7 @@ mappings$bench_cnv <- function(data) {
         linkedPatientID = purrr::map2_chr(id, idType, function(id, type) {
             if (type != "linked")
                 return(NA_character_)
-            unlist(strsplit(id, "-"))[2]
+            return(unlist(strsplit(id, "-"))[2])
         }),
         dateCreated = purrr::map_chr(dateCreated, utils$as_ymd)
     )]
