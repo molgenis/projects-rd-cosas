@@ -544,7 +544,7 @@ mappings$bench_cnv <- function(data) {
         data,
         old = c("primid", "secid", "gender", "Phenotype", "created"),
         new = c(
-            "id", "familyID", "biologicalSex", "observedPhenotype", "dateofDiagnosis"
+            "id", "familyID", "biologicalSex", "observedPhenotype", "dateOfDiagnosis"
         )
     )
 
@@ -556,7 +556,7 @@ mappings$bench_cnv <- function(data) {
     # 5) create twin status column
     # 6) extract maternal ID
     # 7) extract linked ID
-    # 8) format dateofDiagnosis
+    # 8) format dateOfDiagnosis
     data[, `:=`(
         id = purrr::map_chr(id, function(x) {
             x1 <- gsub("([_=])", "-", x)
@@ -576,9 +576,11 @@ mappings$bench_cnv <- function(data) {
         })
     )][, `:=`(
         umcgID = purrr::map2_chr(id, idType, function(id, type) {
-            if (type != "linked")
-                return(id)
-            unlist(strsplit(id, "_"))[1]
+            if (type == "linked") {
+                unlist(strsplit(id, "-"))[1]
+            } else {
+                id
+            }
         }),
         biologicalSex = purrr::map_chr(biologicalSex, utils$recode_sex),
         observedPhenotype = purrr::map_chr(
@@ -606,12 +608,12 @@ mappings$bench_cnv <- function(data) {
                 NA_character_
             }
         }),
-        linkedPatientID = purrr::map2_chr(id, idType, function(id, type) {
+        altPatientID = purrr::map2_chr(id, idType, function(id, type) {
             if (type != "linked")
                 return(NA_character_)
             unlist(strsplit(id, "-"))[2]
         }),
-        dateofDiagnosis = purrr::map_chr(dateofDiagnosis, utils$as_ymd)
+        dateOfDiagnosis = purrr::map_chr(dateOfDiagnosis, utils$as_ymd)
     )]
 
     data[, `:=`(id = NULL, idType = NULL)]
