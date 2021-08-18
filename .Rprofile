@@ -9,6 +9,28 @@
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
+# set options
+options(
+
+    # options: shiny
+    shiny.port = 8000,
+    shiny.launch.browser = FALSE,
+
+    # options: radian
+    radian.prompt = "\033[0;34m>\033[0m ",
+
+    # options: vscode R
+    vsc.use_httpgd = TRUE,
+    vsc.helpPanel = "Beside",
+    vsc.viewer = "Beside",
+    vsc.browser = "Beside",
+    vsc.show_object_size = FALSE,
+
+    # options: languageserver
+    languageserver.formatting_style = function(options) {
+        styler::tidyverse_style(start_comments_with_one_space = TRUE)
+    }
+)
 
 #' @title Clear
 #' @name clear
