@@ -114,6 +114,7 @@ rm(list = c("new_cosas_cases", "existing_cosas_cases", "cosas_patients_base"))
 # create object containing only familyIds by umcgId
 patientFamilyIDs <- cosas_patients[, .(umcgID, familyID)]
 
+
 #' @title Create Cosas Clinical Events
 #' @description create `cosas_clinical`
 #' @section Methodology:
@@ -158,6 +159,7 @@ cosas_clinical_bound <- data.table::rbindlist(
     fill = TRUE
 )
 
+
 # join familyID
 cosas_clinical <- merge(
     x = cosas_clinical_bound,
@@ -188,14 +190,12 @@ rm(list = c("cosas_clinical_base", "new_clinical_data", "cosas_clinical_bound"))
 #' `authorizedStatus` into a reference entity. However, I would like to
 #' align with FairGenomes.
 #'
+#' @section Limitations:
+#' There is some loss when building the experiment tables. IDs that exist in
+#' the Darwin exports do no exist in the ADLAS exports. This is described in
+#' the subsequent sections.
+#'
 #' @noRd
-cosas_samples <- cosas_samples_mapped %>%
-    left_join(cosas_patients[, .(umcgID, familyID)], by = "umcgID") %>%
-    left_join(cosas_array_darwin_mapped, by = c("umcgID", "testCode")) %>%
-    mutate(
-        dateLastUpdated = utils$timestamp()
-    )
-
 
 # join familyIDs
 cosas_samples_base <- merge(
@@ -220,58 +220,98 @@ cosas_samples <- merge(
     y = lab_metadata,
     by = c("umcgID", "testCode"),
     all.x = TRUE
-)
+)[order(as.integer(umcgID))]
+
 
 # add dateLastUpdated
 cosas_samples[, dateLastUpdated := utils$timestamp()]
 
-
-#### =========== PICK UP HERE =========== ####
+rm(list = c("cosas_samples_base", "lab_metadata"))
 
 
 #' @title Create Cosas Labs Array
+#' @description create `cosas_labs_array`
+#' @section Methodology:
+#'
+#' The array experiment table contains metadata from ADLAS and Darwin. Both
+#' objects contain all of the information that we require. To create this table,
+#' I will run a simple left join.
+#'
+#' @section Limitations:
+#' There are still cases in the Darwin export that do not have matching records in
+#' the ADLAS export. For now, I am only merge Darwin records that exist in the ADLAS
+#' export. To find these cases, run the following commands.
+#'
+#' cosas_array_darwin_mapped %>%
+#'     filter(!umcgID %in% cosas_array_adlas_mapped)
+#'
+#' cosas_array_darwin_mapped %>%
+#'    group_by(umcgID) %>%
+#'    filter(!testCode %in% cosas_array_darwin_mapped$testCode)
+#'
+#' @noRd
+
+# create base table
+lab_array_base <- merge(
+    x = cosas_array_adlas_mapped,
+    y = cosas_array_darwin_mapped,
+    by = c("umcgID", "testCode"),
+    all.x = TRUE
+)[
+    order(as.integer(umcgID)),
+    dateLastUpdated := utils$timestamp()
+]
+
+# merge familyIDs
+cosas_labs_array <- merge(
+    x = lab_array_base,
+    y = patientFamilyIDs,
+    by = "umcgID",
+    all.x = TRUE
+)
 
 
-
-# create: `cosas_labs_array`
-cli::cli_alert_info("Building Labs Array...")
-cosas_labs_array <- cosas_array_adlas_mapped %>%
-    left_join(
-        cosas_array_darwin_mapped,
-        by = c("umcg_numr", "test_code")
-    ) %>%
-    left_join(
-        cosas_patients_fetuses %>%
-            select(umcg_numr, family_numr) %>%
-            distinct(umcg_numr, family_numr, .keep_all = TRUE),
-        by = "umcg_numr"
-    ) %>%
-     mutate(
-        date_last_updated = utils$timestamp()
-    ) %>%
-    select(umcg_numr, family_numr, everything()) %>%
-    arrange(umcg_numr)
-
-# create: `cosas_labs_ngs`
-cosas_labs_ngs <- cosas_ngs_adlas_mapped %>%
-    left_join(
-        cosas_ngs_darwin_mapped %>%
-            distinct(umcg_numr, test_code, .keep_all = TRUE),
-        by = c("umcg_numr", "test_code")
-    ) %>%
-    left_join(
-        cosas_patients_fetuses %>%
-            select(umcg_numr, family_numr) %>%
-            distinct(umcg_numr, family_numr, .keep_all = TRUE),
-        by = "umcg_numr"
-    ) %>%
-    mutate(
-        date_last_updated = utils$timestamp()
-    ) %>%
-    select(umcg_numr, family_numr, everything()) %>%
-    arrange(umcg_numr)
+rm(list = c("lab_array_base"))
 
 
+#' @title Create NGS Experiment Metadata
+#' @description create `cosas_labs_ngs`
+#' @section Methodology:
+#'
+#' Like the array experiment table, the NGS table is created using both the
+#' ADLAS and Darwin exports. These tables are in pretty good shape as it is,
+#' so there is much that needs to be done.
+#'
+#' @section Limitations:
+#' As well as the Array experiment table, the NGS table contains IDs that
+#' do not exist in the array table. For now, Darwin data will be merged where
+#' applicable (i.e., some records will be lossed)
+#'
+#' cosas_ngs_darwin_mapped %>%
+#'     filter(!umcgID %in% cosas_ngs_adlas_mapped$umcgID)
+#'
+#' @noRd
+
+# create base
+labs_ngs_base <- merge(
+    x = cosas_ngs_adlas_mapped,
+    y = cosas_ngs_darwin_mapped,
+    by = c("umcgID", "testCode"),
+    all.x = TRUE
+)[
+    order(as.integer(umcgID)),
+    dateLastUpdated := utils$timestamp()
+]
+
+# merge familyIDs
+cosas_labs_ngs <- merge(
+    x = labs_ngs_base,
+    y = patientFamilyIDs,
+    by = "umcgID",
+    all.x = TRUE
+)
+
+#'//////////////////////////////////////
 
 # write files
 cli::cli_alert_info("Saving data to file...")
