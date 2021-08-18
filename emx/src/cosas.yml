@@ -1,8 +1,8 @@
 name: cosas
 label: COSAS
 description: The Catalogue of Sequence Array and Samples
-version: 0.9020
-date: 2021-08-17
+version: 0.9021
+date: 2021-08-18
 defaults:
   idAttribute: false
   dataType: string
@@ -62,6 +62,7 @@ entities:
       - name: consanguinity
         label: Consanguinity
         label-nl: consanguiniteit
+        dataType: bool
       - name: fetalStatus
         label: Fetal Status
         label-nl: Foetusstatus
@@ -72,7 +73,7 @@ entities:
         description: Has twin or is suspected of having a twin
         description-nl: Heeft een tweeling of wordt ervan verdacht een tweeling te hebben
         dataType: bool
-      - name: altPersonalIDs
+      - name: altPersonalID
         label: Linked UMCG number
         label-nl: Gekoppelde UMCG nummer
       - name: firstContact
@@ -103,7 +104,7 @@ entities:
       - name: familyID
         label: Family Number
         label-nl: Familie Nummer
-      - name: dateofDiagnosis
+      - name: dateOfDiagnosis
         label: Date
         label-nl: Datum
         dataType: date
@@ -195,9 +196,6 @@ entities:
         label-nl: Lab indicatie
         dataType: xref
         refEntity: cosasrefs_labIndications
-      - name: testID
-        label: Test ID
-        label-nl: Test-ID
       - name: testCode
         label: Test code
         label-nl: Test code
