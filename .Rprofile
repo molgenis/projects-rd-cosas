@@ -2,7 +2,7 @@
 #' FILE: .Rprofile
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-08-16
-#' MODIFIED: 2021-08-16
+#' MODIFIED: 2021-08-18
 #' PURPOSE: set global functions and load renv
 #' STATUS: working
 #' PACKAGES: NA
@@ -17,6 +17,7 @@ options(
     shiny.launch.browser = FALSE,
 
     # options: radian
+    radian.insert_new_line = FALSE,
     radian.prompt = "\033[0;34m>\033[0m ",
 
     # options: vscode R
@@ -45,9 +46,11 @@ clear <- function() {
 #' @title Remove2
 #' @name rm2
 #' @description Force remove all objects from the current environment
+#' @param except optional an array of object names to ignore
 #' @noRd
-rm2 <- function() {
+rm2 <- function(except = NULL) {
     ignore <- c("clear", "library2", "rm2")
+    if (!is.null(except)) ignore <- c(ignore, except)
     rm(list = setdiff(ls(envir = .GlobalEnv), ignore), envir = .GlobalEnv)
 }
 
