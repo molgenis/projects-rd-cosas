@@ -2,10 +2,10 @@
 #' FILE: utils_mapping.R
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-08-16
-#' MODIFIED: 2021-08-17
+#' MODIFIED: 2021-08-18
 #' PURPOSE: methods for `mapping_cosas.R`
-#' STATUS: in.progress
-#' PACKAGES: data.table, dplyr, purrr, stringr
+#' STATUS: working
+#' PACKAGES: data.table, purrr
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
@@ -62,7 +62,7 @@ utils$format_dx_code <- function(x) {
     if (x == "-")
         return(NA_character_)
 
-    paste0("dx_", stringr::str_split(x, ":", n = 2, simplify = TRUE)[[1]])
+    paste0("dx_", unlist(strsplit(x, ":"))[1])
 }
 
 #' @name utils$recode_dx_certainty
@@ -178,12 +178,7 @@ mappings$patients <- function(data) {
         dateOfDeath = purrr::map_chr(dateOfDeath, utils$as_ymd)
     )]
 
-    # sort by ID
-    data[, umcgID := as.integer(umcgID)]
-    data.table::setorder(data, umcgID)
-    data[, umcgID := as.character(umcgID)]
-
-
+    data[, order(as.integer(umcgID))]
     return(data[])
 }
 
@@ -238,10 +233,7 @@ mappings$diagnoses <- function(data) {
         dateOfDiagnosis = purrr::map_chr(dateOfDiagnosis, utils$as_ymd)
     )]
 
-    data[, umcgID := as.integer(umcgID)]
-    data.table::setorder(data, umcgID)
-    data[, umcgID := as.character(umcgID)]
-
+    data[, order(as.integer(umcgID))]
     return(data[])
 }
 
@@ -320,17 +312,16 @@ mappings$samples <- function(data) {
     data[, `:=`(
         requestDate = purrr::map_chr(requestDate, utils$as_ymd),
         resultDate = purrr::map_chr(resultDate, utils$as_ymd),
+        labResultComment = purrr::map_chr(labResultComment, function(x) {
+            gsub("([\\r]+)([\\n]?)", "; ", x, perl = TRUE)
+        }),
         labResultDate = purrr::map_chr(labResultDate, utils$as_ymd),
         materialType = purrr::map_chr(materialType, utils$as_string_id),
         testCode = tolower(testCode),
         disorderCode = tolower(disorderCode)
     )]
 
-    # sort by ID
-    data[, umcgID := as.integer(umcgID)]
-    data.table::setorder(data, umcgID)
-    data[, umcgID := as.character(umcgID)]
-
+    data[, order(as.integer(umcgID))]
     return(data[])
 }
 
@@ -386,10 +377,7 @@ mappings$array_adlas <- function(data) {
     # 1) lowercase testCode
     data[, testCode := tolower(testCode)]
 
-    data[, umcgID := as.integer(umcgID)]
-    data.table::setorder(data, umcgID)
-    data[, umcgID := as.character(umcgID)]
-
+    data[, order(as.integer(umcgID))]
     return(data[])
 }
 
@@ -423,10 +411,7 @@ mappings$array_darwin <- function(data) {
         labIndication = purrr::map_chr(labIndication, utils$as_string_id)
     )]
 
-    data[, umcgID := as.integer(umcgID)]
-    data.table::setorder(data, umcgID)
-    data[, umcgID := as.character(umcgID)]
-
+    data[, order(as.integer(umcgID))]
     return(unique(data, by = c("umcgID", "testCode")))
 }
 
@@ -472,9 +457,7 @@ mappings$ngs_adlas <- function(data) {
         })
     )]
 
-    data[, umcgID := as.integer(umcgID)]
-    data.table::setorder(data, umcgID)
-    data[, umcgID := as.character(umcgID)]
+    data[, order(as.integer(umcgID))]
     return(data[])
 }
 
@@ -532,10 +515,8 @@ mappings$ngs_darwin <- function(data) {
         labIndication = purrr::map_chr(labIndication, utils$as_string_id)
     )]
 
-    data[, umcgID := as.integer(umcgID)]
-    data.table::setorder(data, umcgID)
-    data[, umcgID := as.character(umcgID)]
-    return(unique(data, by = c("umcgID", "testCode")))
+
+    return(unique(data, by = c("umcgID", "testCode"))[order(as.integer(umcgID), )])
 }
 
 #' @title Map Bench CNV Export
@@ -610,10 +591,10 @@ mappings$bench_cnv <- function(data) {
                 paste0(unique(c2), collapse = ",")
             }
         ),
-        fetusStatus = purrr::map_chr(
+        fetusStatus = purrr::map_lgl(
             idType, function(type) type %in% names(patterns)
         ),
-        twinStatus = purrr::map_chr(idType, function(type) type == "twin"),
+        twinStatus = purrr::map_lgl(idType, function(type) type == "twin"),
         maternalID = purrr::map2_chr(id, idType, function(id, type) {
             if (type %in% c("fetus", "twin")) {
                 split <- unlist(strsplit(id, "F"))[1]
@@ -634,9 +615,5 @@ mappings$bench_cnv <- function(data) {
     )]
 
     data[, `:=`(id = NULL, idType = NULL)]
-    # data[, umcgID := as.integer(umcgID)]
-    # data.table::setorder(data, umcgID)
-    # data[, umcgID := as.character(umcgID)]
-
     return(data[])
 }
