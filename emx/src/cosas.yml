@@ -297,9 +297,6 @@ entities:
       - name: decipherSyndromes
         label: SGA Decipher Syndromes
         dataType: text
-      - name: batchName
-        label: Batch name
-        label-nl: Batch naam
       - name: dateLastUpdated
         label: Date last updated
         label-nl: Datum laatste bijwerking
