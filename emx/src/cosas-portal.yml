@@ -1,8 +1,8 @@
 name: cosasportal
 label: COSAS Portal
 description: Staging tables for raw data extracts
-version: 0.9005
-date: 2021-07-21
+version: 0.9010
+date: 2021-08-19
 defaults:
   idAttribute: false
   dataType: string
@@ -18,23 +18,19 @@ entities:
     description: Raw metadata for patients and families
     description-nl: Ruwe metadata voor patiënten en families
     attributes:
-      - name: UMCG_nummer
-      - name: Overlijdensdatum
-      - name: Familienummer
-      - name: Geboortedatum
-      - name: Geslacht
-      - name: Familieleden
+      - name: UMCG_NUMBER
+      - name: OVERLIJDENSDATUM
+      - name: FAMILIENUMMER
+      - name: GEBOORTEDATUM
+      - name: GESLACHT
+      - name: FAMILIELEDEN
         dataType: text
-      - name: UMCG_moeder
-      - name: UMCG_vader
+      - name: UMCG_MOEDER
+      - name: UMCG_VADER
       - name: processed
-        label: processed
-        label-nl: processed
         dataType: bool
         defaultValue: false
-      - name: date_processed
-        label: Date Processed
-        label-nl: Date Processed
+      - name: dataProcessed
         dataType: dateTime
       - name: id
         description: auto generated Molgenis ID
@@ -55,18 +51,14 @@ entities:
       - name: UMCG_NUMBER
       - name: HOOFDDIAGNOSE
       - name: HOOFDDIAGNOSE_ZEKERHEID
-      - name: EXTRADIAGNOSE
-      - name: EXTRADIAGNOSE_ZEKERHEID
+      - name: EXTRA_DIAGNOSE
+      - name: EXTRA_DIAGNOSE_ZEKERHEID
       - name: DATUM_EERSTE_CONSULT
       - name: OND_ID
       - name: processed
-        label: processed
-        label-nl: processed
         dataType: bool
         defaultValue: false
-      - name: date_processed
-        label: Date Processed
-        label-nl: Date Processed
+      - name: dataProcessed
         dataType: dateTime
       - name: id
         description: auto generated Molgenis ID
@@ -86,23 +78,34 @@ entities:
     attributes:
       - name: UMCG_NUMMER
       - name: ADVVRG_ID
+      - name: ADVIESVRAAG_DATUM
       - name: MONSTER_ID
       - name: TEST_CODE
       - name: TEST_OMS
+        dataType: text
       - name: DNA_NUMMER
       - name: MATERIAAL
-      - name: UITSLAG_TEKST
+      - name: EINDUITSLAGTEKST
         dataType: text
-      - name: UITSLAGCODE
+      - name: EINDUITSLAG_DATUM
+      - name: ADVIESVRAAGUITSLAG_ID
+      - name: ADVIESVRAAGUITSLAG_CODE
+        dataType: text
       - name: AANDOENING_CODE
+      - name: LABUITSLAGTEKST
+        dataType: text
+      - name: LABUITSLAG_COMMENTAAR
+        dataType: text
+      - name: LABUITSLAG_DATUM
+      - name: LABUITSLAG_ID
+      - name: LABUITSLAG_CODE
+        dataType: text
+      - name: LABRESULTS
+      - name: AUTHORISED
       - name: processed
-        label: processed
-        label-nl: processed
         dataType: bool
         defaultValue: false
-      - name: date_processed
-        label: Date Processed
-        label-nl: Date Processed
+      - name: dataProcessed
         dataType: dateTime
       - name: id
         description: auto generated Molgenis ID
@@ -145,21 +148,17 @@ entities:
       - name: SGA_OMIM_MORBID_MAP
         dataType: text
       - name: SGA_OMIM_MORBIDMAP_COUNT
-      - name: SGA_OVERERVING
       - name: SGA_PROBE_MEDIAN
       - name: SGA_REFSEQ_CODING_GENES
         dataType: text
       - name: SGA_REFSEQ_CODING_GENES_COUNT
       - name: SGA_REGIONS_UMCG_CNV_NL_COUNT
       - name: SGA_SIMILAR_PREVIOUS_CASES
+      - name: SGA_OVERERVING
       - name: processed
-        label: processed
-        label-nl: processed
         dataType: bool
         defaultValue: false
-      - name: date_processed
-        label: Date Processed
-        label-nl: Date Processed
+      - name: dataProcessed
         dataType: dateTime
       - name: id
         description: auto generated Molgenis ID
@@ -185,13 +184,9 @@ entities:
       - name: CallRate
       - name: StandaardDeviatie
       - name: processed
-        label: processed
-        label-nl: processed
         dataType: bool
         defaultValue: false
-      - name: date_processed
-        label: Date Processed
-        label-nl: Date Processed
+      - name: dataProcessed
         dataType: dateTime
       - name: id
         description: auto generated Molgenis ID
@@ -224,13 +219,9 @@ entities:
       - name: ALLELFREQUENTIE
       - name: OVERERVING
       - name: processed
-        label: processed
-        label-nl: processed
         dataType: bool
         defaultValue: false
-      - name: date_processed
-        label: Date Processed
-        label-nl: Date Processed
+      - name: dataProcessed
         dataType: dateTime
       - name: id
         description: auto generated Molgenis ID
@@ -262,13 +253,9 @@ entities:
       - name: CallRate
       - name: StandaardDeviatie
       - name: processed
-        label: processed
-        label-nl: processed
         dataType: bool
         defaultValue: false
-      - name: date_processed
-        label: Date Processed
-        label-nl: Date Processed
+      - name: dataProcessed
         dataType: dateTime
       - name: id
         description: auto generated Molgenis ID
@@ -303,13 +290,9 @@ entities:
         dataType: text
       - name: created
       - name: processed
-        label: processed
-        label-nl: processed
         dataType: bool
         defaultValue: false
-      - name: date_processed
-        label: Date Processed
-        label-nl: Date Processed
+      - name: dataProcessed
         dataType: dateTime
       - name: id
         description: auto generated Molgenis ID
