@@ -2,7 +2,7 @@
 #' FILE: utils_mapping.R
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-08-16
-#' MODIFIED: 2021-08-18
+#' MODIFIED: 2021-08-19
 #' PURPOSE: methods for `mapping_cosas.R`
 #' STATUS: working
 #' PACKAGES: data.table, purrr
@@ -71,21 +71,21 @@ utils$format_dx_code <- function(x) {
 #' @describeIn utils
 #' @return a string
 utils$recode_dx_certainty <- function(x) {
-    opts <- list(
-        "niet-zeker" = "provisional",
-        "onzeker" = "provisional",
-        "zeker" = "confirmed",
-        "zeker-niet" = "unconfirmed"
-    )
+    # opts <- list(
+    #     "niet-zeker" = "provisional",
+    #     "onzeker" = "provisional",
+    #     "zeker" = "confirmed",
+    #     "zeker-niet" = "unconfirmed"
+    # )
 
     val <- NA_character_
     if (x != "-")
         val <- tolower(gsub(" ", "-", x))
 
-    if (val %in% names(opts))
-        val <- opts[[val]]
+    # if (val %in% names(opts))
+    #     val <- opts[[val]]
 
-    return(val)
+    val
 }
 
 
