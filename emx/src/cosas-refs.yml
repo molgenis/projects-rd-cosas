@@ -2,7 +2,7 @@ name: cosasrefs
 label: COSAS References
 description: Reference tables for COSAS
 version: 0.9020
-date: 2021-08-17
+date: 2021-08-19
 defaults:
   idAttribute: false
   dataType: string
@@ -126,26 +126,27 @@ entities:
         code: UNK
         iri: http://terminology.hl7.org/CodeSystem/v3-NullFlavor#UNK
 
-  # ~ cosasrefs_conditionCodes ~
-  # Reference entity for all disorder (condition) codes
+  # @ name cosasrefs_conditionCodes
+  # @description Reference entity for all disorder (condition) codes
+  # I'm leaving this out for now.
   #
-  - name: conditionCodes
-    label: Condition
-    label-nl: Aandoening
-    description: General disease codes
-    description-nl: Aandoening codes
-    attributes:
-      - name: id
-        label: ID
-        label-nl: ID
-        idAttribute: true
-        nillable: false
-        dataType: string
-      - name: name
-        label: Name
-        label-nl: Naam
-        lookupAttribute: true
-        labelAttribute: true
+  # - name: conditionCodes
+  #   label: Condition
+  #   label-nl: Aandoening
+  #   description: General disease codes
+  #   description-nl: Aandoening codes
+  #   attributes:
+  #     - name: id
+  #       label: ID
+  #       label-nl: ID
+  #       idAttribute: true
+  #       nillable: false
+  #       dataType: string
+  #     - name: name
+  #       label: Name
+  #       label-nl: Naam
+  #       lookupAttribute: true
+  #       labelAttribute: true
 
   # @name cosasrefs_diagnoses
   # @description reference entity for all diagnostic codes. The purpose of which
@@ -169,14 +170,14 @@ entities:
         idAttribute: true
         nillable: false
         dataType: string
-      - name: cineas_code
+      - name: cineasCode
         label: CINEAS code
         label-nl: CINEAS code
         description: Diagnostic code (e.g., 12345)
         description-nl: Diagnostische code (bijv, 12345)
         lookupAttribute: true
         labelAttribute: true
-      - name: cineas_description
+      - name: cineasDescription
         label: Diagnosis
         label-nl: Diagnose
 
@@ -229,13 +230,19 @@ entities:
         description-nl: FairGenomes IRI
         dataType: hyperlink
     data:
-      - id: unconfirmed
+      - id: zeker-niet
         value: Unconfirmed
         description: There is not sufficient diagnostic and/or clinical evidence to treat this as a confirmed condition.
         codesystem: HL7
         code: unconfirmed
         iri: https://terminology.hl7.org/2.1.0/CodeSystem-condition-ver-status.html#condition-ver-status-unconfirmed
-      - id: provisional
+      - id: niet-zeker
+        value: Provisional
+        description: This is a tentative diagnosis - still a candidate that is under consideration.
+        codesystem: HL7
+        code: provisional
+        iri: https://terminology.hl7.org/2.1.0/CodeSystem-condition-ver-status.html#condition-ver-status-provisional
+      - id: onzeker
         value: Provisional
         description: This is a tentative diagnosis - still a candidate that is under consideration.
         codesystem: HL7
@@ -247,7 +254,7 @@ entities:
         codesystem: HL7
         code: differential
         iri: https://terminology.hl7.org/2.1.0/CodeSystem-condition-ver-status.html#condition-ver-status-differential
-      - id: confirmed
+      - id: zeker
         value: Confirmed
         description: There is sufficient diagnostic and/or clinical evidence to treat this as a confirmed condition.
         codesystem: HL7
@@ -450,26 +457,26 @@ entities:
         label: Panel
         label-nl: Panel
         dataType: text
-      - name: genes
-        label: Genes
-        label-nl: Genes
-        dataType: text
+      # - name: genes
+      #   label: Genes
+      #   label-nl: Genes
+      #   dataType: text
 
   # @name cosasrefs_testGenes
   # @description Reference entity for all available genes
-  - name: testGenes
-    label: Gene List
-    label-nl: Gene Lijst
-    description: List of genes
-    description-nl: Lijst van genen
-    attributes:
-      - name: gene
-        label: Gene
-        label-nl: Gen
-        nillable: false
-        idAttribute: true
-        labelAttribute: true
-        lookupAttribute: true
-        dataType: string
+  # - name: testGenes
+  #   label: Gene List
+  #   label-nl: Gene Lijst
+  #   description: List of genes
+  #   description-nl: Lijst van genen
+  #   attributes:
+  #     - name: gene
+  #       label: Gene
+  #       label-nl: Gen
+  #       nillable: false
+  #       idAttribute: true
+  #       labelAttribute: true
+  #       lookupAttribute: true
+  #       dataType: string
 
 
