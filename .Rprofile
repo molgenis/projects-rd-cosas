@@ -29,7 +29,10 @@ options(
 
     # options: languageserver
     languageserver.formatting_style = function(options) {
-        styler::tidyverse_style(start_comments_with_one_space = TRUE)
+        styler::tidyverse_style(
+            start_comments_with_one_space = TRUE,
+            indent_by = 4
+        )
     }
 )
 
