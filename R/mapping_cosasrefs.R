@@ -1,4 +1,4 @@
-#'////////////////////////////////////////////////////////////////////////////
+#' ////////////////////////////////////////////////////////////////////////////
 #' FILE: mapping_cosasrefs.R
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-07-28
@@ -7,80 +7,134 @@
 #' STATUS: in.progress
 #' PACKAGES: *see below*
 #' COMMENTS: NA
-#'////////////////////////////////////////////////////////////////////////////
+#' ////////////////////////////////////////////////////////////////////////////
 
-# pkgs
-suppressPackageStartupMessages(library(dplyr))
-suppressPackageStartupMessages(library(magrittr))
 
-# load data
-source("R/mapping_cosasportal.R")
+library2("data.table")
+source("R/_load.R")
 
-#'////////////////////////////////////////////////////////////////////////////
 
-#' ~ 2 ~
-#' Create `cosasrefs_*` datasets
+#' @title Generate Data for Diagnostic Reference Entity
+#' @description  Create reference entity `cosasrefs_diagnoses`
+#' @section Methodology:
+#'
+#' Using the portal table `cosasrefs_diagnoses`, we need to genereate a list
+#' of distinct diganostic codes and definitions. Diagnoses are split into
+#' two columns: HOOFDDIAGNOSE and EXTRA_DIAGNOSE. The following code will do
+#' the following.
+#'
+#' 1) bind HOOFDDIAGNOSE and EXTRA_DIAGNOSE
+#' 2) remove missing values (i.e., "-")
+#' 3) separate diagnostic code and description
+#' 4) create new diagnostic ID using diagnostic code
+#'
+#' @noRd
+cosasrefs_diagnoses <- data.table::rbindlist(
+        list(
+            portal_diagnoses[, .(diagnosis = HOOFDDIAGNOSE)],
+            portal_diagnoses[, .(diagnosis = EXTRA_DIAGNOSE)]
+        )
+    )[
+        diagnosis != "-" & !duplicated(diagnosis)
+    ][
+        ,
+        `:=`(
+            cineasCode = purrr::map_chr(diagnosis, function(x) {
+                val <- unlist(strsplit(x, ":"))[1]
+                trimws(tolower(val), which = "both")
+            }),
+            cineasDescription = purrr::map_chr(diagnosis, function(x) {
+                val <- unlist(strsplit(x, ":"))[2]
+                trimws(val, which = "both")
+            })
+        )
+    ][
+        ,
+        id := paste0("dx_", cineasCode)
+    ][
+        order(as.integer(cineasCode)),
+        .(id, cineasCode, cineasDescription)
+    ]
 
-# Create: `cosasrefs_diagnoses`
-cosasrefs_diagnoses <- portal_diagnoses %>%
-    select(diagnosis = HOOFDDIAGNOSE) %>%
-    bind_rows(
-        portal_diagnoses %>%
-            select(diagnosis = EXTRA_DIAGNOSE)
-    ) %>%
-    distinct(diagnosis) %>%
-    filter(!is.na(diagnosis), diagnosis != "-") %>%
-    mutate(
-        cineas_code = purrr::map_chr(
-            diagnosis,
-            function(x) {
-                strsplit(x, ":") %>%
-                    unlist(.) %>%
-                    .[1] %>%
-                    tolower(.)
-            }
-        ),
-        cineas_description = purrr::map_chr(
-            diagnosis,
-            function(x) {
-                strsplit(x, ":") %>%
-                    unlist(.) %>%
-                    .[2] %>%
-                    trimws(.) %>%
-                    tools::toTitleCase(.)
-            }
-        ),
-        id = paste0("dx_", cineas_code)
-    ) %>%
-    select(id, cineas_code, cineas_description) %>%
-    arrange(id)
 
-# Create: `cosasrefs_diagnostic_certainty`
-cosasrefs_diagnostic_certainty <- portal_diagnoses %>%
-    select(certainty = HOOFDDIAGNOSE_ZEKERHEID) %>%
-    bind_rows(
-        portal_diagnoses %>%
-            select(certainty = EXTRA_DIAGNOSE_ZEKERHEID)
-    ) %>%
-    distinct(certainty) %>%
-    filter(!is.na(certainty), certainty != "-") %>%
-    mutate(
-        id = tolower(stringr::str_replace_all(certainty, " ", "-")),
-        certainty = tools::toTitleCase(certainty)
-    ) %>%
-    select(id, certainty) %>%
-    arrange(id)
+#' @title COSAS Diagnostic Certainty Reference Entity
+#' @describe make `cosasrefs_diagnosticCertainty`
+#' @section Methodology:
+#'
+#' The diagnosticCertainty reference entity is created in the EMX file rather
+#' than here for a few reasons: 1) there aren't many options (3), 2) manually
+#' defining the categories enables us to map to FairGenomes. The values from
+#' ADLAS are cleaned slightly (see utils$recode_dx_certainty in the file
+#' `R/utils_mapping.R`). There is the option to recode the values, but it
+#' was decided to leave the original values and repeat the "provisional"
+#' row for all potential variations. This can be added later if needed.
+#'
+#' The following code block can be used to determine if there are any new
+#' cases, but the data won't be rewritten. Values should be:
+#'
+#' - Niet Zeker
+#' - Zeker
+#' - Onzeker
+#' - Zeker niet
+#'
+#' @noRd
 
-# Create: `cosasrefs_condition_codes`
-cosasrefs_condition_codes <- portal_samples %>%
-    distinct(AANDOENING_CODE) %>%
-    filter(!is.na(AANDOENING_CODE)) %>%
-    mutate(
-        id = tolower(AANDOENING_CODE),
-        name = AANDOENING_CODE
-    ) %>%
-    select(id, name) %>%
-    arrange(id)
+# data.table::rbindlist(
+#     list(
+#         portal_diagnoses[, .(certainty = HOOFDDIAGNOSE_ZEKERHEID)],
+#         portal_diagnoses[, .(certainty = EXTRA_DIAGNOSE_ZEKERHEID)]
+#     )
+# )[
+#     certainty != "-" & !duplicated(certainty)
+# ]
+
+
+#' @title COSAS Material Types Reference Entity
+#' @description create `cosasrefs_materialTypes`
+#' @section Methodology:
+#'
+#' Material Types are located in the `portal_samples` dataset. The material
+#' types (or biospecimen types) are ...
+#'
+#' Use the following code to identify
+
+data.table::setDT(portal_samples)
+
+portal_samples[
+    ,
+    .(material = tolower(MATERIAAL))
+][!duplicated(material)][order(material)]
+
+# tibble::tribble(
+#     ~ "nl", ~"en",
+#     "beenmerg", "bone marrow",
+#     "bloed", "blood",
+#     "dna", "dna",
+#     "dna reeds aanwezig", "dna already present",
+#     "fibroblastenkweek", "fibroblast culture",
+#     "foetus", "fetus",
+#     "gekweekt foetaal weefsel", "cultured fetal tissue",
+#     "gekweekt weefsel", "cultured tissue",
+#     "gekweekte amnion cellen", "cultured amniotic cells",
+#     "gekweekte chorion villi", "cultured chorionic villi",
+#     "huidbiopt", "skin biopsy",
+#     "navelstrengbloed", "Umbilical cord blood",
+#     "ongekweekt foetaal weefsel", "uncultured fetal tissue",
+#     "ongekweekt weefsel", "uncultured tissue",
+#     "ongekweekte amnion cellen", "uncultured amniotic cells",
+#     "ongekweekte chorion villi", "uncultured chorionic villi",
+#     "overig", "other",
+#     "paraffine normaal", "kerosene normal",
+#     "paraffine tumor", "kerosene tumor",
+#     "plasmacellen", "plasma cells",
+#     "speeksel", "saliva",
+#     "suspensie", "suspension",
+#     "toegestuurd dna foetaal", "sent dna fetal"
+# ) %>%
+#     readr::write_csv(., "~/Desktop/materialTypes.csv")
+
+
+
 
 # Create: `cosasrefs_material_types`
 cosasrefs_material_types <- portal_samples %>%
@@ -95,7 +149,7 @@ cosasrefs_material_types <- portal_samples %>%
     arrange(id)
 
 
-#'//////////////////////////////////////
+#' //////////////////////////////////////
 
 # Create: `cosasrefs_test_codes` (add geneticlines mappings)
 gl <- readxl::read_xlsx(
@@ -188,7 +242,7 @@ cosasrefs_genes <- genes %>%
     rename(gene = 1) %>%
     distinct()
 
-#'//////////////////////////////////////
+#' //////////////////////////////////////
 
 # Create: `cosasrefs_lab_indications`
 cosasrefs_lab_indications <- portal_array_darwin %>%
