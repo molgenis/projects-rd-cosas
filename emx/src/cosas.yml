@@ -1,8 +1,8 @@
 name: cosas
 label: COSAS
 description: The Catalogue of Sequence Array and Samples
-version: 0.9021
-date: 2021-08-18
+version: 0.9022
+date: 2021-08-20
 defaults:
   idAttribute: false
   dataType: string
@@ -98,65 +98,39 @@ entities:
         label: UMCG Number
         label-nl: UMCG Nummer
         description: MDN id in EPIC
+        idAttribute: true
         nillable: false
         dataType: xref
         refEntity: cosas_patients
-      - name: familyID
-        label: Family Number
-        label-nl: Familie Nummer
-      - name: dateOfDiagnosis
-        label: Date
-        label-nl: Datum
-        dataType: date
-      - name: clinicalDiagnosis
-        label: Clinical Diagnoses
-        label-nl: Klinische diagnose
+      - name: provisionalPhenotype
+        label: Provisional Phenotype
+        label-nl: Voorlopig fenotype
+        description: This is a tentative diagnosis - still a candidate that is under consideration
+        description-nl: Dit is een voorlopige diagnose - nog steeds een kandidaat die wordt overwogen
         dataType: mref
         refEntity: cosasrefs_diagnoses
-        nillable: true
-      - name: clinicalDiagnosisCertainty
-        label: Certainty of the clincal diagnosis
-        label-nl: Zekerheid van de klinische diagnose
-        dataType: categorical
-        refEntity: cosasrefs_diagnosticCertainty
-        nillable: true
-      - name: secondaryDiagnosis
-        label: Secondary diagnoses
-        label-nl: Secundaire diagnoses
-        dataType: mref
-        refEntity: cosasrefs_diagnoses
-        nillable: true
-      - name: secondaryDiagnosisCertainty
-        label: Certainty of the additional diagnosis
-        label-nl: Zekerheid van de bijkomende diagnose
-        dataType: categorical
-        refEntity: cosasrefs_diagnosticCertainty
-        nillable: true
-      - name: observedPhenotype
-        label: Observed Phenotype
-        label-nl: Waargenomen phenotype
-        description: HPO codes
-        description-nl: HPO codes
+      - name: provisionalPhenotypeHpo
+        label: Provisional HPO
+        label-nl: Voorlopig fenotype HPO
         dataType: mref
         refEntity: cosasrefs_phenotype
-      - name: ondID
-        label: Public information research ID
-        label-nl: Voorlichtingsonderzoek
-        dataType: string
-        nillable: true
-      - name: dateLastUpdated
-        label: Date last updated
-        label-nl: Datum laatste bijwerking
-        description: Date lasted updated in COSAS
-        description-nl: Datum laatste bijwerking in COSAS
-        dataType: dateTime
-      - name: id
-        label: id
-        label-nl: id
-        description: auto generated ID
-        description-nl: automatisch gegenereerde ID
-        idAttribute: true
-        auto: true
+      - name: excludedPhenotype
+        label: Excluded Phenotype
+        label-nl: Uitgesloten fenotype
+        description: This condition has been ruled out by subsequent diagnostic and clinical evidence.
+        description-nl: Deze aandoening is uitgesloten door latere diagnostische en klinische bewijzen.
+        dataType: mref
+        refEntity: cosasrefs_diagnoses
+      - name: excludedPhenotypeHpo
+        label: Excluded Phenotype HPO
+        label-nl: Uitgesloten fenotype HPO
+        refEntity: cosasrefs_phenotype
+        dataType: text
+      - name: confirmedHpo
+        label: Confirmed HPO
+        label-nl: Bevestigde HPO
+        dataType: mref
+        refEntity: cosasrefs_phenotype
   - name: samples
     label: Samples
     label-nl: Samples
@@ -291,12 +265,6 @@ entities:
         label: Test date
         label-nl: Testdatum
         dataType: date
-      - name: chromosomeRegion
-        label: SGA Chromosome region
-        dataType: text
-      - name: decipherSyndromes
-        label: SGA Decipher Syndromes
-        dataType: text
       - name: dateLastUpdated
         label: Date last updated
         label-nl: Datum laatste bijwerking
@@ -349,15 +317,6 @@ entities:
         label: Test date
         label-nl: Testdatum
         dataType: date
-      - name: gene
-        label: Gene
-        label-nl: Gen
-      - name: mutation
-        label: Mutation
-        label-nl: Mutatie
-      - name: alleleFrequency
-        label: Allele frequency
-        label-nl: Allel Frequentie
       - name: sequencer
         label: Sequencer
         label-nl: Sequencer
