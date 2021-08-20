@@ -2,7 +2,7 @@
 #' FILE: cosas_mapping.R
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-07-22
-#' MODIFIED: 2021-08-18
+#' MODIFIED: 2021-08-20
 #' PURPOSE: Mapping portal tables to main pkg
 #' STATUS: working
 #' PACKAGES: data.table, purrr, dplyr, tidyr
@@ -119,57 +119,19 @@ patientFamilyIDs <- cosas_patients[, .(umcgID, familyID)]
 #' @description create `cosas_clinical`
 #' @section Methodology:
 #'
-#' All diagnostic information is stored in `cosas_clinical`. The purpose is
-#' to preserve the structure of the diagnostic data export. This dataset is
-#' structured in long format. This means that each row is a unique diagnosis
-#' per patient. It is important to preserve this structure as all diagnoses
-#' are also given a certainty rating.
-#'
-#' In order to build the dataset, all rows that were missing values across
-#' all columns (expected for umcgID) were removed. A subset of the benchCNV
-#' dataset containing the phenotypic data was created, and then bound
-#' to the initial clinical data.table. Lastly, familyID was merged from
-#' `cosas_patients` and timestamps were generated.
+#' All clincial information is stored in `cosas_clinical`. The mapping function
+#' does a good job at preparing the data structure for import. The only thing
+#' that is to join HPO terms that are listed the Cartegenia imports.
 #'
 #' @noRd
-#'
 
-# create base `cosas_clinical` data.table
-cosas_clinical_base <- cosas_diagnoses_mapped[,
-    isNA := is.na(clinicalDiagnosis) &
-    is.na(clinicalDiagnosisCertainty) &
-    is.na(secondaryDiagnosis) &
-    is.na(secondaryDiagnosisCertainty) &
-    is.na(dateOfDiagnosis) &
-    is.na(ondID)
-][isNA %like% FALSE][, `:=`(isNA = NULL, observedPhenotype = NA_character_)]
-
-
-# gather observedPhenotype and dateOfDiagnosis from benchCNV
-new_clinical_data <- cosas_bench_cnv_mapped[
-    , .(umcgID, observedPhenotype, dateOfDiagnosis)
-][
-    , isNA := is.na(observedPhenotype) & is.na(dateOfDiagnosis)
-][isNA %like% FALSE][, isNA := NULL]
-
-
-# bind tables
-cosas_clinical_bound <- data.table::rbindlist(
-    l = list(cosas_clinical_base, new_clinical_data),
-    fill = TRUE
-)
-
-
-# join familyID
 cosas_clinical <- merge(
-    x = cosas_clinical_bound,
-    y = cosas_patients[, .(umcgID, familyID)],
+    x = cosas_diagnoses_mapped,
+    y = cosas_bench_cnv_mapped[, .(umcgID, confirmedPhenotype = observedPhenotype)],
     by = "umcgID",
+    # all = TRUE
     all.x = TRUE
-)[, dateLastUpdated := utils$timestamp()]
-
-
-rm(list = c("cosas_clinical_base", "new_clinical_data", "cosas_clinical_bound"))
+)
 
 
 #' @title Create Cosas Samples
