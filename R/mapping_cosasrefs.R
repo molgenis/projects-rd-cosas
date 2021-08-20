@@ -14,6 +14,15 @@ library2("data.table")
 source("R/_load.R")
 
 
+# convert objects to data.table
+data.table::setDT(portal_diagnoses)
+data.table::setDT(portal_samples)
+data.table::setDT(portal_array_adlas)
+data.table::setDT(portal_array_darwin)
+data.table::setDT(portal_ngs_adlas)
+data.table::setDT(portal_ngs_darwin)
+
+
 #' @title Generate Data for Diagnostic Reference Entity
 #' @description  Create reference entity `cosasrefs_diagnoses`
 #' @section Methodology:
@@ -96,15 +105,16 @@ cosasrefs_diagnoses <- data.table::rbindlist(
 #' Material Types are located in the `portal_samples` dataset. The material
 #' types (or biospecimen types) are ...
 #'
-#' Use the following code to identify
-
-data.table::setDT(portal_samples)
+#' Use the following code to identify materialTypes.
+#'
+#' @noRD
 
 portal_samples[
     ,
     .(material = tolower(MATERIAAL))
 ][!duplicated(material)][order(material)]
 
+# # write code to file
 # tibble::tribble(
 #     ~ "nl", ~"en",
 #     "beenmerg", "bone marrow",
@@ -132,132 +142,152 @@ portal_samples[
 #     "toegestuurd dna foetaal", "sent dna fetal"
 # ) %>%
 #     readr::write_csv(., "~/Desktop/materialTypes.csv")
+#
+
+# data.table::setDT(portal_samples)
+#
+# cosasrefs_materialTypes <- portal_samples[
+#     , .(material = MATERIAAL)
+#     ][
+#         !duplicated(material)
+#     ][
+#         order(material),
+#         id := purrr::map_chr(material, function(x) {
+#             tolower(gsub(" ", "-", x))
+#         })
+#     ]
+
+#' @title COSAS Test Codes Reference Entity
+#' @description create cosasrefs_testCodes
+#' @section Methodology:
+#'
+#' Most of the test metadata comes from the samples dataset. However,
+#' there may be some extra cases in the ADLAS and Darwin extracts.
+#'
+#' @noRd
+
+seqMethodPatterns <- list(
+    wes = paste0(
+        "(",
+        "(analyse exoom)", "|",
+        "(analyse 5gpm)", "|",
+        "(analyse klinisch exoom)", "|",
+        "(specifieke vraagstelling exoom)",
+        ")"
+    ),
+    wgs = paste0(
+        "(",
+        "(whole genome sequencing)",
+        ")"
+    ),
+    ngts = paste0(
+        "(",
+        "(analyse ngs)", "|",
+        "(analyse targeted svp)", "|",
+        ")"
+    ),
+    array = paste0(
+        "(",
+        "(CNV + )",
+        ")"
+    )
+)
 
 
+d <- data.table::rbindlist(
+    list(
+        portal_samples[, .(code = TEST_CODE, description = TEST_OMS)],
+        portal_array_adlas[, .(code = TEST_CODE, description = TEST_OMS)],
+        portal_ngs_adlas[, .(code = TEST_CODE, description = TEST_OMS)]
+    )
+)[!duplicated(code)][order(code), id := tolower(code)][, .(id, code, description)]
 
-
-# Create: `cosasrefs_material_types`
-cosasrefs_material_types <- portal_samples %>%
-    distinct(MATERIAAL) %>%
-    filter(!is.na(MATERIAAL)) %>%
-    mutate(
-        id = tolower(stringr::str_replace_all(MATERIAAL, " ", "-")),
-        material = tools::toTitleCase(MATERIAAL)
-    ) %>%
-    select(id, material) %>%
-    distinct(id, .keep_all = TRUE) %>%
-    arrange(id)
+d[
+    , `:=`(
+        sequencingMethod = purrr::map_chr(description, function(x) {
+            val <- tolower(x)
+            if (grepl(seqMethodPatterns$wes, val, perl = TRUE)) {
+                "Whole Exome Sequencing"
+            } else if (grepl(seqMethodPatterns$wgs, val, perl = TRUE)) {
+                "Whole Genome Sequencing"
+            } else if (grepl(seqMethodPatterns$ngts, val, perl = TRUE)) {
+                "Next Generation Targeted Sequencing"
+            } else {
+                NA_character_
+            }
+        }),
+        preparation = purrr::map_chr(description, function(x) {
+            val <- tolower(x)
+            if (grepl("(uncultered|cultured)", x)) {
+                grep()
+            }
+        })
+    )
+]
 
 
 #' //////////////////////////////////////
 
 # Create: `cosasrefs_test_codes` (add geneticlines mappings)
-gl <- readxl::read_xlsx(
-    path = "_raw/geneticlines2021-03-10_15_52_37.366.xlsx",
-    sheet = "geneticlines_ADLAStest"
-)
+# gl <- readxl::read_xlsx(
+#     path = "_raw/geneticlines2021-03-10_15_52_37.366.xlsx",
+#     sheet = "geneticlines_ADLAStest"
+# )
 
 # compile genes
-genes <- readxl::excel_sheets("_raw/testcodes_ngs_array.xlsx") %>%
-    .[. != "Actieve Testcodes"] %>%
-    purrr::map(., function(name) {
-        cli::cli_alert_info("Processing sheet {.val {name}}")
-        readxl::read_excel(
-            path = "_raw/testcodes_ngs_array.xlsx",
-            sheet = name,
-            col_names = "genes"
-        ) %>%
-            pull(genes) %>%
-            unique(.) %>%
-            paste0(., collapse = ",") %>%
-            as_tibble(.) %>%
-            mutate(id = name) %>%
-            select(id, genes = value)
-    }) %>%
-    bind_rows()
-
-# build dataset
-cosasrefs_test_codes <- portal_samples %>%
-    select(TEST_CODE) %>%
-    bind_rows(
-        gl %>% select(TEST_CODE),
-        portal_array_adlas %>% select(TEST_CODE),
-        portal_ngs_adlas %>% select(TEST_CODE),
-        portal_array_darwin %>% select(TestId),
-        portal_ngs_darwin %>% select(TestId),
-    ) %>%
-    distinct(TEST_CODE) %>%
-    filter(!is.na(TEST_CODE)) %>%
-    arrange(TEST_CODE) %>%
-    left_join(
-        portal_samples %>%
-            select(TEST_CODE, TEST_OMS) %>%
-            distinct(TEST_CODE, .keep_all = TRUE),
-        by = "TEST_CODE"
-    ) %>%
-    left_join(
-        gl %>%
-            select(-labelPanel) %>%
-            mutate(
-                panel = na_if(panel, "-")
-            ),
-        by = "TEST_CODE"
-    ) %>%
-    mutate(
-        id = tolower(TEST_CODE),
-        TEST_OMS = purrr::map2_chr(
-            TEST_OMS.x, TEST_OMS.y,
-            function(x, y) {
-                if (is.na(x) & !is.na(y)) {
-                    y
-                } else if (!is.na(x) & is.na(y)) {
-                    x
-                } else if (!is.na(x) & !is.na(y)) {
-                    x
-                } else if (is.na(x) & is.na(y)) {
-                    NA_character_
-                }
-            }
-        )
-    ) %>%
-    select(id, code = TEST_CODE, description = TEST_OMS, label, panel)
-
+# genes <- readxl::excel_sheets("_raw/testcodes_ngs_array.xlsx") %>%
+#     .[. != "Actieve Testcodes"] %>%
+#     purrr::map(., function(name) {
+#         cli::cli_alert_info("Processing sheet {.val {name}}")
+#         readxl::read_excel(
+#             path = "_raw/testcodes_ngs_array.xlsx",
+#             sheet = name,
+#             col_names = "genes"
+#         ) %>%
+#             pull(genes) %>%
+#             unique(.) %>%
+#             paste0(., collapse = ",") %>%
+#             as_tibble(.) %>%
+#             mutate(id = name) %>%
+#             select(id, genes = value)
+#     }) %>%
+#     bind_rows()
 
 # bind genes to `cosasrefs_test_codes`
-cosasrefs_test_codes <- cosasrefs_test_codes %>%
-    left_join(
-        genes %>%
-            filter(id %in% cosasrefs_test_codes$code),
-        by = c("code" = "id")
-    )
+# cosasrefs_test_codes <- cosasrefs_test_codes %>%
+#     left_join(
+#         genes %>%
+#             filter(id %in% cosasrefs_test_codes$code),
+#         by = c("code" = "id")
+#     )
 
 # create: `cosasrefs_genes`
-cosasrefs_genes <- genes %>%
-    select(genes) %>%
-    pull(genes) %>%
-    paste0(., collapse = ",") %>%
-    strsplit(x = ., split = ",") %>%
-    `[[`(1) %>%
-    as_tibble() %>%
-    rename(gene = 1) %>%
-    distinct()
+# cosasrefs_genes <- genes %>%
+#     select(genes) %>%
+#     pull(genes) %>%
+#     paste0(., collapse = ",") %>%
+#     strsplit(x = ., split = ",") %>%
+#     `[[`(1) %>%
+#     as_tibble() %>%
+#     rename(gene = 1) %>%
+#     distinct()
 
 #' //////////////////////////////////////
 
 # Create: `cosasrefs_lab_indications`
-cosasrefs_lab_indications <- portal_array_darwin %>%
-    select(indication = Indicatie) %>%
-    bind_rows(
-        portal_ngs_darwin %>%
-            select(indication = Indicatie)
-    ) %>%
-    distinct(indication) %>%
-    filter(!is.na(indication)) %>%
-    mutate(
-        id = tolower(stringr::str_replace_all(indication, " ", "-"))
-    ) %>%
-    select(id, indication) %>%
-    arrange(id)
+# cosasrefs_lab_indications <- portal_array_darwin %>%
+#     select(indication = Indicatie) %>%
+#     bind_rows(
+#         portal_ngs_darwin %>%
+#             select(indication = Indicatie)
+#     ) %>%
+#     distinct(indication) %>%
+#     filter(!is.na(indication)) %>%
+#     mutate(
+#         id = tolower(stringr::str_replace_all(indication, " ", "-"))
+#     ) %>%
+#     select(id, indication) %>%
+#     arrange(id)
 
 
 # write cosasrefs
