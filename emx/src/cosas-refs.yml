@@ -230,7 +230,7 @@ entities:
         description-nl: FairGenomes IRI
         dataType: hyperlink
     data:
-      - id: zeker-niet
+      - id: unconfirmed
         value: Unconfirmed
         description: There is not sufficient diagnostic and/or clinical evidence to treat this as a confirmed condition.
         codesystem: HL7
@@ -260,7 +260,7 @@ entities:
         codesystem: HL7
         code: confirmed
         iri: https://terminology.hl7.org/2.1.0/CodeSystem-condition-ver-status.html#condition-ver-status-confirmed
-      - id: refuted
+      - id: zeker-niet
         value: refuted
         description: This condition has been ruled out by subsequent diagnostic and clinical evidence.
         codesystem: HL7
@@ -457,10 +457,10 @@ entities:
         label: Panel
         label-nl: Panel
         dataType: text
-      # - name: genes
-      #   label: Genes
-      #   label-nl: Genes
-      #   dataType: text
+      - name: genes
+        label: Genes
+        label-nl: Genes
+        dataType: text
 
   # @name cosasrefs_testGenes
   # @description Reference entity for all available genes
@@ -470,6 +470,8 @@ entities:
   #   description: List of genes
   #   description-nl: Lijst van genen
   #   attributes:
+  #     - name: testCode
+  #       label: testCode
   #     - name: gene
   #       label: Gene
   #       label-nl: Gen
@@ -478,5 +480,3 @@ entities:
   #       labelAttribute: true
   #       lookupAttribute: true
   #       dataType: string
-
-
