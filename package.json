@@ -17,7 +17,7 @@
     "build": "npm run build-cosas && npm run build-cosasrefs && npm run build-cosasportal",
     "data": "npm run data-cosas && npm run data-cosasrefs && npm run data-cosasportal",
     "copy-emx": "sh shell/cosas_copy_emx.sh",
-    "zip": "zip -r _zip/cosas_datasets.zip emx/cosas emx/cosas-portal emx/cosas-refs data  -x \"**/.DS_Store\" && mv _zip/cosas_datasets.zip ~/Documents/OneDrive\\ -\\ UMCG/projects/cosas/"
+    "zip": "zip -r _zip/cosas_datasets.zip emx/cosas emx/cosas-portal emx/cosas-refs data  -x \"**/.DS_Store\" && mv _zip/cosas_datasets.zip /Users/dcruvolo/OneDrive\\ -\\ UMCG/projects/cosas"
   },
   "repository": {
     "type": "git",
