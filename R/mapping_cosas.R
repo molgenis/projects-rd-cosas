@@ -2,16 +2,16 @@
 #' FILE: cosas_mapping.R
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-07-22
-#' MODIFIED: 2021-08-20
+#' MODIFIED: 2021-08-30
 #' PURPOSE: Mapping portal tables to main pkg
 #' STATUS: working
 #' PACKAGES: data.table, purrr, dplyr, tidyr
 #' COMMENTS: NA
 #' ////////////////////////////////////////////////////////////////////////////
 
-library2("data.table")
-source("R/_load.R")
-source("R/utils_mapping.R")
+# library2("data.table")
+# source("R/_load.R")
+# source("R/utils_mapping.R")
 
 
 #' Map into COSAS Terminology
@@ -25,11 +25,11 @@ cosas_ngs_adlas_mapped <- mappings$ngs_adlas(portal_ngs_adlas)
 cosas_ngs_darwin_mapped <- mappings$ngs_darwin(portal_ngs_darwin)
 cosas_bench_cnv_mapped <- mappings$bench_cnv(portal_bench_cnv)
 
-rm(list = c(
-    "portal_patients", "portal_diagnoses", "portal_samples",
-    "portal_array_adlas", "portal_array_darwin", "portal_ngs_adlas",
-    "portal_ngs_darwin", "portal_bench_cnv"
-))
+# rm(list = c(
+#     "portal_patients", "portal_diagnoses", "portal_samples",
+#     "portal_array_adlas", "portal_array_darwin", "portal_ngs_adlas",
+#     "portal_ngs_darwin", "portal_bench_cnv"
+# ))
 
 #'//////////////////////////////////////
 
@@ -59,6 +59,7 @@ cli::cli_alert_info("Building COSAS tables...")
 #' information should be requested.
 #'
 #' @noRd
+cli::cli_alert_info("Building {.val cosas_patients}")
 
 # isolate new cases
 new_cosas_cases <- cosas_bench_cnv_mapped[
@@ -124,6 +125,7 @@ patientFamilyIDs <- cosas_patients[, .(umcgID, familyID)]
 #' that is to join HPO terms that are listed the Cartegenia imports.
 #'
 #' @noRd
+cli::cli_alert_info("Building {.val cosas_clinical}")
 
 cosas_clinical <- merge(
     x = cosas_diagnoses_mapped,
@@ -158,6 +160,7 @@ cosas_clinical <- merge(
 #' the subsequent sections.
 #'
 #' @noRd
+cli::cli_alert_info("Building {.val cosas_samples}")
 
 # join familyIDs
 cosas_samples_base <- merge(
@@ -212,6 +215,7 @@ rm(list = c("cosas_samples_base", "lab_metadata"))
 #'    filter(!testCode %in% cosas_array_darwin_mapped$testCode)
 #'
 #' @noRd
+cli::cli_alert_info("Building {.val cosas_labs_array}")
 
 # create base table
 lab_array_base <- merge(
@@ -253,6 +257,7 @@ rm(list = c("lab_array_base"))
 #'     filter(!umcgID %in% cosas_ngs_adlas_mapped$umcgID)
 #'
 #' @noRd
+cli::cli_alert_info("Building {.val cosas_labs_ngs}")
 
 # create base
 labs_ngs_base <- merge(
@@ -273,22 +278,4 @@ cosas_labs_ngs <- merge(
     all.x = TRUE
 )
 
-#'//////////////////////////////////////
-
-# write files
-cli::cli_alert_info("Saving data to file...")
-openxlsx::createWorkbook() %T>%
-    openxlsx::addWorksheet(., "cosas_patients") %T>%
-    openxlsx::addWorksheet(., "cosas_clinical") %T>%
-    openxlsx::addWorksheet(., "cosas_samples") %T>%
-    openxlsx::addWorksheet(., "cosas_labs_array") %T>%
-    openxlsx::addWorksheet(., "cosas_labs_ngs") %T>%
-    openxlsx::writeData(., "cosas_patients", cosas_patients) %T>%
-    openxlsx::writeData(., "cosas_clinical", cosas_clinical) %T>%
-    openxlsx::writeData(., "cosas_samples", cosas_samples) %T>%
-    openxlsx::writeData(., "cosas_labs_array", cosas_labs_array) %T>%
-    openxlsx::writeData(., "cosas_labs_ngs", cosas_labs_ngs) %T>%
-    openxlsx::saveWorkbook(., "data/cosas/cosas.xlsx", TRUE)
-
-
-cli::cli_alert_success("Complete! :-)")
+rm(list = c("labs_ngs_base"))

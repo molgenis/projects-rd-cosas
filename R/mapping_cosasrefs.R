@@ -10,8 +10,8 @@
 #' ////////////////////////////////////////////////////////////////////////////
 
 
-library2("data.table")
-source("R/_load.R")
+# library2("data.table")
+# source("R/_load.R")
 
 
 # convert objects to data.table
@@ -38,6 +38,8 @@ data.table::setDT(portal_ngs_darwin)
 #' 4) create new diagnostic ID using diagnostic code
 #'
 #' @noRd
+cli::cli_alert_info("Building {.val cosasrefs_diagnoses}")
+
 cosasrefs_diagnoses <- data.table::rbindlist(
         list(
             portal_diagnoses[, .(diagnosis = HOOFDDIAGNOSE)],
@@ -164,6 +166,7 @@ cosasrefs_diagnoses <- data.table::rbindlist(
 #' there may be some extra cases in the ADLAS and Darwin extracts.
 #'
 #' @noRd
+cli::cli_alert_info("Building {.val cosasrefs_testCodes}")
 
 testCodes <- merge(
     x = data.table::rbindlist(
@@ -274,8 +277,6 @@ cosasrefs_testCodes <- merge(
 # ]
 
 
-
-
 #' @name cosasrefs_labIndications
 #' @description create reference table for labIndications
 #'
@@ -296,12 +297,3 @@ cosasrefs_testCodes <- merge(
 #         Indicatie = gsub(" ", "-", tolower(Indicatie))
 #     )
 # ][order(Indicatie)]
-
-
-# write cosasrefs
-wb <- openxlsx::createWorkbook()
-openxlsx::addWorksheet(wb, "cosasrefs_diagnoses")
-openxlsx::addWorksheet(wb, "cosasrefs_testCodes")
-openxlsx::writeData(wb, "cosasrefs_diagnoses", cosasrefs_diagnoses)
-openxlsx::writeData(wb, "cosasrefs_testCodes", cosasrefs_testCodes)
-openxlsx::saveWorkbook(wb, "data/cosasrefs/cosasrefs.xlsx", overwrite = TRUE)
