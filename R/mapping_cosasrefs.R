@@ -109,10 +109,10 @@ cosasrefs_diagnoses <- data.table::rbindlist(
 #'
 #' @noRD
 
-portal_samples[
-    ,
-    .(material = tolower(MATERIAAL))
-][!duplicated(material)][order(material)]
+# portal_samples[
+#     ,
+#     .(material = tolower(MATERIAAL))
+# ][!duplicated(material)][order(material)]
 
 # # write code to file
 # tibble::tribble(
@@ -143,7 +143,6 @@ portal_samples[
 # ) %>%
 #     readr::write_csv(., "~/Desktop/materialTypes.csv")
 #
-
 # data.table::setDT(portal_samples)
 #
 # cosasrefs_materialTypes <- portal_samples[
@@ -166,148 +165,143 @@ portal_samples[
 #'
 #' @noRd
 
-seqMethodPatterns <- list(
-    wes = paste0(
-        "(",
-        "(analyse exoom)", "|",
-        "(analyse 5gpm)", "|",
-        "(analyse klinisch exoom)", "|",
-        "(specifieke vraagstelling exoom)",
-        ")"
+testCodes <- merge(
+    x = data.table::rbindlist(
+        list(
+            portal_samples[, .(code = TEST_CODE, description = TEST_OMS)],
+            portal_array_adlas[, .(code = TEST_CODE, description = TEST_OMS)],
+            portal_ngs_adlas[, .(code = TEST_CODE, description = TEST_OMS)]
+        )
+        )[!duplicated(code)][
+            order(code), `:=`(
+                label = NA,
+                panel = NA,
+                labelPanel = NA
+            )
+        ][, .(code, description)
+    ],
+    y = data.table::setDT(
+        readxl::read_xlsx(
+            path = "_raw/geneticlines2021-03-10_15_52_37.366.xlsx",
+            sheet = "geneticlines_ADLAStest"
+        )
     ),
-    wgs = paste0(
-        "(",
-        "(whole genome sequencing)",
-        ")"
-    ),
-    ngts = paste0(
-        "(",
-        "(analyse ngs)", "|",
-        "(analyse targeted svp)", "|",
-        ")"
-    ),
-    array = paste0(
-        "(",
-        "(CNV + )",
-        ")"
-    )
+    by.x = "code",
+    by.y = "TEST_CODE",
+    all = TRUE
 )
 
 
-d <- data.table::rbindlist(
-    list(
-        portal_samples[, .(code = TEST_CODE, description = TEST_OMS)],
-        portal_array_adlas[, .(code = TEST_CODE, description = TEST_OMS)],
-        portal_ngs_adlas[, .(code = TEST_CODE, description = TEST_OMS)]
-    )
-)[!duplicated(code)][order(code), id := tolower(code)][, .(id, code, description)]
+# compile list of genes per testCode
+sheets <- readxl::excel_sheets("_raw/testcodes_ngs_array.xlsx")
+sheets <- sheets[sheets %in% testCodes$code]
+genes <- data.table::as.data.table(
+    purrr::map_df(sheets, function(name) {
+        cli::cli_alert_info("Processing sheet {.val {name}}")
+        d <- readxl::read_excel(
+            path = "_raw/testcodes_ngs_array.xlsx",
+            sheet = name,
+            col_names = "genes"
+        )
+        data.frame(
+            code = name,
+            genes = paste0(sort(unique(d$genes)), collapse = ",")
+        )
+    })
+)
 
-d[
-    , `:=`(
-        sequencingMethod = purrr::map_chr(description, function(x) {
-            val <- tolower(x)
-            if (grepl(seqMethodPatterns$wes, val, perl = TRUE)) {
-                "Whole Exome Sequencing"
-            } else if (grepl(seqMethodPatterns$wgs, val, perl = TRUE)) {
-                "Whole Genome Sequencing"
-            } else if (grepl(seqMethodPatterns$ngts, val, perl = TRUE)) {
-                "Next Generation Targeted Sequencing"
-            } else {
-                NA_character_
-            }
-        }),
-        preparation = purrr::map_chr(description, function(x) {
-            val <- tolower(x)
-            if (grepl("(uncultered|cultured)", x)) {
-                grep()
-            }
-        })
-    )
-]
+# create refEntity
+cosasrefs_testCodes <- merge(
+    x = testCodes,
+    y = genes,
+    by = "code",
+    all.x = TRUE
+)[, id := tolower(code)][
+    , .(id, code, description, label, panel, genes)
+][order(id)]
 
 
-#' //////////////////////////////////////
 
-# Create: `cosasrefs_test_codes` (add geneticlines mappings)
-# gl <- readxl::read_xlsx(
-#     path = "_raw/geneticlines2021-03-10_15_52_37.366.xlsx",
-#     sheet = "geneticlines_ADLAStest"
-# )
-
-# compile genes
-# genes <- readxl::excel_sheets("_raw/testcodes_ngs_array.xlsx") %>%
-#     .[. != "Actieve Testcodes"] %>%
-#     purrr::map(., function(name) {
-#         cli::cli_alert_info("Processing sheet {.val {name}}")
-#         readxl::read_excel(
-#             path = "_raw/testcodes_ngs_array.xlsx",
-#             sheet = name,
-#             col_names = "genes"
-#         ) %>%
-#             pull(genes) %>%
-#             unique(.) %>%
-#             paste0(., collapse = ",") %>%
-#             as_tibble(.) %>%
-#             mutate(id = name) %>%
-#             select(id, genes = value)
-#     }) %>%
-#     bind_rows()
-
-# bind genes to `cosasrefs_test_codes`
-# cosasrefs_test_codes <- cosasrefs_test_codes %>%
-#     left_join(
-#         genes %>%
-#             filter(id %in% cosasrefs_test_codes$code),
-#         by = c("code" = "id")
+# Optional: split sequencing method, preparation, etc.
+# seqMethodPatterns <- list(
+#     wes = paste0(
+#         "(",
+#         "(analyse exoom)", "|",
+#         "(analyse 5gpm)", "|",
+#         "(analyse klinisch exoom)", "|",
+#         "(specifieke vraagstelling exoom)",
+#         ")"
+#     ),
+#     wgs = paste0(
+#         "(",
+#         "(whole genome sequencing)",
+#         ")"
+#     ),
+#     ngts = paste0(
+#         "(",
+#         "(analyse ngs)", "|",
+#         "(analyse targeted svp)", "|",
+#         ")"
+#     ),
+#     array = paste0(
+#         "(",
+#         "(CNV + )",
+#         ")"
 #     )
+# )
+#
+# d[
+#     , `:=`(
+#         sequencingMethod = purrr::map_chr(description, function(x) {
+#             val <- tolower(x)
+#             if (grepl(seqMethodPatterns$wes, val, perl = TRUE)) {
+#                 "Whole Exome Sequencing"
+#             } else if (grepl(seqMethodPatterns$wgs, val, perl = TRUE)) {
+#                 "Whole Genome Sequencing"
+#             } else if (grepl(seqMethodPatterns$ngts, val, perl = TRUE)) {
+#                 "Next Generation Targeted Sequencing"
+#             } else {
+#                 NA_character_
+#             }
+#         }),
+#         preparation = purrr::map_chr(description, function(x) {
+#             val <- tolower(x)
+#             if (grepl("(uncultered|cultured)", x)) {
+#                 grep()
+#             }
+#         })
+#     )
+# ]
 
-# create: `cosasrefs_genes`
-# cosasrefs_genes <- genes %>%
-#     select(genes) %>%
-#     pull(genes) %>%
-#     paste0(., collapse = ",") %>%
-#     strsplit(x = ., split = ",") %>%
-#     `[[`(1) %>%
-#     as_tibble() %>%
-#     rename(gene = 1) %>%
-#     distinct()
 
-#' //////////////////////////////////////
 
-# Create: `cosasrefs_lab_indications`
-# cosasrefs_lab_indications <- portal_array_darwin %>%
-#     select(indication = Indicatie) %>%
-#     bind_rows(
-#         portal_ngs_darwin %>%
-#             select(indication = Indicatie)
-#     ) %>%
-#     distinct(indication) %>%
-#     filter(!is.na(indication)) %>%
-#     mutate(
-#         id = tolower(stringr::str_replace_all(indication, " ", "-"))
-#     ) %>%
-#     select(id, indication) %>%
-#     arrange(id)
+
+#' @name cosasrefs_labIndications
+#' @description create reference table for labIndications
+#'
+#' @section Methodology:
+#'
+#' The labIndication reference entity is used to categorize the reason a sample
+#' was collected and map it into FairGenomes terminology. For the intial release
+#' of COSAS, this information will be explicitly defined in the YML. Use the following
+#' code to find the information.
+
+# data.table::rbindlist(
+#     list(
+#         portal_array_darwin[, .(Indicatie)],
+#         portal_ngs_darwin[, .(Indicatie)]
+#     )
+# )[!duplicated(Indicatie)][,
+#     `:=`(
+#         Indicatie = gsub(" ", "-", tolower(Indicatie))
+#     )
+# ][order(Indicatie)]
 
 
 # write cosasrefs
-openxlsx::createWorkbook() %T>%
-    openxlsx::addWorksheet(., "cosasrefs_diagnoses") %T>%
-    openxlsx::addWorksheet(., "cosasrefs_diagnostic_certainty") %T>%
-    openxlsx::addWorksheet(., "cosasrefs_condition_codes") %T>%
-    openxlsx::addWorksheet(., "cosasrefs_material_types") %T>%
-    openxlsx::addWorksheet(., "cosasrefs_test_codes") %T>%
-    openxlsx::addWorksheet(., "cosasrefs_test_genes") %T>%
-    openxlsx::addWorksheet(., "cosasrefs_lab_indications") %T>%
-    openxlsx::writeData(., "cosasrefs_diagnoses", cosasrefs_diagnoses) %T>%
-    openxlsx::writeData(
-        .,
-        "cosasrefs_diagnostic_certainty",
-        cosasrefs_diagnostic_certainty
-    ) %T>%
-    openxlsx::writeData(., "cosasrefs_condition_codes", cosasrefs_condition_codes) %T>%
-    openxlsx::writeData(., "cosasrefs_material_types", cosasrefs_material_types) %T>%
-    openxlsx::writeData(., "cosasrefs_test_codes", cosasrefs_test_codes) %T>%
-    openxlsx::writeData(., "cosasrefs_test_genes", cosasrefs_genes) %T>%
-    openxlsx::writeData(., "cosasrefs_lab_indications", cosasrefs_lab_indications) %T>%
-    openxlsx::saveWorkbook(., "data/cosasrefs/cosasrefs.xlsx", TRUE)
+wb <- openxlsx::createWorkbook()
+openxlsx::addWorksheet(wb, "cosasrefs_diagnoses")
+openxlsx::addWorksheet(wb, "cosasrefs_testCodes")
+openxlsx::writeData(wb, "cosasrefs_diagnoses", cosasrefs_diagnoses)
+openxlsx::writeData(wb, "cosasrefs_testCodes", cosasrefs_testCodes)
+openxlsx::saveWorkbook(wb, "data/cosasrefs/cosasrefs.xlsx", overwrite = TRUE)
