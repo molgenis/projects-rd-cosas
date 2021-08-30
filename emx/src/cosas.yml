@@ -1,8 +1,8 @@
 name: cosas
 label: COSAS
 description: The Catalogue of Sequence Array and Samples
-version: 0.9022
-date: 2021-08-20
+version: 0.9023
+date: 2021-08-30
 defaults:
   idAttribute: false
   dataType: string
@@ -163,8 +163,6 @@ entities:
       - name: materialType
         label: Material type
         label-nl: Materiaalsoort
-        dataType: xref
-        refEntity: cosasrefs_materialTypes
       - name: labIndication
         label: Lab Indication
         label-nl: Lab indicatie
