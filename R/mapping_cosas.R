@@ -103,8 +103,8 @@ cosas_patients[, `:=`(
     twinStatus.x = NULL,
     twinStatus.y = NULL
 )][, `:=`(
-    fetusStatus = gsub("=NA", "", fetusStatus),
-    twinStatus = gsub("=NA", "", twinStatus),
+    fetusStatus = gsub("((NA=)|(=NA)|(NA))", "", fetusStatus, perl = TRUE),
+    twinStatus = gsub("((NA=)|(=NA)|(NA))", "", twinStatus, perl = TRUE),
     dateLastUpdated = utils$timestamp()
 )]
 
