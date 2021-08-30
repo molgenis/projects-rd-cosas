@@ -1,7 +1,7 @@
 name: cosas
 label: COSAS
 description: The Catalogue of Sequence Array and Samples
-version: 0.9023
+version: 0.9025
 date: 2021-08-30
 defaults:
   idAttribute: false
@@ -49,7 +49,7 @@ entities:
         label-nl: Overlijden
         dataType: categorical
         refEntity: cosasrefs_inclusionStatus
-      - name: dateofDeath
+      - name: dateOfDeath
         label: Date of Death
         label-nl: Overlijdensdatum
         dataType: date
@@ -63,8 +63,8 @@ entities:
         label: Consanguinity
         label-nl: consanguiniteit
         dataType: bool
-      - name: fetalStatus
-        label: Fetal Status
+      - name: fetusStatus
+        label: Fetus Status
         label-nl: Foetusstatus
         dataType: bool
       - name: twinStatus
@@ -73,15 +73,9 @@ entities:
         description: Has twin or is suspected of having a twin
         description-nl: Heeft een tweeling of wordt ervan verdacht een tweeling te hebben
         dataType: bool
-      - name: altPersonalID
+      - name: altPatientID
         label: Linked UMCG number
         label-nl: Gekoppelde UMCG nummer
-      - name: firstContact
-        label: First Consult Date
-        label-nl: Datum eerst consult
-        description: first time seen in the clinic
-        description-nl: eerst op poli gezien
-        dataType: date
       - name: dateLastUpdated
         label: Date last updated
         label-nl: Datum laatste bijwerking
@@ -100,8 +94,6 @@ entities:
         description: MDN id in EPIC
         idAttribute: true
         nillable: false
-        dataType: xref
-        refEntity: cosas_patients
       - name: provisionalPhenotype
         label: Provisional Phenotype
         label-nl: Voorlopig fenotype
@@ -124,11 +116,11 @@ entities:
       - name: excludedPhenotypeHpo
         label: Excluded Phenotype HPO
         label-nl: Uitgesloten fenotype HPO
+        dataType: mref
         refEntity: cosasrefs_phenotype
-        dataType: text
-      - name: confirmedHpo
-        label: Confirmed HPO
-        label-nl: Bevestigde HPO
+      - name: confirmedPhenotype
+        label: Confirmed Phenotype
+        label-nl: Bevestigde Phenotype
         dataType: mref
         refEntity: cosasrefs_phenotype
   - name: samples
@@ -198,6 +190,10 @@ entities:
       - name: labResultID
         label: Lab result ID
         label-nl: Labuitslag ID
+      - name: labResultComment
+        label: Lab result comment
+        label-nl: Labuitslag commentaar
+        dataType: text
       - name: labResultAvailability
         label: Lab result availability
         label-nl: Labuitslag
@@ -208,9 +204,6 @@ entities:
       - name: disorderCode
         label: Disorder code
         label-nl: Aandoening code
-        dataType: xref
-        refEntity: cosasrefs_conditionCodes
-        nillable: true
       - name: dateLastUpdated
         label: Date last updated
         label-nl: Datum laatste bijwerking

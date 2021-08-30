@@ -9,13 +9,9 @@ defaults:
   nillable: true
   lookupAttribute: false
   labelAttribute: false
-
-# Reference entities
-# Define entities below and include instructions for use
-# Data can also be defined here.
 entities:
 
-  # @name cosasrefs_availability
+  # @name cosasrefs_availabilityStatus
   # @description reference entity for if data is authorized for use
   - name: availabilityStatus
     label: Availibility Status
@@ -126,6 +122,300 @@ entities:
         code: UNK
         iri: http://terminology.hl7.org/CodeSystem/v3-NullFlavor#UNK
 
+  # @name cosasrefs_diagnoses
+  # @description reference entity for all diagnostic codes. The purpose of which
+  #     is to link diagnosis codes with the definitions and other metadata.
+  # @section Instructions for use
+  # Diagnostic codes and description are usually returned in the same string.
+  #   1. Split strings at the colon (`:`)
+  #   2. Validate that the first element contains only numbers
+  #   3. If TRUE, the code is the first element and name is the second
+  #   4. Recode "-" to blanks or NA's
+  #
+  - name: diagnoses
+    label: Diagnoses
+    label-nl: Diagnoses
+    description: Diagnostic codes and descriptions
+    description-nl: Diagnostische codes en beschrijvingen
+    attributes:
+      - name: id
+        label: ID
+        label-nl: ID
+        idAttribute: true
+        lookupAttribute: true
+        nillable: false
+        dataType: string
+      - name: cineasCode
+        label: CINEAS code
+        label-nl: CINEAS code
+        description: Diagnostic code (e.g., 12345)
+        description-nl: Diagnostische code (bijv, 12345)
+        labelAttribute: true
+      - name: cineasDescription
+        label: Diagnosis
+        label-nl: Diagnose
+
+  # @name cosasrefs_inclusionStatus
+  # @description a reference entity that describes
+  - name: inclusionStatus
+    label: Inclusion Status
+    label-nl: Status van opneming
+    description: Patient inclusion status categories
+    description-nl: Categorieën van patiënten-inclusiestatus
+    attributes:
+      - name: id
+        label: ID
+        label-nl: ID
+        idAttribute: true
+        nillable: false
+        dataType: string
+      - name: value
+        label: Value
+        label-nl: Value
+        description: FairGenomes value
+        description-nl: FairGenomes value
+      - name: description
+        label: Description
+        label-nl: Beschrijving
+        description: FairGenomes description
+        description-nl: FairGenomes beschrijving
+      - name: codesystem
+        label: Codesystem
+        label-nl: Codesystem
+        description: FairGenomes codesystem
+        description-nl: FairGenomes codesystem
+      - name: code
+        label: Code
+        label-nl: Code
+        description: FairGenomes code
+        description-nl: FairGenomes code
+      - name: iri
+        label: IRI
+        label-nl: IRI
+        description: FairGenomes IRI
+        description-nl: FairGenomes IRI
+        dataType: hyperlink
+    data:
+      - id: alive
+        value: Alive
+        description: Showing characteristics of life; displaying signs of life.
+        codesystem: NCIT
+        code: C37987
+        iri: http://purl.obolibrary.org/obo/NCIT_C37987
+      - id: deceased
+        value: Deceased
+        description: The cessation of life.
+        codesystem: NCIT
+        code: C28554
+        iri: http://purl.obolibrary.org/obo/NCIT_C28554
+      - id: presumedAlive
+        value: Presumed Alive
+        description: The assumption that a person is still living.
+        codesystem: NCIT
+        code: C141463
+        iri: http://purl.obolibrary.org/obo/NCIT_C141463
+      - id: unknown
+        value: Unknown
+        description: A proper value is applicable, but not known.
+        codesystem: HL7
+        code: UNK
+        iri: http://terminology.hl7.org/CodeSystem/v3-NullFlavor#UNK
+
+  # @name cosasrefs_labIndications
+  # @description reference entity for lab indications
+  # @section instructions for use
+  #   1. Reference entity using: `cosasrefs_labIndications`
+  #   2. Clean new values (lower, spaces => "-")
+  #   3. Validate new values and update entity accordingly
+  #   4. Map to reference entity
+  - name: labIndications
+    label: Lab Indications
+    label-nl: Labindicaties
+    description: Categories for purpose of the labs
+    description-nl: Categoriën voor het doel van de laboratia
+    attributes:
+      - name: id
+        label: ID
+        label-nl: ID
+        idAttribute: true
+        nillable: false
+        dataType: string
+      - name: value
+        label: Value
+        label-nl: Value
+        dataType: string
+        lookupAttribute: true
+        labelAttribute: true
+      - name: description
+        label: Description
+        label-nl: Beschrijving
+        description: FairGenomes description
+        description-nl: FairGenomes beschrijving
+      - name: codesystem
+        label: Codesystem
+        label-nl: Codesystem
+        description: FairGenomes codesystem
+        description-nl: FairGenomes codesystem
+      - name: code
+        label: Code
+        label-nl: Code
+        description: FairGenomes code
+        description-nl: FairGenomes code
+      - name: iri
+        label: IRI
+        label-nl: IRI
+        description: FairGenomes IRI
+        description-nl: FairGenomes IRI
+        dataType: hyperlink
+    data:
+      - id: diagnostisch
+        value: diagnostic
+        description: NA
+        codesystem: NA
+        code: NA
+        iri: NA
+      - id: dragerschap
+        value: carrier status
+        description: NA
+        codesystem: NA
+        code:  NA
+        iri: NA
+      - id: hematologische-maligniteiten
+        value: hematologic malignancies
+        description: NA
+        codesystem: NA
+        code:  NA
+        iri: NA
+      - id: informativiteit
+        value: informative
+        description: NA
+        codesystem: NA
+        code:  NA
+        iri: NA
+      - id: opslag
+        value: storage
+        description: NA
+        codesystem: NA
+        code:  NA
+        iri: NA
+      - id: prenataal
+        value: prenatal
+        description: NA
+        codesystem: NA
+        code:  NA
+        iri: NA
+      - id: presymptomatisch
+        value: presymptomatic
+        description: NA
+        codesystem: NA
+        code:  NA
+        iri: NA
+
+  # @name cosasrefs_materialTypes
+  # @description Create a reference entity for material types.
+  # @section Instructions for use:
+  #   1. lower all new values
+  #   2. Validate new data: make sure all values exist. If NOT, update entity
+  #   3. Map new types to reference entity
+  - name: materialTypes
+    label: Material Types
+    label-nl: Materiaaltype
+    description: Categories for material type
+    description-nl: Categoriën voor materiaaltype
+    attributes:
+      - name: id
+        label: ID
+        label-nl: ID
+        idAttribute: true
+        nillable: false
+        dataType: string
+      - name: material
+        label: Material
+        label-nl: Materiaal
+        lookupAttribute: true
+        labelAttribute: true
+      - name: value
+        label: Value
+        label-nl: Value
+        description: FairGenomes material type
+        description-nl: FairGenomes materiaal type
+      - name: description
+        label: Description
+        label-nl: Beschrijving
+        description: FairGenomes description
+        description-nl: FairGenomes beschrijving
+      - name: codesystem
+        label: Codesystem
+        label-nl: Codesystem
+        description: FairGenomes codesystem
+        description-nl: FairGenomes codesystem
+      - name: code
+        label: Code
+        label-nl: Code
+        description: FairGenomes code
+        description-nl: FairGenomes code
+      - name: iri
+        label: IRI
+        label-nl: IRI
+        description: FairGenomes iri
+        description-nl: FairGenomes iri
+        dataType: hyperlink
+
+  # @name cosasrefs_phenotype
+  # @description HPO ontology
+  - name: phenotype
+    label: Phenotype
+    label-nl: Phenotype
+    description: Fair Genomes Phenotype (v0.3)
+    description-nl: Fair Genomes Phenotype (v0.3)
+    attributes:
+      - name: value
+        labelAttribute: true
+      - name: description
+        dataType: text
+      - name: codesystem
+      - name: code
+        idAttribute: true
+        nillable: false
+        lookupAttribute: true
+        dataType: string
+      - name: iri
+
+  # @name cosasrefs_testCodes
+  # @description Reference entity for all tests codes and descriptions
+  - name: testCodes
+    label: Test codes
+    label-nl: Testcodes
+    description: Test codes and descriptions (e.g., NX, NG)
+    description-nl: Testcodes and beschrijvingen (bijv., NX, NG)
+    attributes:
+      - name: id
+        label: ID
+        label-nl: ID
+        idAttribute: true
+        nillable: false
+        dataType: string
+      - name: code
+        label: Code
+        label-nl: Code
+        lookupAttribute: true
+        labelAttribute: true
+      - name: description
+        label: Description
+        label-nl: Beschrijving
+      - name: label
+        label: Label
+        label-nl: Label
+        dataType: text
+      - name: panel
+        label: Panel
+        label-nl: Panel
+        dataType: text
+      - name: genes
+        label: Genes
+        label-nl: Genes
+        dataType: text
+
   # @ name cosasrefs_conditionCodes
   # @description Reference entity for all disorder (condition) codes
   # I'm leaving this out for now.
@@ -147,39 +437,6 @@ entities:
   #       label-nl: Naam
   #       lookupAttribute: true
   #       labelAttribute: true
-
-  # @name cosasrefs_diagnoses
-  # @description reference entity for all diagnostic codes. The purpose of which
-  #     is to link diagnosis codes with the definitions and other metadata.
-  # @section Instructions for use
-  # Diagnostic codes and description are usually returned in the same string.
-  #   1. Split strings at the colon (`:`)
-  #   2. Validate that the first element contains only numbers
-  #   3. If TRUE, the code is the first element and name is the second
-  #   4. Recode "-" to blanks or NA's
-  #
-  - name: diagnoses
-    label: Diagnoses
-    label-nl: Diagnoses
-    description: Diagnostic codes and descriptions
-    description-nl: Diagnostische codes en beschrijvingen
-    attributes:
-      - name: id
-        label: ID
-        label-nl: ID
-        idAttribute: true
-        nillable: false
-        dataType: string
-      - name: cineasCode
-        label: CINEAS code
-        label-nl: CINEAS code
-        description: Diagnostic code (e.g., 12345)
-        description-nl: Diagnostische code (bijv, 12345)
-        lookupAttribute: true
-        labelAttribute: true
-      - name: cineasDescription
-        label: Diagnosis
-        label-nl: Diagnose
 
   # @name cosasrefs_diagnosticCertainty
   # @description Create reference entity for the certainty of the diagnosis.
@@ -272,271 +529,6 @@ entities:
   #       codesystem: HL7
   #       code: entered-in-error
   #       iri: https://terminology.hl7.org/2.1.0/CodeSystem-condition-ver-status.html#condition-ver-status-entered-in-error
-
-
-  # @name cosasrefs_inclusionStatus
-  # @description a reference entity that describes
-  - name: inclusionStatus
-    label: Inclusion Status
-    label-nl: Status van opneming
-    description: Patient inclusion status categories
-    description-nl: Categorieën van patiënten-inclusiestatus
-    attributes:
-      - name: id
-        label: ID
-        label-nl: ID
-        idAttribute: true
-        nillable: false
-        dataType: string
-      - name: value
-        label: Value
-        label-nl: Value
-        description: FairGenomes value
-        description-nl: FairGenomes value
-      - name: description
-        label: Description
-        label-nl: Beschrijving
-        description: FairGenomes description
-        description-nl: FairGenomes beschrijving
-      - name: codesystem
-        label: Codesystem
-        label-nl: Codesystem
-        description: FairGenomes codesystem
-        description-nl: FairGenomes codesystem
-      - name: code
-        label: Code
-        label-nl: Code
-        description: FairGenomes code
-        description-nl: FairGenomes code
-      - name: iri
-        label: IRI
-        label-nl: IRI
-        description: FairGenomes IRI
-        description-nl: FairGenomes IRI
-        dataType: hyperlink
-    data:
-      - id: alive
-        value: Alive
-        description: Showing characteristics of life; displaying signs of life.
-        codesystem: NCIT
-        code: C37987
-        iri: http://purl.obolibrary.org/obo/NCIT_C37987
-      - id: deceased
-        value: Deceased
-        description: The cessation of life.
-        codesystem: NCIT
-        code: C28554
-        iri: http://purl.obolibrary.org/obo/NCIT_C28554
-      - id: presumedAlive
-        value: Presumed Alive
-        description: The assumption that a person is still living.
-        codesystem: NCIT
-        code: C141463
-        iri: http://purl.obolibrary.org/obo/NCIT_C141463
-      - id: unknown
-        value: Unknown
-        description: A proper value is applicable, but not known.
-        codesystem: HL7
-        code: UNK
-        iri: http://terminology.hl7.org/CodeSystem/v3-NullFlavor#UNK
-
-  # @name cosasrefs_labIndications
-  # @description reference entity for lab indications
-  # @section instructions for use
-  #   1. Reference entity using: `cosasrefs_labIndications`
-  #   2. Clean new values (lower, spaces => "-")
-  #   3. Validate new values and update entity accordingly
-  #   4. Map to reference entity
-  #
-  - name: labIndications
-    label: Lab Indications
-    label-nl: Labindicaties
-    description: Categories for purpose of the labs
-    description-nl: Categoriën voor het doel van de laboratia
-    attributes:
-      - name: id
-        label: ID
-        label-nl: ID
-        idAttribute: true
-        nillable: false
-        dataType: string
-      - name: value
-        label: Value
-        label-nl: Value
-        dataType: string
-        lookupAttribute: true
-        labelAttribute: true
-      - name: description
-        label: Description
-        label-nl: Beschrijving
-        description: FairGenomes description
-        description-nl: FairGenomes beschrijving
-      - name: codesystem
-        label: Codesystem
-        label-nl: Codesystem
-        description: FairGenomes codesystem
-        description-nl: FairGenomes codesystem
-      - name: code
-        label: Code
-        label-nl: Code
-        description: FairGenomes code
-        description-nl: FairGenomes code
-      - name: iri
-        label: IRI
-        label-nl: IRI
-        description: FairGenomes IRI
-        description-nl: FairGenomes IRI
-        dataType: hyperlink
-    data:
-      - id: diagnostisch
-        value: diagnostic
-        description: NA
-        codesystem: NA
-        code: NA
-        iri: NA
-      - id: dragerschap
-        value: carrier status
-        description: NA
-        codesystem: NA
-        code:  NA
-        iri: NA
-      - id: hematologische-maligniteiten
-        value: hematologic malignancies
-        description: NA
-        codesystem: NA
-        code:  NA
-        iri: NA
-      - id: informativiteit
-        value: informative
-        description: NA
-        codesystem: NA
-        code:  NA
-        iri: NA
-      - id: opslag
-        value: storage
-        description: NA
-        codesystem: NA
-        code:  NA
-        iri: NA
-      - id: prenataal
-        value: prenatal
-        description: NA
-        codesystem: NA
-        code:  NA
-        iri: NA
-      - id: presymptomatisch
-        value: presymptomatic
-        description: NA
-        codesystem: NA
-        code:  NA
-        iri: NA
-
-  # @name cosasrefs_materialTypes
-  # @description Create a reference entity for material types.
-  # @section Instructions for use:
-  #   1. lower all new values
-  #   2. Validate new data: make sure all values exist. If NOT, update entity
-  #   3. Map new types to reference entity
-  #
-  - name: materialTypes
-    label: Material Types
-    label-nl: Materiaaltype
-    description: Categories for material type
-    description-nl: Categoriën voor materiaaltype
-    attributes:
-      - name: id
-        label: ID
-        label-nl: ID
-        idAttribute: true
-        nillable: false
-        dataType: string
-      - name: material
-        label: Material
-        label-nl: Materiaal
-        lookupAttribute: true
-        labelAttribute: true
-      - name: value
-        label: Value
-        label-nl: Value
-        description: FairGenomes material type
-        description-nl: FairGenomes materiaal type
-      - name: description
-        label: Description
-        label-nl: Beschrijving
-        description: FairGenomes description
-        description-nl: FairGenomes beschrijving
-      - name: codesystem
-        label: Codesystem
-        label-nl: Codesystem
-        description: FairGenomes codesystem
-        description-nl: FairGenomes codesystem
-      - name: code
-        label: Code
-        label-nl: Code
-        description: FairGenomes code
-        description-nl: FairGenomes code
-      - name: iri
-        label: IRI
-        label-nl: IRI
-        description: FairGenomes iri
-        description-nl: FairGenomes iri
-        dataType: hyperlink
-
-  # @name cosasrefs_phenotype
-  # @description HPO ontology
-  # @refs 
-  - name: phenotype
-    label: Phenotype
-    label-nl: Phenotype
-    description: Fair Genomes Phenotype (v0.3)
-    description-nl: Fair Genomes Phenotype (v0.3)
-    attributes:
-      - name: value
-        labelAttribute: true
-      - name: description
-        dataType: text
-      - name: codesystem
-      - name: code
-        idAttribute: true
-        nillable: false
-        lookupAttribute: true
-        dataType: string
-      - name: iri
-
-  # @name cosasrefs_testCodes
-  # @description Reference entity for all tests codes and descriptions
-  - name: testCodes
-    label: Test codes
-    label-nl: Testcodes
-    description: Test codes and descriptions (e.g., NX, NG)
-    description-nl: Testcodes and beschrijvingen (bijv., NX, NG)
-    attributes:
-      - name: id
-        label: ID
-        label-nl: ID
-        idAttribute: true
-        nillable: false
-        dataType: string
-      - name: code
-        label: Code
-        label-nl: Code
-        lookupAttribute: true
-        labelAttribute: true
-      - name: description
-        label: Description
-        label-nl: Beschrijving
-      - name: label
-        label: Label
-        label-nl: Label
-        dataType: text
-      - name: panel
-        label: Panel
-        label-nl: Panel
-        dataType: text
-      - name: genes
-        label: Genes
-        label-nl: Genes
-        dataType: text
 
   # @name cosasrefs_testGenes
   # @description Reference entity for all available genes

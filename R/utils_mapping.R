@@ -292,7 +292,7 @@ mappings$samples <- function(data) {
         labResultDate = purrr::map_chr(LABUITSLAG_DATUM, utils$as_ymd),
         labResultID = LABUITSLAG_ID,
         labResultAvailability = LABRESULTS,
-        authorizedStatus = AUTHORISED
+        authorizationStatus = AUTHORISED
     )][order(as.integer(umcgID))][]
 }
 
