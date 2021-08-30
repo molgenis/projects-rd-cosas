@@ -2,18 +2,20 @@
 #' FILE: emx_build.R
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-03-16
-#' MODIFIED: 2021-07-28
+#' MODIFIED: 2021-08-30
 #' PURPOSE: convert EMX yaml into CSVs
 #' STATUS: working
-#' PACKAGES: dplyr
+#' PACKAGES: dplyr; magrittr; openxlsx; cli
 #' COMMENTS: This script can be run either block by block or using npm
 #' In the package.json file, create a script that executes this script with
 #' a single argument.
 #'////////////////////////////////////////////////////////////////////////////
 
 
-suppressPackageStartupMessages(library(dplyr))
-suppressPackageStartupMessages(library(magrittr))
+library2("dplyr")
+library2("magrittr")
+library2("openxlsx")
+library2("cli")
 source("R/utils_yaml_convert.R")
 
 
@@ -36,43 +38,40 @@ args <- commandArgs(trailingOnly = TRUE)
 #' Convert COSAS Portal
 
 if (args == "cosasportal") {
-    cli::cli_alert_info("Generating EMX for {.val cosasportal}")
+    cli_alert_info("Generating EMX for {.val cosasportal}")
 
     input <- "emx/src/cosas-portal.yml"
     output <- "emx/cosas-portal/cosasportal.xlsx"
 
     # compile emx
     tryCatch({
-        cosas_portal <- yml_to_emx(path = "emx/src/cosas-portal.yml")
+        cosas_portal <- yml_to_emx(path = input)
         cosas_portal$attributes <- cosas_portal$attributes %>%
-            dplyr::rename(
-                `label-nl` = label.nl,
-                `description-nl` = description.nl
-            )
-        cli::cli_alert_success("Compiled {.file {input}}")
+            rename(`description-nl` = description.nl)
+        cli_alert_success("Compiled {.file {input}}")
     }, warning = function(warn) {
-        cli::cli_alert_warning("Unable to compile {.file {input}}: \n {.val {warn}}")
+        cli_alert_warning("Unable to compile {.file {input}}: \n {.val {warn}}")
     }, error = function(err) {
-        cli::cli_alert_danger("Unable to compile {.file {input}}: \n {.val {err}}")
+        cli_alert_danger("Unable to compile {.file {input}}: \n {.val {err}}")
     })
 
     # write emx
     tryCatch({
         invisible(
-            openxlsx::createWorkbook() %T>%
-            openxlsx::addWorksheet(., "packages") %T>%
-            openxlsx::addWorksheet(., "entities") %T>%
-            openxlsx::addWorksheet(., "attributes") %T>%
-            openxlsx::writeData(., "packages", cosas_portal$packages) %T>%
-            openxlsx::writeData(., "entities", cosas_portal$entities) %T>%
-            openxlsx::writeData(., "attributes", cosas_portal$attributes) %T>%
-            openxlsx::saveWorkbook(wb = ., file = output, overwrite = TRUE)
+            createWorkbook() %T>%
+            addWorksheet(., "packages") %T>%
+            addWorksheet(., "entities") %T>%
+            addWorksheet(., "attributes") %T>%
+            writeData(., "packages", cosas_portal$packages) %T>%
+            writeData(., "entities", cosas_portal$entities) %T>%
+            writeData(., "attributes", cosas_portal$attributes) %T>%
+            saveWorkbook(., output, overwrite = TRUE)
         )
-        cli::cli_alert_success("Saved {.file {output}}")
+        cli_alert_success("Saved {.file {output}}")
     }, warning = function(warn) {
-        cli::cli_alert_warning("Failed to save {.file {output}}:\n{.val {warn}}")
+        cli_alert_warning("Failed to save {.file {output}}:\n{.val {warn}}")
     }, error = function(err) {
-        cli::cli_alert_danger("Failed to save {.file {output}}:\n{.val {err}}")
+        cli_alert_danger("Failed to save {.file {output}}:\n{.val {err}}")
     })
 }
 
@@ -82,55 +81,53 @@ if (args == "cosasportal") {
 #' Convert COSAS References
 
 if (args == "cosasrefs") {
-    cli::cli_alert_info("Generating EMX for {.val cosasrefs}")
+    cli_alert_info("Generating EMX for {.val cosasrefs}")
 
     input <- "emx/src/cosas-refs.yml"
     output <- "emx/cosas-refs/cosasrefs.xlsx"
 
     # compile emx
     tryCatch({
-        cosas_refs <- yml_to_emx(path = input)
-        cosas_refs$attributes <- cosas_refs$attributes %>%
-            dplyr::rename(
-                `label-nl` = label.nl,
-                `description-nl` = description.nl
-            )
-        cli::cli_alert_success("Compiled {.file {input}}")
+        cosasrefs <- yml_to_emx(path = input)
+        cosasrefs$attributes <- cosasrefs$attributes %>%
+            rename(`label-nl` = label.nl, `description-nl` = description.nl)
+        cli_alert_success("Compiled {.file {input}}")
     }, warning = function(warn) {
-        cli::cli_alert_warning("Unable to compile {.file {input}}: \n {.val {warn}}")
+        cli_alert_warning("Unable to compile {.file {input}}: \n {.val {warn}}")
     }, error = function(err) {
-        cli::cli_alert_danger("Unable to compile {.file {input}}: \n {.val {err}}")
+        cli_alert_danger("Unable to compile {.file {input}}: \n {.val {err}}")
     })
 
     # write emx
     tryCatch({
         invisible(
-            openxlsx::createWorkbook() %T>%
-            openxlsx::addWorksheet(., "packages") %T>%
-            openxlsx::addWorksheet(., "entities") %T>%
-            openxlsx::addWorksheet(., "attributes") %T>%
-            openxlsx::addWorksheet(., "cosasrefs_biological_sex") %T>%
-            openxlsx::addWorksheet(., "cosasrefs_inclusion_status") %T>%
-            openxlsx::writeData(., "packages", cosas_refs$packages) %T>%
-            openxlsx::writeData(., "entities", cosas_refs$entities) %T>%
-            openxlsx::writeData(., "attributes", cosas_refs$attributes) %T>%
-            openxlsx::writeData(
-                wb = .,
-                sheet = "cosasrefs_biological_sex",
-                x = cosas_refs$cosasrefs_biological_sex
+            createWorkbook() %T>%
+            addWorksheet(., "packages") %T>%
+            addWorksheet(., "entities") %T>%
+            addWorksheet(., "attributes") %T>%
+            addWorksheet(., "cosasrefs_availabilityStatus") %T>%
+            addWorksheet(., "cosasrefs_biologicalSex") %T>%
+            addWorksheet(., "cosasrefs_inclusionStatus") %T>%
+            addWorksheet(., "cosasrefs_labIndications") %T>%
+            writeData(., "packages", cosasrefs$packages) %T>%
+            writeData(., "entities", cosasrefs$entities) %T>%
+            writeData(., "attributes", cosasrefs$attributes) %T>%
+            writeData(
+                ., "cosasrefs_biologicalSex", cosasrefs$cosasrefs_biologicalSex
             ) %T>%
-            openxlsx::writeData(
-                wb = .,
-                sheet = "cosasrefs_inclusion_status",
-                x = cosas_refs$cosasrefs_inclusion_status
+            writeData(
+                ., "cosasrefs_inclusionStatus", cosasrefs$cosasrefs_inclusionStatus
             ) %T>%
-            openxlsx::saveWorkbook(wb = ., file = output, overwrite = TRUE)
+            writeData(
+                ., "cosasrefs_labIndications", cosasrefs$cosasrefs_labIndications
+            ) %T>%
+            saveWorkbook(., output, overwrite = TRUE)
         )
-        cli::cli_alert_success("Saved {.file {output}}")
+        cli_alert_success("Saved {.file {output}}")
     }, warning = function(warn) {
-        cli::cli_alert_warning("Failed to save {.file {output}}:\n{.val {warn}}")
+        cli_alert_warning("Failed to save {.file {output}}:\n{.val {warn}}")
     }, error = function(err) {
-        cli::cli_alert_danger("Failed to save {.file {output}}:\n{.val {err}}")
+        cli_alert_danger("Failed to save {.file {output}}:\n{.val {err}}")
     })
 }
 
@@ -140,7 +137,7 @@ if (args == "cosasrefs") {
 #' Convert COSAS package
 
 if (args == "cosas") {
-    cli::cli_alert_info("Generating EMX for {.val cosas}")
+    cli_alert_info("Generating EMX for {.val cosas}")
 
     input <- "emx/src/cosas.yml"
     output <- "emx/cosas/cosas.xlsx"
@@ -149,33 +146,30 @@ if (args == "cosas") {
     tryCatch({
         cosas <- yml_to_emx(path = input)
         cosas$attributes <- cosas$attributes %>%
-            dplyr::rename(
-                `label-nl` = label.nl,
-                `description-nl` = description.nl
-            )
-        cli::cli_alert_success("Compiled {.file {input}}")
+            rename(`label-nl` = label.nl, `description-nl` = description.nl)
+        cli_alert_success("Compiled {.file {input}}")
     }, warning = function(warn) {
-        cli::cli_alert_warning("Unable to compile {.file {input}}: \n {.val {warn}}")
+        cli_alert_warning("Unable to compile {.file {input}}: \n {.val {warn}}")
     }, error = function(err) {
-        cli::cli_alert_danger("Unable to compile {.file {input}}: \n {.val {err}}")
+        cli_alert_danger("Unable to compile {.file {input}}: \n {.val {err}}")
     })
 
     # write emx
     tryCatch({
         invisible(
-            openxlsx::createWorkbook() %T>%
-            openxlsx::addWorksheet(., "packages") %T>%
-            openxlsx::addWorksheet(., "entities") %T>%
-            openxlsx::addWorksheet(., "attributes") %T>%
-            openxlsx::writeData(., "packages", cosas$packages) %T>%
-            openxlsx::writeData(., "entities", cosas$entities) %T>%
-            openxlsx::writeData(., "attributes", cosas$attributes) %T>%
-            openxlsx::saveWorkbook(wb = ., file = output, overwrite = TRUE)
+            createWorkbook() %T>%
+            addWorksheet(., "packages") %T>%
+            addWorksheet(., "entities") %T>%
+            addWorksheet(., "attributes") %T>%
+            writeData(., "packages", cosas$packages) %T>%
+            writeData(., "entities", cosas$entities) %T>%
+            writeData(., "attributes", cosas$attributes) %T>%
+            saveWorkbook(., output, overwrite = TRUE)
         )
-        cli::cli_alert_success("Saved {.file {output}}")
+        cli_alert_success("Saved {.file {output}}")
     }, warning = function(warn) {
-        cli::cli_alert_warning("Failed to save {.file {output}}:\n{.val {warn}}")
+        cli_alert_warning("Failed to save {.file {output}}:\n{.val {warn}}")
     }, error = function(err) {
-        cli::cli_alert_danger("Failed to save {.file {output}}:\n{.val {err}}")
+        cli_alert_danger("Failed to save {.file {output}}:\n{.val {err}}")
     })
 }
