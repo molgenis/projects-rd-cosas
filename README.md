@@ -37,3 +37,15 @@ There are a number of scripts available that build parts of the data model or ev
 | `import`             | imports all EMX files into COSAS                     |
 
 Run each command with `npm run` or `yarn`.
+
+### Importing data
+
+After running the emx- and data building scripts, zip the files and transfer to remote desktop. Sign into Molgenis and import files in the following order.
+
+1. Import `emx/cosas-portal/cosasportal.xlsx`
+2. Import `data/cosasportal/cosasportal.xlsx`
+3. Import `emx/cosas-refs/cosasrefs.xlsx`
+4. Import `data/cosasrefs/cosasrefs.xlsx`
+5. Import `data/fairgenomes/cosasrefs_phenotype.csv`
+6. Import `emx/cosas/cosas.xlsx`
+7. Import `data/cosas/cosas.xlsx`
