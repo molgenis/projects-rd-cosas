@@ -113,6 +113,11 @@ if (args == "cosasrefs") {
             writeData(., "entities", cosasrefs$entities) %T>%
             writeData(., "attributes", cosasrefs$attributes) %T>%
             writeData(
+                .,
+                "cosasrefs_availabilityStatus",
+                cosasrefs$cosasrefs_availabilityStatus
+            ) %T>%
+            writeData(
                 ., "cosasrefs_biologicalSex", cosasrefs$cosasrefs_biologicalSex
             ) %T>%
             writeData(
