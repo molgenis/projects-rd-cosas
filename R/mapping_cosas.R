@@ -63,7 +63,9 @@ cli::cli_alert_info("Building {.val cosas_patients}")
 
 # isolate new cases
 new_cosas_cases <- cosas_bench_cnv_mapped[
-    !umcgID %in% cosas_patients_mapped$umcgID & !duplicated(umcgID),
+    !is.na(observedPhenotype) &
+    !umcgID %in% cosas_patients_mapped$umcgID &
+    !duplicated(umcgID),
     .(
         umcgID,
         familyID,
@@ -77,7 +79,9 @@ new_cosas_cases <- cosas_bench_cnv_mapped[
 
 # isolate existing cases
 existing_cosas_cases <- cosas_bench_cnv_mapped[
-    umcgID %in% cosas_patients_mapped$umcgID & !duplicated(umcgID),
+    !is.na(observedPhenotype) &
+    umcgID %in% cosas_patients_mapped$umcgID &
+    !duplicated(umcgID),
     .(umcgID, fetusStatus, twinStatus)
 ]
 
@@ -129,7 +133,10 @@ cli::cli_alert_info("Building {.val cosas_clinical}")
 
 cosas_clinical <- merge(
     x = cosas_diagnoses_mapped,
-    y = cosas_bench_cnv_mapped[, .(umcgID, confirmedPhenotype = observedPhenotype)],
+    y = cosas_bench_cnv_mapped[
+            !is.na(observedPhenotype)
+            , .(umcgID, confirmedPhenotype = observedPhenotype)
+        ],
     by = "umcgID",
     # all = TRUE
     all.x = TRUE
