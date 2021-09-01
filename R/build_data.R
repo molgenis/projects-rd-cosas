@@ -2,10 +2,10 @@
 #' FILE: build_data.R
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-08-30
-#' MODIFIED: 2021-08-30
+#' MODIFIED: 2021-09-01
 #' PURPOSE: process data and save into a single file
-#' STATUS: in.progress
-#' PACKAGES: NA
+#' STATUS: working; ongoing
+#' PACKAGES: data.table; openxlsx
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
@@ -61,24 +61,24 @@ if (args == "cosasportal") {
 
 #' ~ 2 ~
 #' Compile data for cosasref
-if (args == "cosasrefs") {
-    cli_alert_info("Compiling data for {.val {args}}")
+# if (args == "cosasrefs") {
+#     cli_alert_info("Compiling data for {.val {args}}")
 
-    tryCatch({
-        source("R/mapping_cosasrefs.R")
-        wb <- createWorkbook()
-        addWorksheet(wb, "cosasrefs_diagnoses")
-        addWorksheet(wb, "cosasrefs_testCodes")
-        writeData(wb, "cosasrefs_diagnoses", cosasrefs_diagnoses)
-        writeData(wb, "cosasrefs_testCodes", cosasrefs_testCodes)
-        saveWorkbook(wb, "data/cosasrefs/cosasrefs.xlsx", overwrite = TRUE)
+#     tryCatch({
+#         source("R/mapping_cosasrefs.R")
+#         wb <- createWorkbook()
+#         addWorksheet(wb, "cosasrefs_diagnoses")
+#         addWorksheet(wb, "cosasrefs_testCodes")
+#         writeData(wb, "cosasrefs_diagnoses", cosasrefs_diagnoses)
+#         writeData(wb, "cosasrefs_testCodes", cosasrefs_testCodes)
+#         saveWorkbook(wb, "data/cosasrefs/cosasrefs.xlsx", overwrite = TRUE)
 
-    }, warning = function(warn) {
-        cli_alert_warning("Unable to build data for {.val {args}}:\n{.text {warn}}")
-    }, error = function(err) {
-        cli_alert_danger("Unable to build data for {.val {args}}:\n{.text {err}}")
-    })
-}
+#     }, warning = function(warn) {
+#         cli_alert_warning("Unable to build data for {.val {args}}:\n{.text {warn}}")
+#     }, error = function(err) {
+#         cli_alert_danger("Unable to build data for {.val {args}}:\n{.text {err}}")
+#     })
+# }
 
 
 #' ~ 3 ~

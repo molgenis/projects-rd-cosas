@@ -2,13 +2,19 @@
 #' FILE: build_emx.R
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-03-16
-#' MODIFIED: 2021-08-30
+#' MODIFIED: 2021-09-01
 #' PURPOSE: convert EMX yaml into CSVs
-#' STATUS: working
+#' STATUS: working; ongoing
 #' PACKAGES: dplyr; magrittr; openxlsx; cli
-#' COMMENTS: This script can be run either block by block or using npm
+#' COMMENTS:
+#'
+#' This script can be run either block by block or using npm
 #' In the package.json file, create a script that executes this script with
 #' a single argument.
+#'
+#' The function `library2` can be found in the .Rprofile. This function
+#' suppresses all startup messages.
+#' 
 #'////////////////////////////////////////////////////////////////////////////
 
 
@@ -83,6 +89,9 @@ if (args == "cosasportal") {
 if (args == "cosasrefs") {
     cli_alert_info("Generating EMX for {.val cosasrefs}")
 
+    cli::cli_alert_info("Loading portal data...(warnings can be ignored)")
+    source("R/_load.R")
+
     input <- "emx/src/cosas-refs.yml"
     output <- "emx/cosas-refs/cosasrefs.xlsx"
 
@@ -98,39 +107,62 @@ if (args == "cosasrefs") {
         cli_alert_danger("Unable to compile {.file {input}}: \n {.val {err}}")
     })
 
+
     # write emx
     tryCatch({
-        invisible(
-            createWorkbook() %T>%
-            addWorksheet(., "packages") %T>%
-            addWorksheet(., "entities") %T>%
-            addWorksheet(., "attributes") %T>%
-            addWorksheet(., "cosasrefs_availabilityStatus") %T>%
-            addWorksheet(., "cosasrefs_biologicalSex") %T>%
-            addWorksheet(., "cosasrefs_inclusionStatus") %T>%
-            addWorksheet(., "cosasrefs_labIndications") %T>%
-            writeData(., "packages", cosasrefs$packages) %T>%
-            writeData(., "entities", cosasrefs$entities) %T>%
-            writeData(., "attributes", cosasrefs$attributes) %T>%
+
+        # compile data for lookup tables
+        source("R/mapping_cosasrefs.R")
+        cosasrefs_phenotype <- data.table::fread(
+            file = "./data/fairgenomes/cosasrefs_phenotype.csv",
+            keepLeadingZeros = TRUE
+        )
+
+        # saving data
+        invisible({
+            wb <- createWorkbook()
+            addWorksheet(wb, "packages")
+            addWorksheet(wb, "entities")
+            addWorksheet(wb, "attributes")
+            addWorksheet(wb, "cosasrefs_availabilityStatus")
+            addWorksheet(wb, "cosasrefs_biologicalSex")
+            addWorksheet(wb, "cosasrefs_inclusionStatus")
+            addWorksheet(wb, "cosasrefs_labIndications")
+            addWorksheet(wb, "cosasrefs_diagnoses")
+            addWorksheet(wb, "cosasrefs_testCodes")
+            addWorksheet(wb, "cosasrefs_phenotype")
+            writeData(wb, "packages", cosasrefs$packages)
+            writeData(wb, "entities", cosasrefs$entities)
+            writeData(wb, "attributes", cosasrefs$attributes)
             writeData(
-                .,
+                wb,
                 "cosasrefs_availabilityStatus",
                 cosasrefs$cosasrefs_availabilityStatus
-            ) %T>%
+            )
             writeData(
-                ., "cosasrefs_biologicalSex", cosasrefs$cosasrefs_biologicalSex
-            ) %T>%
+                wb,
+                "cosasrefs_biologicalSex",
+                cosasrefs$cosasrefs_biologicalSex
+            )
             writeData(
-                ., "cosasrefs_inclusionStatus", cosasrefs$cosasrefs_inclusionStatus
-            ) %T>%
+                wb,
+                "cosasrefs_inclusionStatus",
+                cosasrefs$cosasrefs_inclusionStatus
+            )
             writeData(
-                ., "cosasrefs_labIndications", cosasrefs$cosasrefs_labIndications
-            ) %T>%
-            saveWorkbook(., output, overwrite = TRUE)
-        )
+                wb,
+                "cosasrefs_labIndications",
+                cosasrefs$cosasrefs_labIndications
+            )
+            writeData(wb, "cosasrefs_diagnoses", cosasrefs_diagnoses)
+            writeData(wb, "cosasrefs_testCodes", cosasrefs_testCodes)
+            writeData(wb, "cosasrefs_phenotype", cosasrefs_phenotype)
+            saveWorkbook(wb, output, overwrite = TRUE)
+        })
+
         cli_alert_success("Saved {.file {output}}")
     }, warning = function(warn) {
-        cli_alert_warning("Failed to save {.file {output}}:\n{.val {warn}}")
+        cli_alert_danger("Failed to save {.file {output}}:\n{.val {warn}}")
     }, error = function(err) {
         cli_alert_danger("Failed to save {.file {output}}:\n{.val {err}}")
     })
