@@ -13,7 +13,6 @@
 library2("data.table")
 # source("R/_load.R")
 
-
 # convert objects to data.table
 data.table::setDT(portal_diagnoses)
 data.table::setDT(portal_samples)
@@ -21,6 +20,20 @@ data.table::setDT(portal_array_adlas)
 data.table::setDT(portal_array_darwin)
 data.table::setDT(portal_ngs_adlas)
 data.table::setDT(portal_ngs_darwin)
+
+#' @title Compile Phenotypes Reference Entity
+#' @description build cosasrefs_phenotype
+#' @section Methodology:
+#'
+#' The source dataset comes from FairGenomes (v0.3). Very minor processing is
+#' required to fit the requirements of the end users. For example, all HPO codes
+#' should be prefixed with `HP:` rather than the code.
+phenotypes <- data.table::fread(
+    file = "./data/fairgenomes/cosasrefs_phenotype.csv",
+    keepLeadingZeros = TRUE
+)[
+    , code := paste0("HP:", code)
+]
 
 
 #' @title Generate Data for Diagnostic Reference Entity
@@ -46,11 +59,11 @@ sorta <- data.table::fread("./data/sorta_cineas_hpo_mappings.csv")[
     , .(description = Name, ontologyTermIRI, score)
 ][score >= 70 & ontologyTermIRI %like% "obo/HP_"][
     , `:=`(
-        hpo = gsub("http://purl.obolibrary.org/obo/HP_", "", ontologyTermIRI),
+        hpo = gsub("http://purl.obolibrary.org/obo/HP_", "HP:", ontologyTermIRI),
         ontologyTermIRI = NULL,
         score = NULL
     )
-][]
+][hpo %in% phenotypes$code]
 
 # build diagnostic codes and descriptions
 diagnoses <- data.table::rbindlist(
