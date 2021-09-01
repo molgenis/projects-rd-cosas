@@ -10,7 +10,7 @@
 #' ////////////////////////////////////////////////////////////////////////////
 
 
-# library2("data.table")
+library2("data.table")
 # source("R/_load.R")
 
 
@@ -217,11 +217,12 @@ testCodes <- merge(
 
 
 # compile list of genes per testCode
+cli::cli_alert_info("Compiling gene lists...")
 sheets <- readxl::excel_sheets("_raw/testcodes_ngs_array.xlsx")
 sheets <- sheets[sheets %in% testCodes$code]
 genes <- data.table::as.data.table(
     purrr::map_df(sheets, function(name) {
-        cli::cli_alert_info("Processing sheet {.val {name}}")
+        # cli::cli_alert_info("Processing sheet {.val {name}}")
         d <- readxl::read_excel(
             path = "_raw/testcodes_ngs_array.xlsx",
             sheet = name,
