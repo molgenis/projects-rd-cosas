@@ -442,8 +442,8 @@ mappings$bench_cnv <- function(data) {
                     return(NA_character_)
 
                 c1 <- unlist(strsplit(values, "\\s+"))
-                c2 <- gsub("HP:", "", c1)
-                paste0(unique(c2), collapse = ",")
+                # c2 <- gsub("HP:", "", c1)
+                paste0(unique(c1), collapse = ",")
             }
         ),
         fetusStatus = purrr::map_lgl(
