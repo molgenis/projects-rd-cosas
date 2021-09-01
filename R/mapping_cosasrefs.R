@@ -2,9 +2,9 @@
 #' FILE: mapping_cosasrefs.R
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-07-28
-#' MODIFIED: 2021-07-28
+#' MODIFIED: 2021-09-01
 #' PURPOSE: build datasets for reference entities
-#' STATUS: in.progress
+#' STATUS: working; ongoing
 #' PACKAGES: *see below*
 #' COMMENTS: NA
 #' ////////////////////////////////////////////////////////////////////////////
@@ -40,33 +40,54 @@ data.table::setDT(portal_ngs_darwin)
 #' @noRd
 cli::cli_alert_info("Building {.val cosasrefs_diagnoses}")
 
-cosasrefs_diagnoses <- data.table::rbindlist(
+
+# merge SORTA results
+sorta <- data.table::fread("./data/sorta_cineas_hpo_mappings.csv")[
+    , .(description = Name, ontologyTermIRI, score)
+][score >= 70 & ontologyTermIRI %like% "obo/HP_"][
+    , `:=`(
+        hpo = gsub("http://purl.obolibrary.org/obo/HP_", "", ontologyTermIRI),
+        ontologyTermIRI = NULL,
+        score = NULL
+    )
+][]
+
+# build diagnostic codes and descriptions
+diagnoses <- data.table::rbindlist(
         list(
-            portal_diagnoses[, .(diagnosis = HOOFDDIAGNOSE)],
-            portal_diagnoses[, .(diagnosis = EXTRA_DIAGNOSE)]
+            portal_diagnoses[, .(description = HOOFDDIAGNOSE)],
+            portal_diagnoses[, .(description = EXTRA_DIAGNOSE)]
         )
     )[
-        diagnosis != "-" & !duplicated(diagnosis)
+        description != "-" & !duplicated(description)
     ][
         ,
         `:=`(
-            cineasCode = purrr::map_chr(diagnosis, function(x) {
+            code = purrr::map_chr(description, function(x) {
                 val <- unlist(strsplit(x, ":"))[1]
                 trimws(tolower(val), which = "both")
             }),
-            cineasDescription = purrr::map_chr(diagnosis, function(x) {
+            description = purrr::map_chr(description, function(x) {
                 val <- unlist(strsplit(x, ":"))[2]
                 trimws(val, which = "both")
-            })
+            }),
+            codesystem = "cineas"
         )
     ][
         ,
-        id := paste0("dx_", cineasCode)
+        id := paste0("dx_", code)
     ][
-        order(as.integer(cineasCode)),
-        .(id, cineasCode, cineasDescription)
+        order(as.integer(code)),
+        .(id, description, codesystem, code)
     ]
 
+# merge HPO codes with diagnoses
+cosasrefs_diagnoses <- merge(
+    x = diagnoses,
+    y = sorta,
+    by = "description",
+    all.x = TRUE
+)[, .(id, description, codesystem, code, hpo)]
 
 #' @title COSAS Diagnostic Certainty Reference Entity
 #' @describe make `cosasrefs_diagnosticCertainty`

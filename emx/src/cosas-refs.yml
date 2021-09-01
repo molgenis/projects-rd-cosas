@@ -1,8 +1,8 @@
 name: cosasrefs
 label: COSAS References
 description: Reference tables for COSAS
-version: 0.9021
-date: 2021-08-30
+version: 0.9022
+date: 2021-09-01
 defaults:
   idAttribute: false
   dataType: string
@@ -139,21 +139,20 @@ entities:
     description-nl: Diagnostische codes en beschrijvingen
     attributes:
       - name: id
-        label: ID
-        label-nl: ID
         idAttribute: true
-        lookupAttribute: true
         nillable: false
         dataType: string
-      - name: cineasCode
-        label: CINEAS code
-        label-nl: CINEAS code
-        description: Diagnostic code (e.g., 12345)
-        description-nl: Diagnostische code (bijv, 12345)
+      - name: code
+        description: Cineas code
         labelAttribute: true
-      - name: cineasDescription
-        label: Diagnosis
-        label-nl: Diagnose
+      - name: codesystem
+      - name: description
+        description: Cineas description
+        labelAttribute: true
+        lookupAttribute: true
+      - name: hpo
+        dataType: mref
+        refEntity: cosasrefs_phenotype
 
   # @name cosasrefs_inclusionStatus
   # @description a reference entity that describes
@@ -370,13 +369,13 @@ entities:
     description-nl: Fair Genomes Phenotype (v0.3)
     attributes:
       - name: value
-        labelAttribute: true
       - name: description
         dataType: text
       - name: codesystem
       - name: code
         idAttribute: true
         nillable: false
+        labelAttribute: true
         lookupAttribute: true
         dataType: string
       - name: iri
