@@ -1,8 +1,8 @@
 name: cosas
 label: COSAS
 description: The Catalogue of Sequence Array and Samples
-version: 0.9025
-date: 2021-08-30
+version: 0.9026
+date: 2021-09-01
 defaults:
   idAttribute: false
   dataType: string
@@ -114,7 +114,7 @@ entities:
         dataType: mref
         refEntity: cosasrefs_diagnoses
       - name: excludedPhenotypeHpo
-        label: Excluded Phenotype HPO
+        label: Excluded HPO
         label-nl: Uitgesloten fenotype HPO
         dataType: mref
         refEntity: cosasrefs_phenotype
