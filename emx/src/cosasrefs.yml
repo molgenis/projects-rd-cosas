@@ -144,7 +144,6 @@ entities:
         dataType: string
       - name: code
         description: Cineas code
-        labelAttribute: true
       - name: codesystem
       - name: description
         description: Cineas description
