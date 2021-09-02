@@ -14,7 +14,7 @@
 #'
 #' The function `library2` can be found in the .Rprofile. This function
 #' suppresses all startup messages.
-#' 
+#'
 #'////////////////////////////////////////////////////////////////////////////
 
 
@@ -113,10 +113,6 @@ if (args == "cosasrefs") {
 
         # compile data for lookup tables
         source("R/mapping_cosasrefs.R")
-        cosasrefs_phenotype <- data.table::fread(
-            file = "./data/fairgenomes/cosasrefs_phenotype.csv",
-            keepLeadingZeros = TRUE
-        )
 
         # saving data
         invisible({
@@ -156,7 +152,7 @@ if (args == "cosasrefs") {
             )
             writeData(wb, "cosasrefs_diagnoses", cosasrefs_diagnoses)
             writeData(wb, "cosasrefs_testCodes", cosasrefs_testCodes)
-            writeData(wb, "cosasrefs_phenotype", cosasrefs_phenotype)
+            writeData(wb, "cosasrefs_phenotype", phenotypes)
             saveWorkbook(wb, output, overwrite = TRUE)
         })
 
