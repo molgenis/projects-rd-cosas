@@ -2,7 +2,7 @@
 #' FILE: cosas_mapping.R
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-07-22
-#' MODIFIED: 2021-08-30
+#' MODIFIED: 2021-09-02
 #' PURPOSE: Mapping portal tables to main pkg
 #' STATUS: working
 #' PACKAGES: data.table, purrr, dplyr, tidyr
@@ -33,114 +33,147 @@ cosas_bench_cnv_mapped <- mappings$bench_cnv(portal_bench_cnv)
 
 #'//////////////////////////////////////
 
+#' @title Process Cartegenia
+#' @description apply additional filters to the export before merging into COSAS
+#' @section Methodology
+#'
+#' At this point, the export has already been processed. This process included
+#' transforming and reshaping the data into COSAS data model. Since we aren't
+#' adding any new information to COSAS we only want to merge confirmed phenotypes
+#' to existing COSAS patients. Therefore, the object `cosas_patients_mapped`
+#' should be considered the official list of patients and everything else should
+#' be filtered accordingly.
+#'
+#' However, if at some point you would like to add fetus cases, then see the
+#' subsequent mapping section.
+#'
+#' @noRd
+tryCatch({
 
-cli::cli_alert_info("Building COSAS tables...")
+    #' Records are kept if all 3 conditions are met
+    #' 1. `observedPhenotype` should not be `NA`
+    #' 2. `umcgID` must exist in `cosas_patients_mapped$umcgID`
+    #' 3. `umcgID` should not be duplicated
+    cosas_cartegenia <- cosas_bench_cnv_mapped[
+        !is.na(observedPhenotype) &
+        umcgID %in% cosas_patients_mapped$umcgID &
+        !duplicated(umcgID),
+        .(umcgID, familyID, fetusStatus, twinStatus, observedPhenotype)
+    ]
 
+    cli::cli_alert_success("Built Cartegenia dataset")
+
+}, error = function(err) {
+    cli::cli_alert_danger("Failed to process Cartegenia data:\n{.text {err}}")
+
+}, warning = function(warn) {
+    cli::cli_alert_danger("Failed to process Cartegenia data:\n{.text {warn}}")
+
+})
 
 #' @title Create COSAS Patients
 #' @description create `cosas_patients`
 #' @section Methodology:
 #'
-#' `cosas_patients` is created from `cosas_patients_mapped` and
-#' `cosas_bench_cnv_mapped`. This object is created by binding new records
-#' from bench_cnv and joining metadata for existing records (i.e., patients).
-#'
-#' Using the mapping CNV dataset, find records that do not exist in
-#' `cosas_patients_mapped`. Grab metadata for unique cases and bind them
-#' to the patients dataset.
-#'
-#' For records that do exist, merge metadata into patients. Since most metadata
-#' is present in the data extracts and applies to records that are fetuses,
-#' merge `fetusStatus` and `twinStatus`. These will always be FALSE, but it is
-#' import to merge this data anyways.
-#'
-#' It is not possible to reliably -- or accurately -- calculate date of first
-#' consult using dateCreated or other data columns. If this is required, this
-#' information should be requested.
+#' The patients table (i.e. `cosas_patients`) is created by merging the
+#' mapped patients object (i.e., `cosas_patients_mapped`) and the Categenia
+#' object that was built in the previous step.
 #'
 #' @noRd
-cli::cli_alert_info("Building {.val cosas_patients}")
+tryCatch({
 
-# isolate new cases
-new_cosas_cases <- cosas_bench_cnv_mapped[
-    !is.na(observedPhenotype) &
-    !umcgID %in% cosas_patients_mapped$umcgID &
-    !duplicated(umcgID),
-    .(
-        umcgID,
-        familyID,
-        biologicalSex,
-        maternalID,
-        fetusStatus,
-        twinStatus,
-        altPatientID
-    )
-]
+    # merge and add timestamp
+    cosas_patients <- merge(
+        x = cosas_patients_mapped,
+        y = cosas_cartegenia[, .(umcgID, fetusStatus, twinStatus)],
+        by = "umcgID",
+        all.x = TRUE
+    )[, dateLastUpdated := utils$timestamp()]
 
-# isolate existing cases
-existing_cosas_cases <- cosas_bench_cnv_mapped[
-    !is.na(observedPhenotype) &
-    umcgID %in% cosas_patients_mapped$umcgID &
-    !duplicated(umcgID),
-    .(umcgID, fetusStatus, twinStatus)
-]
 
+    # create object containing only familyIds by umcgId
+    patientFamilyIDs <- cosas_patients[, .(umcgID, familyID)]
+
+    cli::cli_alert_success("Built {.val cosas_patients}")
+
+}, error = function(err) {
+    cli::cli_alert_danger("Failed to build {.val cosas_patients}:\n{.val {err}}")
+
+}, warning = function(warn) {
+    cli::cli_alert_danger("Failed to build {.val cosas_patients}:\n{.val {warn}}")
+
+})
+
+# isolate new cases - use if you want to add fetus cases to the patients table
+# new_cosas_cases <- cosas_bench_cnv_mapped[
+#     !is.na(observedPhenotype) &
+#     !umcgID %in% cosas_patients_mapped$umcgID &
+#     !duplicated(umcgID),
+#     .(
+#         umcgID,
+#         familyID,
+#         biologicalSex,
+#         maternalID,
+#         fetusStatus,
+#         twinStatus,
+#         altPatientID
+#     )
+# ]
+#
 # rbind objects and join data of existing cases
-cosas_patients_base <- data.table::rbindlist(
-    list(cosas_patients_mapped, new_cosas_cases),
-    fill = TRUE
-)
-
-cosas_patients <- merge(
-    x = cosas_patients_base,
-    y = existing_cosas_cases,
-    by = "umcgID",
-    all.x = TRUE
-)
-
+# use if you want to add fetus cases to the patients table
+# cosas_patients_base <- data.table::rbindlist(
+#     list(cosas_patients_mapped, new_cosas_cases),
+#     fill = TRUE
+# )
+#
 # unite fetusStatus and twinStatus columns and set dateLastUpdated
-cosas_patients[, `:=`(
-    fetusStatus = paste(fetusStatus.x, fetusStatus.y, sep = "="),
-    twinStatus = paste(twinStatus.x, twinStatus.y, sep = "="),
-    fetusStatus.x = NULL,
-    fetusStatus.y = NULL,
-    twinStatus.x = NULL,
-    twinStatus.y = NULL
-)][, `:=`(
-    fetusStatus = gsub("((NA=)|(=NA)|(NA))", "", fetusStatus, perl = TRUE),
-    twinStatus = gsub("((NA=)|(=NA)|(NA))", "", twinStatus, perl = TRUE),
-    dateLastUpdated = utils$timestamp()
-)]
-
-
-rm(list = c("new_cosas_cases", "existing_cosas_cases", "cosas_patients_base"))
-
-
-# create object containing only familyIds by umcgId
-patientFamilyIDs <- cosas_patients[, .(umcgID, familyID)]
+# uncomment if fetus records should be added
+# cosas_patients[, `:=`(
+#     fetusStatus = paste(fetusStatus.x, fetusStatus.y, sep = "="),
+#     twinStatus = paste(twinStatus.x, twinStatus.y, sep = "="),
+#     fetusStatus.x = NULL,
+#     fetusStatus.y = NULL,
+#     twinStatus.x = NULL,
+#     twinStatus.y = NULL
+# )][, `:=`(
+#     fetusStatus = gsub("((NA=)|(=NA)|(NA))", "", fetusStatus, perl = TRUE),
+#     twinStatus = gsub("((NA=)|(=NA)|(NA))", "", twinStatus, perl = TRUE),
+#     dateLastUpdated = utils$timestamp()
+# )]
 
 
 #' @title Create Cosas Clinical Events
 #' @description create `cosas_clinical`
 #' @section Methodology:
 #'
-#' All clincial information is stored in `cosas_clinical`. The mapping function
-#' does a good job at preparing the data structure for import. The only thing
-#' that is to join HPO terms that are listed the Cartegenia imports.
+#' All diagnostic related data is stored in `cosas_clinical`. This includes all
+#' suspected- (or provisional), excluded-, and confirmed phenotypic observations.
+#' confirmed phenotypic information is found in the cartegnia export. The rest of
+#' the data will soon come from another source.
+#'
+#' Additionally, data should be filtered for patients that exist in the patients
+#' table.
 #'
 #' @noRd
-cli::cli_alert_info("Building {.val cosas_clinical}")
+tryCatch({
 
-cosas_clinical <- merge(
-    x = cosas_diagnoses_mapped,
-    y = cosas_bench_cnv_mapped[
-            !is.na(observedPhenotype)
-            , .(umcgID, confirmedPhenotype = observedPhenotype)
-        ],
-    by = "umcgID",
-    # all = TRUE
-    all.x = TRUE
-)[, dateLastUpdated := utils$timestamp()]
+    cosas_clinical <- merge(
+        x = cosas_diagnoses_mapped[umcgID %in% patientFamilyIDs$umcgID, ],
+        y = cosas_cartegenia[, .(umcgID, observedPhenotype)],
+        by = "umcgID",
+        all.x = TRUE
+    )[, dateLastUpdated := utils$timestamp()]
+
+    cli::cli_alert_success("Built {.val cosas_clinical}")
+
+}, error = function(err) {
+    cli::cli_alert_danger("Failed to build {.val cosas_clinical}:\n{.val {err}}")
+
+}, warning = function(warn) {
+    cli::cli_alert_danger("Failed to build {.val cosas_clinical}:\n{.val {warn}}")
+})
+
 
 
 #' @title Create Cosas Samples
@@ -159,46 +192,57 @@ cosas_clinical <- merge(
 #'
 #' I would like to eventually convert the columns `labResultAvailability` and
 #' `authorizedStatus` into a reference entity. However, I would like to
-#' align with FairGenomes.
+#' align with FairGenomes before doing so.
 #'
 #' @section Limitations:
+#'
 #' There is some loss when building the experiment tables. IDs that exist in
 #' the Darwin exports do no exist in the ADLAS exports. This is described in
 #' the subsequent sections.
 #'
 #' @noRd
-cli::cli_alert_info("Building {.val cosas_samples}")
+tryCatch({
 
-# join familyIDs
-cosas_samples_base <- merge(
-    x = cosas_samples_mapped,
-    y = patientFamilyIDs,
-    by = "umcgID",
-    all.x = TRUE
-)
-
-# pull testDate and labIndication from Darwin extracts
-lab_metadata <- data.table::rbindlist(
-    list(
-        cosas_array_darwin_mapped[, .(umcgID, testCode, testDate, labIndication)],
-        cosas_ngs_darwin_mapped[, .(umcgID, testCode, testDate, labIndication)]
+    # join familyIDs
+    cosas_samples_base <- merge(
+        x = cosas_samples_mapped[umcgID %in% patientFamilyIDs$umcgID],
+        y = patientFamilyIDs,
+        by = "umcgID",
+        all.x = TRUE
     )
-)
 
+    # pull testDate and labIndication from Darwin extracts
+    lab_metadata <- data.table::rbindlist(
+        list(
+            cosas_array_darwin_mapped[, .(umcgID, testCode, testDate, labIndication)],
+            cosas_ngs_darwin_mapped[, .(umcgID, testCode, testDate, labIndication)]
+        )
+    )
 
-# merge lab metadata
-cosas_samples <- merge(
-    x = cosas_samples_base,
-    y = lab_metadata,
-    by = c("umcgID", "testCode"),
-    all.x = TRUE
-)[order(as.integer(umcgID))]
+    # merge lab metadata
+    cosas_samples <- merge(
+        x = cosas_samples_base,
+        y = lab_metadata,
+        by = c("umcgID", "testCode"),
+        all.x = TRUE
+    )[
+        , dateLastUpdated := utils$timestamp()
+    ][
+        order(as.integer(umcgID))
+    ]
 
+    cli::cli_alert_success("Built {.val cosas_samples}")
 
-# add dateLastUpdated
-cosas_samples[, dateLastUpdated := utils$timestamp()]
+}, error = function(err) {
+    cli::cli_alert_danger("Failed to build {.val cosas_samples}:\n{.text {err}}")
 
-rm(list = c("cosas_samples_base", "lab_metadata"))
+}, warning = function(warn) {
+    cli::cli_alert_danger("Failed to build {.val cosas_samples}:\n{.text {warn}}")
+
+}, finally = {
+    rm(list = c("cosas_samples_base", "lab_metadata"))
+
+})
 
 
 #' @title Create Cosas Labs Array
@@ -210,41 +254,44 @@ rm(list = c("cosas_samples_base", "lab_metadata"))
 #' I will run a simple left join.
 #'
 #' @section Limitations:
+#'
 #' There are still cases in the Darwin export that do not have matching records in
 #' the ADLAS export. For now, I am only merge Darwin records that exist in the ADLAS
-#' export. To find these cases, run the following commands.
-#'
-#' cosas_array_darwin_mapped %>%
-#'     filter(!umcgID %in% cosas_array_adlas_mapped)
-#'
-#' cosas_array_darwin_mapped %>%
-#'    group_by(umcgID) %>%
-#'    filter(!testCode %in% cosas_array_darwin_mapped$testCode)
+#' export. For more information, see the last section
 #'
 #' @noRd
-cli::cli_alert_info("Building {.val cosas_labs_array}")
+tryCatch({
 
-# create base table
-lab_array_base <- merge(
-    x = cosas_array_adlas_mapped,
-    y = cosas_array_darwin_mapped,
-    by = c("umcgID", "testCode"),
-    all.x = TRUE
-)[
-    order(as.integer(umcgID)),
-    dateLastUpdated := utils$timestamp()
-]
+    # create base table
+    labs_array_base <- merge(
+        x = cosas_array_adlas_mapped,
+        y = cosas_array_darwin_mapped,
+        by = c("umcgID", "testCode"),
+        all.x = TRUE
+    )[
+        order(as.integer(umcgID)),
+        dateLastUpdated := utils$timestamp()
+    ]
 
-# merge familyIDs
-cosas_labs_array <- merge(
-    x = lab_array_base,
-    y = patientFamilyIDs,
-    by = "umcgID",
-    all.x = TRUE
-)
+    # merge familyIDs
+    cosas_labs_array <- merge(
+        x = labs_array_base,
+        y = patientFamilyIDs,
+        by = "umcgID",
+        all.x = TRUE
+    )
 
+    cli::cli_alert_success("Built {.val cosas_labs_array}")
 
-rm(list = c("lab_array_base"))
+}, error = function(err) {
+    cli::cli_alert_danger("Failed to build {.val cosas_labs_array}:\n{.text {err}}")
+
+}, warning = function(warn) {
+    cli::cli_alert_danger("Failed to build {.val cosas_labs_array}:\n{.text {warn}}")
+
+}, finally = {
+    rm(list = c("labs_array_base"))
+})
 
 
 #' @title Create NGS Experiment Metadata
@@ -256,33 +303,89 @@ rm(list = c("lab_array_base"))
 #' so there is much that needs to be done.
 #'
 #' @section Limitations:
+#'
 #' As well as the Array experiment table, the NGS table contains IDs that
 #' do not exist in the array table. For now, Darwin data will be merged where
 #' applicable (i.e., some records will be lossed)
 #'
-#' cosas_ngs_darwin_mapped %>%
-#'     filter(!umcgID %in% cosas_ngs_adlas_mapped$umcgID)
+#' @noRd
+tryCatch({
+
+    # create base
+    labs_ngs_base <- merge(
+        x = cosas_ngs_adlas_mapped,
+        y = cosas_ngs_darwin_mapped,
+        by = c("umcgID", "testCode"),
+        all.x = TRUE
+    )[
+        order(as.integer(umcgID)),
+        dateLastUpdated := utils$timestamp()
+    ]
+
+    # merge familyIDs
+    cosas_labs_ngs <- merge(
+        x = labs_ngs_base,
+        y = patientFamilyIDs,
+        by = "umcgID",
+        all.x = TRUE
+    )
+
+    cli::cli_alert_success("Built {.val cosas_labs_ngs}")
+}, error = function(err) {
+    cli::cli_alert_danger("Failed to build {.val cosas_labs_ngs}:\n{err}")
+
+}, warning = function(warn) {
+    cli::cli_alert_danger("Failed to build {.val cosas_labs_ngs}:\n{warn}")
+
+}, finally = {
+    rm(list = c("labs_ngs_base"))
+
+})
+
+
+#' @Title Identify Missing Lab Information
+#' @description pull records that are in Darwin, but missing in ADLAS
+#'
+#' @section Methodology:
+#'
+#' While exploring the Darwin exports, it was discovered that there are records
+#' that are present in Darwin but not in ADLAS. It should be that case that if
+#' there records in Darwin they should also have matching records in ADLAS.
+#' In the earlier sections (samples, Array, and NGS), I merged Darwin data only
+#' if there is a matching record (umcgID and testCode).
+#'
+#' In order to validate the loss of data, the following code identifies the
+#' missing cases and writes them to file for review.
 #'
 #' @noRd
-cli::cli_alert_info("Building {.val cosas_labs_ngs}")
-
-# create base
-labs_ngs_base <- merge(
-    x = cosas_ngs_adlas_mapped,
-    y = cosas_ngs_darwin_mapped,
-    by = c("umcgID", "testCode"),
-    all.x = TRUE
-)[
-    order(as.integer(umcgID)),
-    dateLastUpdated := utils$timestamp()
-]
-
-# merge familyIDs
-cosas_labs_ngs <- merge(
-    x = labs_ngs_base,
-    y = patientFamilyIDs,
-    by = "umcgID",
-    all.x = TRUE
-)
-
-rm(list = c("labs_ngs_base"))
+# library2("dplyr")
+#
+# # find missing Array data: What's missing from the Adlas exports?
+# missingArrayCases <- list(
+#     umcgID = cosas_array_darwin_mapped %>%
+#         filter(!umcgID %in% cosas_array_adlas_mapped$umcgID),
+#     testCodes = cosas_array_darwin_mapped %>%
+#         group_by(umcgID) %>%
+#         filter(!testCode %in% cosas_array_adlas_mapped$testCode)
+# )
+#
+# # find missing NGS data: What's missing from the Adlas exports?
+# missingNgsCases <- list(
+#     umcgID = cosas_ngs_darwin_mapped %>%
+#         filter(!umcgID %in% cosas_ngs_adlas_mapped$umcgID),
+#     testCodes = cosas_ngs_darwin_mapped %>%
+#         group_by(umcgID) %>%
+#         filter(!testCode %in% cosas_ngs_adlas_mapped$testCode)
+# )
+#
+# # write to file
+# wb <- openxlsx::createWorkbook()
+# openxlsx::addWorksheet(wb, "array_missing_ids")
+# openxlsx::addWorksheet(wb, "array_missing_tests")
+# openxlsx::addWorksheet(wb, "ngs_missing_ids")
+# openxlsx::addWorksheet(wb, "ngs_missing_tests")
+# openxlsx::writeData(wb, "array_missing_ids", missingArrayCases$umcgID)
+# openxlsx::writeData(wb, "array_missing_tests", missingArrayCases$testCodes)
+# openxlsx::writeData(wb, "ngs_missing_ids", missingNgsCases$umcgID)
+# openxlsx::writeData(wb, "ngs_missing_tests", missingNgsCases$testCodes)
+# openxlsx::saveWorkbook(wb, "data/darwin_cases_missing_from_adlas.xlsx", TRUE)
