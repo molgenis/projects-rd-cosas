@@ -46,8 +46,8 @@ args <- commandArgs(trailingOnly = TRUE)
 if (args == "cosasportal") {
     cli_alert_info("Generating EMX for {.val cosasportal}")
 
-    input <- "emx/src/cosas-portal.yml"
-    output <- "emx/cosas-portal/cosasportal.xlsx"
+    input <- "emx/src/cosasportal.yml"
+    output <- "emx/cosasportal/cosasportal.xlsx"
 
     # compile emx
     tryCatch({
@@ -92,8 +92,8 @@ if (args == "cosasrefs") {
     cli::cli_alert_info("Loading portal data...(warnings can be ignored)")
     source("R/_load.R")
 
-    input <- "emx/src/cosas-refs.yml"
-    output <- "emx/cosas-refs/cosasrefs.xlsx"
+    input <- "emx/src/cosasrefs.yml"
+    output <- "emx/cosasrefs/cosasrefs.xlsx"
 
     # compile emx
     tryCatch({
