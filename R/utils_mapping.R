@@ -2,7 +2,7 @@
 #' FILE: utils_mapping.R
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-08-16
-#' MODIFIED: 2021-08-20
+#' MODIFIED: 2021-09-02
 #' PURPOSE: methods for `mapping_cosas.R`
 #' STATUS: working
 #' PACKAGES: data.table, purrr, dplyr
@@ -409,7 +409,7 @@ mappings$bench_cnv <- function(data) {
         id = primid,
         familyID = secid,
         biologicalSex = gender,
-        observedPhenotype = Phenotype
+        confirmedPhenotype = Phenotype
     )][, `:=`(
         id = purrr::map_chr(id, function(x) {
             x1 <- gsub("([_=])", "-", x)
@@ -436,8 +436,8 @@ mappings$bench_cnv <- function(data) {
             }
         }),
         biologicalSex = purrr::map_chr(biologicalSex, utils$recode_sex),
-        observedPhenotype = purrr::map_chr(
-            observedPhenotype, function(values) {
+        confirmedPhenotype = purrr::map_chr(
+            confirmedPhenotype, function(values) {
                 if (is.na(values))
                     return(NA_character_)
 

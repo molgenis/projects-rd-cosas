@@ -51,14 +51,14 @@ cosas_bench_cnv_mapped <- mappings$bench_cnv(portal_bench_cnv)
 tryCatch({
 
     #' Records are kept if all 3 conditions are met
-    #' 1. `observedPhenotype` should not be `NA`
+    #' 1. `confirmedPhenotype` should not be `NA`
     #' 2. `umcgID` must exist in `cosas_patients_mapped$umcgID`
     #' 3. `umcgID` should not be duplicated
     cosas_cartegenia <- cosas_bench_cnv_mapped[
-        !is.na(observedPhenotype) &
+        !is.na(confirmedPhenotype) &
         umcgID %in% cosas_patients_mapped$umcgID &
         !duplicated(umcgID),
-        .(umcgID, familyID, fetusStatus, twinStatus, observedPhenotype)
+        .(umcgID, familyID, fetusStatus, twinStatus, confirmedPhenotype)
     ]
 
     cli::cli_alert_success("Built Cartegenia dataset")
@@ -106,7 +106,7 @@ tryCatch({
 
 # isolate new cases - use if you want to add fetus cases to the patients table
 # new_cosas_cases <- cosas_bench_cnv_mapped[
-#     !is.na(observedPhenotype) &
+#     !is.na(confirmedPhenotype) &
 #     !umcgID %in% cosas_patients_mapped$umcgID &
 #     !duplicated(umcgID),
 #     .(
@@ -160,7 +160,7 @@ tryCatch({
 
     cosas_clinical <- merge(
         x = cosas_diagnoses_mapped[umcgID %in% patientFamilyIDs$umcgID, ],
-        y = cosas_cartegenia[, .(umcgID, observedPhenotype)],
+        y = cosas_cartegenia[, .(umcgID, confirmedPhenotype)],
         by = "umcgID",
         all.x = TRUE
     )[, dateLastUpdated := utils$timestamp()]
