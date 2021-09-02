@@ -1,8 +1,8 @@
 name: cosas
 label: COSAS
 description: The Catalogue of Sequence Array and Samples
-version: 0.9026
-date: 2021-09-01
+version: 0.9027
+date: 2021-09-02
 defaults:
   idAttribute: false
   dataType: string
@@ -123,6 +123,12 @@ entities:
         label-nl: Bevestigde Phenotype
         dataType: mref
         refEntity: cosasrefs_phenotype
+      - name: dateLastUpdated
+        label: Date last updated
+        label-nl: Datum laatste bijwerking
+        description: Date lasted updated in COSAS
+        description-nl: Datum laatste bijwerking in COSAS
+        dataType: dateTime
   - name: samples
     label: Samples
     label-nl: Samples

@@ -140,7 +140,7 @@ cosas_clinical <- merge(
     by = "umcgID",
     # all = TRUE
     all.x = TRUE
-)
+)[, dateLastUpdated := utils$timestamp()]
 
 
 #' @title Create Cosas Samples
