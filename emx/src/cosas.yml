@@ -182,6 +182,7 @@ entities:
       - name: resultDate
         label: Final result date
         label-nl: Einduitslag datum
+        dataType: date
       - name: requestResultID
         label: Final result request ID
         label-nl: Adviesvraaguitslag ID
