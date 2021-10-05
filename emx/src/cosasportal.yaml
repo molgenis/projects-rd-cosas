@@ -1,8 +1,8 @@
 name: cosasportal
 label: COSAS Portal
 description: Staging tables for raw data extracts
-version: 0.9011
-date: 2021-08-30
+version: 0.9100
+date: 2021-10-05
 defaults:
   idAttribute: false
   dataType: string
@@ -31,7 +31,7 @@ entities:
         dataType: bool
         defaultValue: false
       - name: dataProcessed
-        dataType: dateTime
+        dataType: datetime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -59,7 +59,7 @@ entities:
         dataType: bool
         defaultValue: false
       - name: dataProcessed
-        dataType: dateTime
+        dataType: datetime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -106,7 +106,7 @@ entities:
         dataType: bool
         defaultValue: false
       - name: dataProcessed
-        dataType: dateTime
+        dataType: datetime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -159,7 +159,7 @@ entities:
         dataType: bool
         defaultValue: false
       - name: dataProcessed
-        dataType: dateTime
+        dataType: datetime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -187,7 +187,7 @@ entities:
         dataType: bool
         defaultValue: false
       - name: dataProcessed
-        dataType: dateTime
+        dataType: datetime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -222,7 +222,7 @@ entities:
         dataType: bool
         defaultValue: false
       - name: dataProcessed
-        dataType: dateTime
+        dataType: datetime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -256,7 +256,7 @@ entities:
         dataType: bool
         defaultValue: false
       - name: dataProcessed
-        dataType: dateTime
+        dataType: datetime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -294,7 +294,7 @@ entities:
         defaultValue: false
       - name: Phenotype
       - name: dataProcessed
-        dataType: dateTime
+        dataType: datetime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID

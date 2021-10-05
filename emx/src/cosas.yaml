@@ -1,8 +1,8 @@
 name: cosas
 label: COSAS
 description: The Catalogue of Sequence Array and Samples
-version: 0.9027
-date: 2021-09-02
+version: 0.9100
+date: 2021-10-05
 defaults:
   idAttribute: false
   dataType: string
@@ -81,7 +81,7 @@ entities:
         label-nl: Datum laatste bijwerking
         description: Date lasted updated in COSAS
         description-nl: Datum laatste bijwerking in COSAS
-        dataType: dateTime
+        dataType: datetime
   - name: clinical
     label: Clinical
     label-nl: Clinical
@@ -128,7 +128,7 @@ entities:
         label-nl: Datum laatste bijwerking
         description: Date lasted updated in COSAS
         description-nl: Datum laatste bijwerking in COSAS
-        dataType: dateTime
+        dataType: datetime
   - name: samples
     label: Samples
     label-nl: Samples
@@ -216,7 +216,7 @@ entities:
         label-nl: Datum laatste bijwerking
         description: Date lasted updated in COSAS
         description-nl: Datum laatste bijwerking in COSAS
-        dataType: dateTime
+        dataType: datetime
       - name: id
         label: id
         label-nl: id
@@ -268,7 +268,7 @@ entities:
         label-nl: Datum laatste bijwerking
         description: Date lasted updated in COSAS
         description-nl: Datum laatste bijwerking in COSAS
-        dataType: dateTime
+        dataType: datetime
       - name: id
         label: id
         label-nl: id
@@ -341,7 +341,7 @@ entities:
         label-nl: Datum laatste bijwerking
         description: Date lasted updated in COSAS
         description-nl: Datum laatste bijwerking in COSAS
-        dataType: dateTime
+        dataType: datetime
       - name: id
         label: id
         label-nl: id
@@ -395,7 +395,7 @@ entities:
         label-nl: Datum laatste bijwerking
         description: Date lasted updated in COSAS
         description-nl: Datum laatste bijwerking in COSAS
-        dataType: dateTime
+        dataType: datetime
       - name: id
         label: id
         label-nl: id
