@@ -9,6 +9,20 @@
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
+
+from datatable import dt, fread
+
+
+patients = fread(file = '_raw/cosasportal_patients.csv')
+
+
+
+
+
+
+
+
+
 import pandas as pd
 import re
 

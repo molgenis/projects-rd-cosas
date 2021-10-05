@@ -84,11 +84,11 @@ entities:
           idAttribute: true
           nillable: false
           dataType: string
-          lookupAttribute: true
-          labelAttribute: true
         - name: value
           label: Value
           label-nl: Value
+          lookupAttribute: true
+          labelAttribute: true
         - name: description
           label: Description
           label-nl: Omschrijving
@@ -103,13 +103,13 @@ entities:
           label-nl: iri
           dataType: hyperlink
     data:
-      - id: female
+      - id: vrouw
         value: female
         description: A biological sex quality inhering in an individual or a population that only produces gametes that can be fertilised by male gametes.
         codesystem: PATO
         code: 0000383
         iri: http://purl.obolibrary.org/obo/PATO_0000383
-      - id: male
+      - id: man
         value: male
         description: A biological sex quality inhering in an individual or a population whose sex organs contain only male gametes.
         codesystem: PATO
