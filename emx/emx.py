@@ -11,6 +11,8 @@
 
 import sys
 from emxconvert.convert import Convert
+# from datatable import fread
+import pandas as pd
 
 # get arg if running via the command line
 input = sys.argv[1]
@@ -29,6 +31,31 @@ if input == 'cosas':
         )
 
         cosas.convert()
+        
+        # Append Phenotype
+        # source comes from https://github.com/molgenis/rd-datamodel/
+        # curl file and adjust file path if necessary
+        cosas.data.update({
+            'cosasrefs_phenotype': pd.read_csv(
+                'emx/lookups/hpo_release_v2021-08-02.csv'
+            ).to_dict('records')
+        })
+        
+        # Append Internal Phenotypic codeset
+        cosas.data.update({
+            'cosasrefs_diagnoses': pd.read_csv(
+                'emx/lookups/cosasrefs_diagnoses.csv'
+            ).to_dict('records')
+        })
+        
+        # Append Internal testCodes
+        cosas.data.update({
+            'cosasrefs_testCodes': pd.read_csv(
+                'emx/lookups/cosasrefs_testCodes.csv'
+            ).to_dict('records')
+        })
+        
+        # write model
         cosas.write(name = 'cosas', format = 'xlsx', outDir = 'emx/dist/')
         cosas.write_schema(path = 'emx/dist/cosas.md')
         print('Built cosas EMX `emx/dist/cosas.xlsx`')

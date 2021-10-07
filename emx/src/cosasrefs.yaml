@@ -1,7 +1,7 @@
 name: cosasrefs
 label: COSAS References
 description: Reference tables for COSAS
-version: 0.9022
+version: 0.9100
 date: 2021-09-01
 defaults:
   idAttribute: false
@@ -138,12 +138,11 @@ entities:
     description: Diagnostic codes and descriptions
     description-nl: Diagnostische codes en beschrijvingen
     attributes:
-      - name: id
+      - name: code
+        description: Cineas code
         idAttribute: true
         nillable: false
         dataType: string
-      - name: code
-        description: Cineas code
       - name: codesystem
       - name: description
         description: Cineas description

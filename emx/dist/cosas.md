@@ -4,7 +4,7 @@
 
 | Name | Description |
 |:---- |:-----------|
-| cosasrefs | Reference tables for COSAS (v0.9022, 2021-09-01) |
+| cosasrefs | Reference tables for COSAS (v0.91, 2021-09-01) |
 | cosas | The Catalogue of Sequence Array and Samples (v0.91, 2021-10-05) |
 
 ## Entities
@@ -60,8 +60,7 @@ Diagnostic codes and descriptions
 
 | Name | Label | Description | Data Type | ID Attribute |
 |:---- |:-----|:-----------|:---------|:------------|
-| id | - | - | string | True |
-| code | - | Cineas code | string | False |
+| code | - | Cineas code | string | True |
 | codesystem | - | - | string | False |
 | description | - | Cineas description | string | False |
 | hpo | - | - | mref | False |
