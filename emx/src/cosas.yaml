@@ -1,0 +1,405 @@
+name: cosas
+label: COSAS
+description: The Catalogue of Sequence Array and Samples
+version: 0.9100
+date: 2021-10-05
+defaults:
+  idAttribute: false
+  dataType: string
+  nillable: true
+  lookupAttribute: false
+entities:
+  - name: patients
+    label: Patients
+    label-nl: Patiënten
+    description: Patient characteristics including family members
+    description-nl: Patiëntgerelateerde informatie met familieleden
+    attributes:
+      - name: umcgID
+        label: UMCG Number
+        label-nl: UMCG Nummer
+        description: MDN id in EPIC
+        dataType: string
+        idAttribute: true
+        nillable: false
+      - name: familyID
+        label: Family Number
+        label-nl: Familie Nummer
+      - name: dateOfBirth
+        label: Date of Birth
+        label-nl: Geboortedatum
+        dataType: date
+      - name: biologicalSex
+        label: Biological Sex
+        label-nl: Biologisch Geslacht
+        dataType: categorical
+        refEntity: cosasrefs_biologicalSex
+      - name: maternalID
+        label: Maternal ID
+        label-nl: Maternale ID  
+      - name: paternalID
+        label: Paternal ID
+        label-nl: Paternal ID
+      - name: linkedFamilyIDs
+        label: Linked Family IDs
+        label-nl: Gekoppelde Familie-ID's
+        dataType: text
+      - name: inclusionStatus
+        label: Status
+        label-nl: Overlijden
+        dataType: categorical
+        refEntity: cosasrefs_inclusionStatus
+      - name: dateOfDeath
+        label: Date of Death
+        label-nl: Overlijdensdatum
+        dataType: date
+      - name: ageAtDeath
+        label: Age at death
+        label-nl: Leeftijd bij overlijden
+        description: The age at which death occurred (in years)
+        description-nl: De leeftijd waarop het overlijden plaatsvond (in jaren)
+        dataType: decimal
+      - name: consanguinity
+        label: Consanguinity
+        label-nl: consanguiniteit
+        dataType: bool
+      - name: fetusStatus
+        label: Fetus Status
+        label-nl: Foetusstatus
+        dataType: bool
+      - name: twinStatus
+        label: Twin Status
+        label-nl: Tweelingstatus
+        description: Has twin or is suspected of having a twin
+        description-nl: Heeft een tweeling of wordt ervan verdacht een tweeling te hebben
+        dataType: bool
+      - name: altPatientID
+        label: Linked UMCG number
+        label-nl: Gekoppelde UMCG nummer
+      - name: dateLastUpdated
+        label: Date last updated
+        label-nl: Datum laatste bijwerking
+        description: Date lasted updated in COSAS
+        description-nl: Datum laatste bijwerking in COSAS
+        dataType: datetime
+  - name: clinical
+    label: Clinical
+    label-nl: Clinical
+    description: Findings and circumstances relating to the examination and treatment of a patient
+    description-nl: Bevindingen en omstandigheden in verband met het onderzoek en de behandeling van een patiënt
+    attributes:
+      - name: umcgID
+        label: UMCG Number
+        label-nl: UMCG Nummer
+        description: MDN id in EPIC
+        idAttribute: true
+        nillable: false
+      - name: provisionalPhenotype
+        label: Provisional Phenotype
+        label-nl: Voorlopig fenotype
+        description: This is a tentative diagnosis - still a candidate that is under consideration
+        description-nl: Dit is een voorlopige diagnose - nog steeds een kandidaat die wordt overwogen
+        dataType: mref
+        refEntity: cosasrefs_diagnoses
+      - name: provisionalPhenotypeHpo
+        label: Provisional HPO
+        label-nl: Voorlopig fenotype HPO
+        dataType: mref
+        refEntity: cosasrefs_phenotype
+      - name: excludedPhenotype
+        label: Excluded Phenotype
+        label-nl: Uitgesloten fenotype
+        description: This condition has been ruled out by subsequent diagnostic and clinical evidence.
+        description-nl: Deze aandoening is uitgesloten door latere diagnostische en klinische bewijzen.
+        dataType: mref
+        refEntity: cosasrefs_diagnoses
+      - name: excludedPhenotypeHpo
+        label: Excluded HPO
+        label-nl: Uitgesloten fenotype HPO
+        dataType: mref
+        refEntity: cosasrefs_phenotype
+      - name: confirmedPhenotype
+        label: Confirmed Phenotype
+        label-nl: Bevestigde Phenotype
+        dataType: mref
+        refEntity: cosasrefs_phenotype
+      - name: dateLastUpdated
+        label: Date last updated
+        label-nl: Datum laatste bijwerking
+        description: Date lasted updated in COSAS
+        description-nl: Datum laatste bijwerking in COSAS
+        dataType: datetime
+  - name: samples
+    label: Samples
+    label-nl: Samples
+    description: Sample metadata including tests performed and results
+    description-nl: Metagegevens over het monster, inclusief uitgevoerde tests en resultaten
+    attributes:
+      - name: umcgID
+        label: UMCG Number
+        label-nl: UMCG Nummer
+        description: MDN id in EPIC
+        nillable: false
+        dataType: xref
+        refEntity: cosas_patients
+      - name: familyID
+        label: Family Number
+        label-nl: Familie Nummer
+      - name: requestID
+        label: Request ID
+        label-nl: Aanvraag ID 
+      - name: requestDate
+        label: Request Date
+        label-nl: Aanvraag datum
+        dataType: date
+      - name: sampleID
+        label: Sample ID
+        label-nl: Monster ID
+      - name: dnaID
+        label: DNA number
+        label-nl: DNA nummer
+      - name: materialType
+        label: Material type
+        label-nl: Materiaalsoort
+      - name: labIndication
+        label: Lab Indication
+        label-nl: Lab indicatie
+        dataType: xref
+        refEntity: cosasrefs_labIndications
+      - name: testCode
+        label: Test code
+        label-nl: Test code
+        dataType: xref
+        refEntity: cosasrefs_testCodes
+      - name: testDate
+        label: Test date
+        label-nl: Testdatum
+        dataType: date
+      - name: result
+        label: Final results
+        label-nl: Einduitslag
+        dataType: text
+      - name: resultDate
+        label: Final result date
+        label-nl: Einduitslag datum
+        dataType: date
+      - name: requestResultID
+        label: Final result request ID
+        label-nl: Adviesvraaguitslag ID
+      - name: labResult
+        label: Lab Result
+        label-nl: Labuitslag Tekst
+        dataType: text
+      - name: labResultDate
+        label: Lab result date
+        label-nl: Labuitslag datum
+        dataType: date
+      - name: labResultID
+        label: Lab result ID
+        label-nl: Labuitslag ID
+      - name: labResultComment
+        label: Lab result comment
+        label-nl: Labuitslag commentaar
+        dataType: text
+      - name: labResultAvailability
+        label: Lab result availability
+        label-nl: Labuitslag
+      - name: authorizationStatus
+        label: Authorization status
+        label-nl: Geautoriseerd Status
+        dataType: bool
+      - name: disorderCode
+        label: Disorder code
+        label-nl: Aandoening code
+      - name: dateLastUpdated
+        label: Date last updated
+        label-nl: Datum laatste bijwerking
+        description: Date lasted updated in COSAS
+        description-nl: Datum laatste bijwerking in COSAS
+        dataType: datetime
+      - name: id
+        label: id
+        label-nl: id
+        description: auto generated ID
+        description-nl: automatisch gegenereerde ID
+        idAttribute: true
+        auto: true
+  - name: labs_array
+    label: Labs - Array (CNV)
+    label-nl: Labs - Array (CNV)
+    description: Lab information for Array
+    description-nl: Labs informatie voor Array
+    attributes:
+      - name: umcgID
+        label: UMCG Number
+        label-nl: UMCG Nummer
+        description: MDN id in EPIC
+        nillable: false
+        dataType: xref
+        refEntity: cosas_patients
+      - name: familyID
+        label: Family Number
+        label-nl: Familie Nummer
+      - name: requestID
+        label: Request ID
+        label-nl: Aanvraag ID 
+      - name: dnaID
+        label: DNA number
+        label-nl: DNA nummer
+      - name: labIndication
+        label: Lab Indication
+        label-nl: Lab indicatie
+        dataType: xref
+        refEntity: cosasrefs_labIndications
+      - name: testID
+        label: Test ID
+        label-nl: Test-ID
+      - name: testCode
+        label: Test Code
+        label-nl: Test Code
+        dataType: xref
+        refEntity: cosasrefs_testCodes
+      - name: testDate
+        label: Test date
+        label-nl: Testdatum
+        dataType: date
+      - name: dateLastUpdated
+        label: Date last updated
+        label-nl: Datum laatste bijwerking
+        description: Date lasted updated in COSAS
+        description-nl: Datum laatste bijwerking in COSAS
+        dataType: datetime
+      - name: id
+        label: id
+        label-nl: id
+        description: auto generated ID
+        description-nl: automatisch gegenereerde ID
+        idAttribute: true
+        auto: true
+  - name: labs_ngs
+    label: Labs - NGS
+    label-nl: Labs - NGS
+    description: Lab information for NGS
+    description-nl: Labs informatie voor NGS
+    attributes:
+      - name: umcgID
+        label: UMCG Number
+        label-nl: UMCG Nummer
+        description: MDN id in EPIC
+        nillable: false
+        dataType: xref
+        refEntity: cosas_patients
+      - name: familyID
+        label: Family Number
+        label-nl: Familie Nummer
+      - name: requestID
+        label: Request ID
+        label-nl: Aanvraag ID 
+      - name: dnaID
+        label: DNA number
+        label-nl: DNA nummer
+      - name: labIndication
+        label: Lab Indication
+        label-nl: Lab indicatie
+        dataType: xref
+        refEntity: cosasrefs_labIndications
+      - name: testID
+        label: Test ID
+        label-nl: Test ID
+      - name: testCode
+        label: Test Code
+        label-nl: Test Code
+        dataType: xref
+        refEntity: cosasrefs_testCodes
+      - name: testDate
+        label: Test date
+        label-nl: Testdatum
+        dataType: date
+      - name: sequencer
+        label: Sequencer
+        label-nl: Sequencer
+      - name: prepKit
+        label: Prep Kit
+        label-nl: Prep Kit
+      - name: sequencingType
+        label: Sequencing type
+        label-nl: Sequencing Type
+      - name: seqType
+        label: Seq Type
+        label-nl: Seq Type
+      - name: capturingKit
+        label: Capturing Kit
+        label-nl: Capturing Kit
+      - name: batchName
+        label: Batch Name
+        label-nl: Batch Naam
+      - name: genomeBuild
+        label: Genome Build
+        label-nl: Genome Build
+      - name: dateLastUpdated
+        label: Date last updated
+        label-nl: Datum laatste bijwerking
+        description: Date lasted updated in COSAS
+        description-nl: Datum laatste bijwerking in COSAS
+        dataType: datetime
+      - name: id
+        label: id
+        label-nl: id
+        description: auto generated ID
+        description-nl: automatisch gegenereerde ID
+        idAttribute: true
+        auto: true
+  - name: files
+    label: Files
+    label-nl: Files
+    description: Metadata on files
+    description-nl: Datafile informatie
+    attributes:
+      - name: umcgID
+        label: UMCG Number
+        label-nl: UMCG Nummer
+        description: MDN id in EPIC
+        nillable: false
+        dataType: xref
+        refEntity: cosas_patients
+      - name: familyID
+        label: Family Number
+        label-nl: Familie Nummer
+      - name: dnaID
+        label: DNA number
+        label-nl: DNA nummer
+      - name: testID
+        label: Test ID
+        label-nl: Test ID
+        dataType: xref
+        refEntity: cosasrefs_testCodes
+        nillable: true
+      - name: filename
+        label: Filename
+        label-nl: Filenaam
+      - name: filepath
+        label: filepath
+        label-nl: filepath
+      - name: filetype
+        label: File type
+        label-nl: filetype
+      - name: md5
+        label: Checksum
+        label-nl: Checksum
+      - name: dateCreated
+        label: Date created
+        label-nl: Datum aangemaakt
+        dataType: date
+      - name: dateLastUpdated
+        label: Date last updated
+        label-nl: Datum laatste bijwerking
+        description: Date lasted updated in COSAS
+        description-nl: Datum laatste bijwerking in COSAS
+        dataType: datetime
+      - name: id
+        label: id
+        label-nl: id
+        description: auto generated ID
+        description-nl: automatisch gegenereerde ID
+        idAttribute: true
+        auto: true

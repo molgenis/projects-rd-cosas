@@ -1,33 +1,37 @@
 name: cosasportal
 label: COSAS Portal
 description: Staging tables for raw data extracts
-version: 0.9
-date: 2021-07-07
+version: 0.9100
+date: 2021-10-05
 defaults:
   idAttribute: false
   dataType: string
   nillable: true
   lookupAttribute: false
 entities:
+
+  # @name cosasportal_patients
+  # @description staging table for raw patient metadata extracts
   - name: patients
     label: Patients
     label-nl: Patiënten
     description: Raw metadata for patients and families
     description-nl: Ruwe metadata voor patiënten en families
     attributes:
-      - name: UMCG_nummer
-      - name: Overlijdensdatum
-      - name: Familienummer
-      - name: Geboortedatum
-      - name: Geslacht
-      - name: Familieleden
-      - name: UMCG_moeder
-      - name: UMCG_vader
+      - name: UMCG_NUMBER
+      - name: OVERLIJDENSDATUM
+      - name: FAMILIENUMMER
+      - name: GEBOORTEDATUM
+      - name: GESLACHT
+      - name: FAMILIELEDEN
+        dataType: text
+      - name: UMCG_MOEDER
+      - name: UMCG_VADER
       - name: processed
-        label: processed
-        label-nl: processed
         dataType: bool
         defaultValue: false
+      - name: dataProcessed
+        dataType: datetime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -35,6 +39,9 @@ entities:
         auto: true
         nillable: false
         lookupAttribute: true
+  
+  # @name cosasportal_diagnoses
+  # @description staging table for raw diagnostic data per patient
   - name: diagnoses
     label: Diagnoses
     label-nl: Diagnoses
@@ -44,10 +51,15 @@ entities:
       - name: UMCG_NUMBER
       - name: HOOFDDIAGNOSE
       - name: HOOFDDIAGNOSE_ZEKERHEID
-      - name: EXTRADIAGNOSE
-      - name: EXTRADIAGNOSE_ZEKERHEID
+      - name: EXTRA_DIAGNOSE
+      - name: EXTRA_DIAGNOSE_ZEKERHEID
       - name: DATUM_EERSTE_CONSULT
       - name: OND_ID
+      - name: processed
+        dataType: bool
+        defaultValue: false
+      - name: dataProcessed
+        dataType: datetime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -55,6 +67,9 @@ entities:
         auto: true
         nillable: false
         lookupAttribute: true
+  
+  # @name cosasportal_samples
+  # @description staging table for raw sample metadata
   - name: samples
     label: Samples
     label-nl: Samples
@@ -63,14 +78,35 @@ entities:
     attributes:
       - name: UMCG_NUMMER
       - name: ADVVRG_ID
+      - name: ADVIESVRAAG_DATUM
       - name: MONSTER_ID
       - name: TEST_CODE
       - name: TEST_OMS
+        dataType: text
       - name: DNA_NUMMER
       - name: MATERIAAL
-      - name: UITSLAG_TEKST
-      - name: UITSLAGCODE
+      - name: EINDUITSLAGTEKST
+        dataType: text
+      - name: EINDUITSLAG_DATUM
+      - name: ADVIESVRAAGUITSLAG_ID
+      - name: ADVIESVRAAGUITSLAG_CODE
+        dataType: text
       - name: AANDOENING_CODE
+      - name: LABUITSLAGTEKST
+        dataType: text
+      - name: LABUITSLAG_COMMENTAAR
+        dataType: text
+      - name: LABUITSLAG_DATUM
+      - name: LABUITSLAG_ID
+      - name: LABUITSLAG_CODE
+        dataType: text
+      - name: LABRESULTS
+      - name: AUTHORISED
+      - name: processed
+        dataType: bool
+        defaultValue: false
+      - name: dataProcessed
+        dataType: datetime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -78,6 +114,9 @@ entities:
         auto: true
         nillable: false
         lookupAttribute: true
+
+  # @name cosasportal_labs_array_adlas
+  # @description staging table for array metadata from ADLAS
   - name: labs_array_adlas
     label: Labs array ADLAS
     label-nl: Labs array ADLAS
@@ -94,6 +133,7 @@ entities:
       - name: SGA_CLASSIFICATION
       - name: SGA_CYTOBAND
       - name: SGA_DECIPHER_SYNDROMES
+        dataType: text
       - name: SGA_DGV_SIMILARITY
       - name: SGA_EVENT
       - name: SGA_EVIDENCE_SCORE
@@ -104,14 +144,22 @@ entities:
       - name: SGA_MOSAIC_PERCENTAGE
       - name: SGA_NO_OF_PROBES
       - name: SGA_NOTES
+        dataType: text
       - name: SGA_OMIM_MORBID_MAP
+        dataType: text
       - name: SGA_OMIM_MORBIDMAP_COUNT
-      - name: SGA_OVERERVING
       - name: SGA_PROBE_MEDIAN
       - name: SGA_REFSEQ_CODING_GENES
+        dataType: text
       - name: SGA_REFSEQ_CODING_GENES_COUNT
       - name: SGA_REGIONS_UMCG_CNV_NL_COUNT
       - name: SGA_SIMILAR_PREVIOUS_CASES
+      - name: SGA_OVERERVING
+      - name: processed
+        dataType: bool
+        defaultValue: false
+      - name: dataProcessed
+        dataType: datetime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -119,6 +167,9 @@ entities:
         auto: true
         nillable: false
         lookupAttribute: true
+  
+  # @name cosasportal_labs_array_darwin
+  # @description staging table for array metadata from darwin
   - name: labs_array_darwin
     label: Labs array Darwin
     label-nl: Labs array Darwin
@@ -132,6 +183,11 @@ entities:
       - name: BatchNaam
       - name: CallRate
       - name: StandaardDeviatie
+      - name: processed
+        dataType: bool
+        defaultValue: false
+      - name: dataProcessed
+        dataType: datetime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -139,6 +195,9 @@ entities:
         auto: true
         nillable: false
         lookupAttribute: true
+
+  # @name cosasportal_labs_ngs_adlas
+  # @description staging table for NGS metadata from ADLAS
   - name: labs_ngs_adlas
     label: Labs NGS Adlas
     label-nl: Labs NGS Adlas
@@ -159,6 +218,11 @@ entities:
       - name: AMPLICON
       - name: ALLELFREQUENTIE
       - name: OVERERVING
+      - name: processed
+        dataType: bool
+        defaultValue: false
+      - name: dataProcessed
+        dataType: datetime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -166,6 +230,9 @@ entities:
         auto: true
         nillable: false
         lookupAttribute: true
+
+  # @name cosasportal_labs_ngs_darwin
+  # @description staging table for NSG metadata from Darwin
   - name: labs_ngs_darwin
     label: Labs NGS Darwin
     label-nl: Labs NGS Darwin
@@ -185,6 +252,11 @@ entities:
       - name: GenomeBuild
       - name: CallRate
       - name: StandaardDeviatie
+      - name: processed
+        dataType: bool
+        defaultValue: false
+      - name: dataProcessed
+        dataType: datetime
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -192,3 +264,42 @@ entities:
         auto: true
         nillable: false
         lookupAttribute: true
+
+
+  # @name cosasportal_bench_cnv
+  # @description staging table for CNV data from UMCG bench
+  - name: bench_cnv
+    label: UMCG BenchCNV
+    label-nl: UMCG BenchCNV
+    description: Staging table for CNV exports
+    description-nl: stadiëringstabel voor CNV-gegevens
+    attributes:
+      - name: primid
+        description: UMCG Number
+        description-nl: UMCG nummber
+      - name: secid
+        description: Family Number
+        description-nl: Familie Number
+      - name: externalid
+      - name: gender
+      - name: comment
+        dataType: text
+      - name: phenotype
+        description: HPO code (HPO:1234567)
+        description-nl: HPO code (HPO:1234567)
+        dataType: text
+      - name: created
+      - name: processed
+        dataType: bool
+        defaultValue: false
+      - name: Phenotype
+      - name: dataProcessed
+        dataType: datetime
+      - name: id
+        description: auto generated Molgenis ID
+        description-nl: automatisch gegenereerde Molgenis-ID
+        idAttribute: true
+        auto: true
+        nillable: false
+        lookupAttribute: true
+

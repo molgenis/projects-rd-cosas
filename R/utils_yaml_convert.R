@@ -3,10 +3,12 @@
 #' extract all emx data
 #'
 #' @param path string containing the path to a yml file
+#' @param attry_entity_has_pkg if FALSE, the entity column in `attributes`
+#'      will be printed without package name (default: TRUE)
 #' @param ... arguments to pass down to `yaml::read_yaml`
 #'
 #' @export
-yml_to_emx <- function(path, attr_entity_has_pkg = FALSE, ...) {
+yml_to_emx <- function(path, attr_entity_has_pkg = TRUE, ...) {
     yaml <- yaml::read_yaml(path, ...)
 
     # init main emx object
@@ -82,20 +84,24 @@ yml_to_emx <- function(path, attr_entity_has_pkg = FALSE, ...) {
 pull_pkg <- function(yaml) {
     d <- yaml[names(yaml) %in% emx[["packages"]][["names"]]]
 
-    txt <- c("(")
+    txt <- NULL
     if ("version" %in% names(yaml)) {
-        txt <- c(txt, paste0("v", yaml["version"]))
+        txt <- paste0("v", yaml["version"])
     }
 
     if ("date" %in% names(yaml)) {
-        if (length(txt) == 1) {
-            txt <- c(txt, yaml["date"])
+        if (!is.null(txt)) {
+            txt <- paste0(txt, ", ", yaml["date"])
         } else {
-            txt <- c(txt, ", ", yaml["date"])
+            txt <- yaml["date"]
         }
     }
 
-    d$description <- paste0(d$description, " ", paste0(txt, collapse = ""), ")")
+    if (!is.null(txt)) {
+        d$description <- paste0(d$description, " (", txt, ")")
+    } else {
+        d$description <- d$description
+    }
 
     data.frame(d)
 }
