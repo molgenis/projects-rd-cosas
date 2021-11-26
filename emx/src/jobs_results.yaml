@@ -1,0 +1,26 @@
+name: jobs_results
+label: Results
+description: The outcome of process including analyzed data
+date: 2021-10-28
+version: 0.0.1
+
+# set attribute level defaults
+defaults:
+  dataType: string
+  idAttribute: false
+  lookupAttribute: false
+  labelAttribute: false
+  nillable: true
+  
+# define entities
+entities:
+    - name: bamdata
+      label: BAM Metadata
+      description: randomly selected samples for BAM file identification
+      attributes:
+        - name: dnaID
+          description: sample identifier
+          idAttribute: true
+          nillable: false
+        - name: experimentID
+          description: Genome Build from Lab metadata tables

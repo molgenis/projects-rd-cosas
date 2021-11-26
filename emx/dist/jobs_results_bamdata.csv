@@ -1,0 +1,3 @@
+entity,name,description,idAttribute,nillable,dataType,lookupAttribute,labelAttribute
+jobs_results_bamdata,dnaID,sample identifier,True,False,string,False,False
+jobs_results_bamdata,experimentID,Genome Build from Lab metadata tables,False,True,string,False,False
