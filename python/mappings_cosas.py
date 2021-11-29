@@ -107,7 +107,6 @@ class molgenis(molgenis.Session):
             except requests.exceptions.HTTPError as err:
                 raise SystemError(f'Batch {d} Error: unable to import data:\n{str(err)}')
 
-
 # create status message
 def status_msg(*args):
     """Status Message
@@ -124,7 +123,6 @@ def status_msg(*args):
     t = datetime.utcnow().strftime('%H:%M:%S.%f')[:-3]
     print('\033[94m[' + t + '] \033[0m' + msg)
     
-
 # create class of methods used in the mappings
 class cosasUtils:
       # calculate age (in years) based on two dates
@@ -154,7 +152,7 @@ class cosasUtils:
         @example
         extract_phenotypic_codes('00000', f.mycolumn)
         """
-        values = list(filter(None, clinical[f.umcgID == id, column].to_list()[0]))
+        values = list(filter(None, clinical[f.belongsToSubject == id, column].to_list()[0]))
         unique = list(set(values))
         return ','.join(unique)
         
@@ -203,7 +201,19 @@ class cosasUtils:
             
         values = [v for v in value.split(',') if (v in idList) and not (v == id)]
         ','.join(values)
+      
+    def recode_cineasToHpo(value: str, refData):
+        """Recode Cineas Code to HPO
+        Find the HPO term to a corresponding Cineas
+        
+        @param value : a string containing a cineas code
+        @param refData : datatable object containing Cineas to HPO mappings
+        """
+        if value is None:
+            return None
             
+        refData[f.value == value, f.hpo][0][0]
+                    
     # recode phenotypic sex
     def recode_phenotypicSex(value: str = None):
         """Recode Phenotypic Sex
@@ -260,6 +270,11 @@ class cosasUtils:
 status_msg('Reading data from the portal...')
 cosas = molgenis(url = 'http://localhost/api/', token = '${molgenisToken}')
 
+
+
+
+
+cineasHpoMappings = dt.Frame(cosas.get('cosasrefs_cineasHpoMappings', batch_size = 10000))
 raw_subjects = dt.Frame(cosas.get('cosasportal_patients', batch_size = 10000))
 raw_clinical = dt.Frame(cosas.get('cosasportal_diagnoses', batch_size = 10000))
 raw_samples = dt.Frame(cosas.get('cosasportal_samples', batch_size = 10000))
@@ -270,11 +285,16 @@ raw_ngs_darwin = dt.Frame(cosas.get('cosasportal_labs_ngs_darwin', batch_size = 
 
 #//////////////////////////////////////////////////////////////////////////////
 
-# CREATE COSAS PATIENTS
-# Map the data from cosasportal_patients into COSAS terminology and structure
-# of the table: `cosas_patients`. Select variables of interest and apply
-# additional transformations (where applicable).
-
+# Build Subjects Table
+#
+# Map COSAS portal data into harmonized model structure for subject metadata.
+# For COSAS, we will be populating the columns of interest these are listed
+# below. All personal identifier columns will be validated against `subjectID`
+# Therefore, any ID that does not exist in the export should not be referenced
+# in this export.
+#
+# Row level metadata will be applied at the end of the script.
+#
 status_msg('Mapping COSAS Patients...')
 
 # pull variables of interest from the portal
@@ -297,7 +317,8 @@ subjects = raw_subjects[
     }
 ][:, :, dt.sort(as_type(f.subjectID, int))]
 
-subjectIdList = subjects['subjectID'].to_list()[0] # pull list of IDs for validation
+# pull list of IDs for validation
+subjectIdList = subjects['subjectID'].to_list()[0]
 
 # validate `belongsToMother`
 subjects['belongsToMother'] = dt.Frame([
@@ -369,38 +390,55 @@ subjects['dateOfDeath'] = dt.Frame([
     str(d) if bool(d) else None for d in subjects['dateOfDeath'].to_list()[0]
 ])
 
-subjects.to_csv('~/Desktop/test.csv')
-
-#//////////////////////////////////////
 
 # Create Subset of Patients
-
 subjectFamilyIDs = subjects[:, (f.subjectID, f.belongsToFamily)]
 subjectFamilyIDs.key = 'subjectID'
 
 #//////////////////////////////////////////////////////////////////////////////
 
-# CREATE COSAS CLINICAL
 
+# Build COSAS Clinical Table
+#
+# Map data from the portal into the preferred structure of the harmonized
+# model's (HM) clinical table. The mappings will be largely based on the
+# attribute `certainty`. Values will be mapped into one of the phenotype
+# allowed in this table (at the moment). Use the reference table,
+# columns (observed, unobserved, or provisional).
+# 
+# Only HPO codes are `cosasrefs_cineaseHpoMappings` to map CINEAS codes to HPO.
+# This is was done to clean historical data to new clinical data management
+# practices (i.e., HPO integration) whereas data from other -- newer systems --
+# has HPO codes built in.
+#
 status_msg('Mapping COSAS Clinical...')
 
 # restructure dataset: rowbind all diagnoses and certainty ratings
 clinical = dt.rbind(
     raw_clinical[:,{
-        'umcgID': f.UMCG_NUMBER,
+        'clinicalID': f.UMCG_NUMBER,
+        'belongsToSubject': f.UMCG_NUMBER,
         'code': f.HOOFDDIAGNOSE,
         'certainty': f.HOOFDDIAGNOSE_ZEKERHEID
     }],
     raw_clinical[:, {
-        'umcgID': f.UMCG_NUMBER,
+        'clinicalID': f.UMCG_NUMBER,
+        'belongsToSubject': f.UMCG_NUMBER,
         'code': f.EXTRA_DIAGNOSE,
         'certainty': f.EXTRA_DIAGNOSE_ZEKERHEID
     }]
 )[f.code != '-', :]
 
-# format code: 'dx_<code>'
+# extract CINEAS code for string
 clinical['code'] = dt.Frame([
     d.split(':')[0] if d else None for d in clinical['code'].to_list()[0]
+])
+
+# map cineas codes to HPO
+clinical['hpo'] = dt.Frame([
+    cineasHpoMappings[
+        f.value == d, f.hpo
+    ].to_list()[0][0] for d in clinical['code'].to_list()[0]
 ])
 
 # format certainty
@@ -408,18 +446,22 @@ clinical['certainty'] = dt.Frame([
     d.lower().replace(' ', '-') if (d != '-') and (d) else None for d in clinical['certainty'].to_list()[0]
 ])
 
-
 # create `provisionalPhenotype`: uncertain, missing, or certain
-clinical['provisionalPhenotypeCodes'] = dt.Frame([
-    d[0] if d[1] in ['zeker', 'niet-zeker', 'onzeker', None] and (d[0]) else None for d in clinical[
-        :, (f.code, f.certainty)
+clinical['provisionalPhenotype'] = dt.Frame([
+    d[0] if d[1] in [
+        'zeker',
+        'niet-zeker',
+        'onzeker',
+        None
+    ] and (d[0]) else None for d in clinical[
+        :, (f.hpo, f.certainty)
     ].to_tuples()
 ])
 
 # create `excludedPhenotype`: zeker-niet
-clinical['excludedPhenotypeCodes'] = dt.Frame([
+clinical['unobservedPhenotype'] = dt.Frame([
     d[0] if d[1] in ['zeker-niet'] else None for d in clinical[
-        :, (f.code, f.certainty)
+        :, (f.hpo, f.certainty)
     ].to_tuples()
 ])
 
@@ -428,26 +470,26 @@ clinical['excludedPhenotypeCodes'] = dt.Frame([
 clinical['provisionalPhenotype'] = dt.Frame([
     cosasUtils.extract_phenotypic_codes(
         id = d,
-        column = f.provisionalPhenotypeCodes
-    ) for d in clinical['umcgID'].to_list()[0]
+        column = f.provisionalPhenotype
+    ) for d in clinical['belongsToSubject'].to_list()[0]
 ])
 
 # collapse all excludedPhenotype codes by ID
-clinical['excludedPhenotype'] = dt.Frame([
+clinical['unobservedPhenotype'] = dt.Frame([
     cosasUtils.extract_phenotypic_codes(
         id = d,
-        column = f.excludedPhenotypeCodes
-    ) for d in clinical['umcgID'].to_list()[0]
+        column = f.unobservedPhenotype
+    ) for d in clinical['belongsToSubject'].to_list()[0]
 ])
 
 # drop cols
-del clinical[:, ['certainty', 'code', 'provisionalPhenotypeCodes', 'excludedPhenotypeCodes']]
+del clinical[:, ['certainty','code','hpo']]
 
 # pull unique rows only since codes were duplicated
 clinical = clinical[
-    :, first(f[1:]), dt.by(f.umcgID)
+    :, first(f[1:]), dt.by(f.clinicalID)
 ][
-    :, :, dt.sort(as_type(f.umcgID, int))
+    :, :, dt.sort(as_type(f.clinicalID, int))
 ]
 
 
