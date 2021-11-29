@@ -12,8 +12,7 @@
 #'////////////////////////////////////////////////////////////////////////////
 
 import pandas as pd
-from datatable import dt, f, fread, as_type, first
-import re
+from datatable import dt, f, first
 
 # @title COSAS Test Codes Reference Entity
 # @description create cosasrefs_testCodes
@@ -30,14 +29,14 @@ glines = dt.Frame(
     ).to_dict('records')
 )[:, {
     'code': f.TEST_CODE,
-    'label': f.label,
-    'panel': f.panel,
-    'labelPanel': f.labelPanel
+    'description': f.label,
+    'category': f.panel,
+    'subcategory': f.labelPanel
 }]
 
 # recode panel (remove: nan)
-glines['panel'] = dt.Frame([
-    d if str(d) != 'nan' else None for d in glines['panel'].to_list()[0]
+glines['category'] = dt.Frame([
+    d if str(d) != 'nan' else None for d in glines['category'].to_list()[0]
 ])
 
 # set key for merge
@@ -79,7 +78,7 @@ for sheet in sheetnames:
         genes,
         dt.Frame()[:, {
             'code': sheet,
-            'genes': ','.join(
+            'geneList': ','.join(
                 sorted(
                     list(
                         pd.read_excel(
@@ -95,18 +94,12 @@ for sheet in sheetnames:
         }]
     )
 
-
 # merge gene list and write to file
 genes.key = 'code'
-
-testCodes['id'] = dt.Frame([
-    d.lower() for d in testCodes['code'].to_list()[0]
-])
-
 testCodes = testCodes[
     :, :, dt.join(genes)
 ][
-    :, (f.id, f.code, f.description, f.panel, f.labelPanel, f.genes)
+    :, (f.code, f.description, f.category, f.subcategory, f.geneList)
 ]
 
-testCodes.to_csv('emx/lookups/cosasrefs_testCodes.csv')
+testCodes.to_csv('emx/lookups/cosasrefs_laboratoryProcedures.csv')
