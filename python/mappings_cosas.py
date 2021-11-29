@@ -9,7 +9,6 @@
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
-# imports
 import molgenis.client as molgenis
 from datatable import dt, f, as_type, first
 from urllib.parse import quote_plus
@@ -158,6 +157,14 @@ class cosasUtils:
         values = list(filter(None, clinical[f.umcgID == id, column].to_list()[0]))
         unique = list(set(values))
         return ','.join(unique)
+        
+    # format_year
+    def format_asYear(date: datetime.date = None):
+        """Format Date as Year"""
+        if date is None or str(date) == 'nan':
+            return None
+
+        return date.strftime('%Y')
 
     # Create function for formating datetime value to yyyy-mm-dd
     def format_date(date: str, pattern = '%Y-%m-%d %H:%M:%S', asString = False) -> str:
@@ -181,22 +188,56 @@ class cosasUtils:
         if asString: value = str(value)
         
         return value
+        
+    def format_familyMemberIDs(id: str, value: str, idList: list):
+        """Format Family Member IDs
+        Remove family IDs that aren't in the data export and reformat string
+        
+        @param value (str) : comma-separated string containing family IDs
+        @param idist (list) : reference list of IDs to compare in the value
+        
+        @param comma separated string
+        """
+        if value is None or str(value) == 'nan' or value == '-':
+            return None
+            
+        values = [v for v in value.split(',') if (v in idList) and not (v == id)]
+        ','.join(values)
+            
+    # recode phenotypic sex
+    def recode_phenotypicSex(value: str = None):
+        """Recode Phenotypic Sex
+        
+        Standarize values to Fair Genomes/Harmonized model values
+        
+        @param value (str) : a value containing a phenotypic sex code (in Dutch)
+        
+        @return string
+        """
+        codes = {'vrouw': 'female', 'man': 'male'}
+        
+        try:
+            val = codes[value.lower()]
+        except KeyError as ke:
+            raise KeyError('Error in recode_phenotypicSex: value not recognized'.format(str(ke)))
+            
+        return val
 
-    # set inclusion status based on date deceased
-    def recode_inclusion_status(date):
-        """Recode Inclusion Status
+    # set subjectStatus based on date deceased
+    def recode_subjectStatus(date):
+        """Recode Subject Status
         
-        Using the values in the column `dateOfDeath`, determine the inclusion
-        status. The values are either 'deceased' or 'alive'.
+        Using the values in the column `dateOfDeath`, determine the current
+        status of the subject. The values are either 'deceased' or 'alive'.
         
-        @param data : a date string
+        @param date (str) : a date string
         
         @return string
         """
         if date is None or str(date) == 'nan':
-            return 'alive'
+            'Alive'
         else:
-            return 'deceased'
+            'Deceased'
         
     # timestamp
     def timestamp():
@@ -214,17 +255,12 @@ class cosasUtils:
         return data.to_pandas().replace({np.nan:None}).to_dict('records')
 
 #//////////////////////////////////////////////////////////////////////////////
-    
-    
+
 # Read Portal Data
 status_msg('Reading data from the portal...')
 cosas = molgenis(url = 'http://localhost/api/', token = '${molgenisToken}')
 
-# cosas = molgenis('')
-# cosas.login('', '')
-
-
-raw_patients = dt.Frame(cosas.get('cosasportal_patients', batch_size = 10000))
+raw_subjects = dt.Frame(cosas.get('cosasportal_patients', batch_size = 10000))
 raw_clinical = dt.Frame(cosas.get('cosasportal_diagnoses', batch_size = 10000))
 raw_samples = dt.Frame(cosas.get('cosasportal_samples', batch_size = 10000))
 raw_array_adlas = dt.Frame(cosas.get('cosasportal_labs_array_adlas', batch_size = 10000))
@@ -242,73 +278,105 @@ raw_ngs_darwin = dt.Frame(cosas.get('cosasportal_labs_ngs_darwin', batch_size = 
 status_msg('Mapping COSAS Patients...')
 
 # pull variables of interest from the portal
-patients = raw_patients[
+subjects = raw_subjects[
     :,{
-        'umcgID': f.UMCG_NUMBER,
-        'familyID': f.FAMILIENUMMER,
+        'subjectID': f.UMCG_NUMBER,
+        'belongsToFamily': f.FAMILIENUMMER,
+        'belongsToMother': f.UMCG_MOEDER,
+        'belongsToFather': f.UMCG_VADER,
+        'belongsWithFamilyMembers': f.FAMILIELEDEN,
+        'subjectStatus': None,
         'dateOfBirth': f.GEBOORTEDATUM,
-        'biologicalSex': f.GESLACHT,
-        'maternalID': f.UMCG_MOEDER,
-        'paternalID': f.UMCG_VADER,
-        'linkedFamilyIDs': f.FAMILIELEDEN,
+        'yearOfBirth': None,
         'dateOfDeath': f.OVERLIJDENSDATUM,
-        'inclusionStatus': None,
-        'ageAtDeath': None
+        'yearOfDeath': None,
+        'ageAtDeath': None,
+        'phenotypicSex': f.GESLACHT,
+        'ageAtDeath': None,
+        'primaryOrganization': 'UMCG'
     }
-][:, :, dt.sort(as_type(f.umcgID, int))]
+][:, :, dt.sort(as_type(f.subjectID, int))]
 
+subjectIdList = subjects['subjectID'].to_list()[0] # pull list of IDs for validation
 
-# format date: as yyyy-mm-dd
-patients['dateOfBirth'] = dt.Frame([
-    cosasUtils.format_date(
-        date = d
-    ) for d in patients['dateOfBirth'].to_list()[0]
+# validate `belongsToMother`
+subjects['belongsToMother'] = dt.Frame([
+    d if d in subjectIdList else None for d in subjects['belongsToMother'].to_list()[0]
 ])
 
-# format linked family IDs: remove spaces
-patients['linkedFamilyIDs'] = dt.Frame([
-    re.sub(r'(\s+)?[,]\s+', ',', d) for d in patients['linkedFamilyIDs'].to_list()[0] 
+# validate `belongsToFather`
+subjects['belongsToMother'] = dt.Frame([
+    d if d in subjectIdList else None for d in subjects['belongsToMother'].to_list()[0]
+])
+
+# format linked family IDs: remove spaces and IDs that aren't included in the export
+subjects['belongsWithFamilyMembers'] = dt.Frame([
+    cosasUtils.format_familyMemberIDs(
+        id = d[0],
+        value = d[1],
+        idList = subjectIdList
+    ) for d in subjects[
+        :, (f.subjectID, f.belongsWithFamilyMembers)
+    ].to_tuples()
+])
+
+# format dateOfBirth: as yyyy-mm-dd
+subjects['dateOfBirth'] = dt.Frame([
+    cosasUtils.format_date(
+        date = d
+    ) for d in subjects['dateOfBirth'].to_list()[0]
+])
+
+# extract yearOfBirth from dateOfBirth
+subjects['yearOfBirth'] = dt.Frame([
+    cosasUtils.format_asYear(d) for d in subjects['dateOfBirth'].to_list()[0]
+])
+
+# format dateOfDeath: as yyyy-mm-dd
+subjects['dateOfDeath'] = dt.Frame([
+    cosasUtils.format_date(d) for d in subjects['dateOfDeath'].to_list()[0]
+])
+
+# extract yearOfDeath from dateOfDeath
+subjects['yearOfDeath'] = dt.Frame([
+    cosasUtils.format_asYear(d) for d in subjects['dateOfDeath'].to_list()[0]
 ])
 
 # format biological sex: lower values
-patients['biologicalSex'] = dt.Frame([
-    d.lower() for d in patients['biologicalSex'].to_list()[0]
+subjects['phenotypicSex'] = dt.Frame([
+    cosasUtils.recode_phenotypicSex(d) for d in subjects['phenotypicSex'].to_list()[0]
 ])
 
-# format date of death: as yyyy-mm-dd
-patients['dateOfDeath'] = dt.Frame([
-    cosasUtils.format_date(d) for d in patients['dateOfDeath'].to_list()[0]
-])
-
-# recode inclusion status: based on `dateOfDeath`
-patients['inclusionStatus'] = dt.Frame([
-    cosasUtils.recode_inclusion_status(d) for d in patients['dateOfDeath'].to_list()[0]
+# recode subject status: based on `dateOfDeath`
+subjects['subjectStatus'] = dt.Frame([
+    cosasUtils.recode_subjectStatus(d) for d in subjects['dateOfDeath'].to_list()[0]
 ])
 
 # calculate `ageAtDeath`: using `dateofBirth` and `dateOfDeath`
-patients['ageAtDeath'] = dt.Frame([
+subjects['ageAtDeath'] = dt.Frame([
     cosasUtils.calculate_age(
         earliest = d[0],
         recent = d[1]
-    ) for d in patients[:, (f.dateOfBirth, f.dateOfDeath)].to_tuples()
+    ) for d in subjects[:, (f.dateOfBirth, f.dateOfDeath)].to_tuples()
 ])
 
 # format variables post-mapping
-patients['dateOfBirth'] = dt.Frame([
-    str(d) if bool(d) else None for d in patients['dateOfBirth'].to_list()[0]
+subjects['dateOfBirth'] = dt.Frame([
+    str(d) if bool(d) else None for d in subjects['dateOfBirth'].to_list()[0]
 ])
 
-patients['dateOfDeath'] = dt.Frame([
-    str(d) if bool(d) else None for d in patients['dateOfBirth'].to_list()[0]
+subjects['dateOfDeath'] = dt.Frame([
+    str(d) if bool(d) else None for d in subjects['dateOfDeath'].to_list()[0]
 ])
 
+subjects.to_csv('~/Desktop/test.csv')
 
 #//////////////////////////////////////
 
 # Create Subset of Patients
 
-patientFamilyIDs = patients[:, (f.umcgID, f.familyID)]
-patientFamilyIDs.key = 'umcgID'
+subjectFamilyIDs = subjects[:, (f.subjectID, f.belongsToFamily)]
+subjectFamilyIDs.key = 'subjectID'
 
 #//////////////////////////////////////////////////////////////////////////////
 
@@ -570,7 +638,7 @@ keys = ['umcgID', 'requestID', 'dnaID', 'testCode']
 lab_subset = dt.rbind(lab_ngs[:, (vars)], lab_array[:, (vars)])
 lab_subset.key = keys
 
-samples = samples[:, :, dt.join(lab_subset)][:, :, dt.join(patientFamilyIDs)]
+samples = samples[:, :, dt.join(lab_subset)][:, :, dt.join(subjectFamilyIDs)]
 
 
 #//////////////////////////////////////////////////////////////////////////////
@@ -580,21 +648,21 @@ samples = samples[:, :, dt.join(lab_subset)][:, :, dt.join(patientFamilyIDs)]
 status_msg('Preparing data for import into COSAS...')
 
 # set timestamps
-patients[:, dt.update(dateLastUpdated = cosasUtils.timestamp())]
+subjects[:, dt.update(dateLastUpdated = cosasUtils.timestamp())]
 clinical[:, dt.update(dateLastUpdated = cosasUtils.timestamp())]
 samples[:, dt.update(dateLastUpdated = cosasUtils.timestamp())]
 lab_array[:, dt.update(dateLastUpdated = cosasUtils.timestamp())]
 lab_ngs[:, dt.update(dateLastUpdated = cosasUtils.timestamp())]
 
 # convert to list of dictionaries (make sure all nan's are recoded!)
-cosas_patients = cosasUtils.as_records(patients)
+cosas_subjects = cosasUtils.as_records(subjects)
 cosas_clinical = cosasUtils.as_records(clinical)
 cosas_samples = cosasUtils.as_records(samples)
 cosas_labs_array = cosasUtils.as_records(lab_array)
 cosas_labs_ngs = cosasUtils.as_records(lab_ngs)
 
 status_msg('Importing mapping COSAS data...')
-cosas.update_table(entity = 'cosas_patients', data = cosas_patients)
+cosas.update_table(entity = 'cosas_patients', data = cosas_subjects)
 cosas.update_table(entity = 'cosas_clinical', data = cosas_clinical)
 cosas.update_table(entity = 'cosas_samples', data = cosas_samples)
 cosas.update_table(entity = 'cosas_labs_array', data = cosas_labs_array)
