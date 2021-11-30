@@ -10,7 +10,7 @@
 #'////////////////////////////////////////////////////////////////////////////
 
 import molgenis.client as molgenis
-from datatable import dt, f, as_type, first
+from datatable import dt, f, as_type, first, count
 from urllib.parse import quote_plus
 from datetime import datetime
 import json
@@ -139,8 +139,7 @@ class cosasUtils:
 
         return round(int((recent - earliest).days) / 365.25, 4)
     
-    # parse string
-    def extract_phenotypic_codes(id, column):
+    def extract_phenotypicCodes(id, column):
         """Extract Phenotypic Codes
         
         In the COSAS Clinical table, we need to extract the phenotypic codes from
@@ -150,9 +149,31 @@ class cosasUtils:
         @param column : name of the column to search for (datatable f-expression)
         
         @example
-        extract_phenotypic_codes('00000', f.mycolumn)
+        extract_phenotypicCodes('00000', f.mycolumn)
         """
         values = list(filter(None, clinical[f.belongsToSubject == id, column].to_list()[0]))
+        unique = list(set(values))
+        return ','.join(unique)
+    
+    def extract_testCodes(subjectID, sampleID, requestID, column):
+        """Extract and collapse test codes from the column `alternativeIdentifers`
+        
+        @param subjectId (str) : subject ID to locate
+        @param sampleId  (str) : sample ID to locate
+        @param requestId (str) : specific request associated with a sample
+        @param column    (str) : name of the column where the codes are stored
+        """
+        values = list(
+            filter(
+                None, 
+                samples[
+                    (f.belongsToSubject == subjectID) &
+                    (f.sampleID == sampleID) &
+                    (f.belongsToRequest == requestID),
+                    column
+                ]
+            )
+        )
         unique = list(set(values))
         return ','.join(unique)
         
@@ -269,7 +290,6 @@ class cosasUtils:
 # Read Portal Data
 status_msg('Reading data from the portal...')
 cosas = molgenis(url = 'http://localhost/api/', token = '${molgenisToken}')
-
 
 
 
@@ -411,6 +431,9 @@ subjectFamilyIDs.key = 'subjectID'
 # practices (i.e., HPO integration) whereas data from other -- newer systems --
 # has HPO codes built in.
 #
+# Since we do not have a unique clinical diagnostic identifier, subjectID will
+# be used instead.
+#
 status_msg('Mapping COSAS Clinical...')
 
 # restructure dataset: rowbind all diagnoses and certainty ratings
@@ -468,7 +491,7 @@ clinical['unobservedPhenotype'] = dt.Frame([
     
 # collapse all provisionalPhenotype codes by ID
 clinical['provisionalPhenotype'] = dt.Frame([
-    cosasUtils.extract_phenotypic_codes(
+    cosasUtils.extract_phenotypicCodes(
         id = d,
         column = f.provisionalPhenotype
     ) for d in clinical['belongsToSubject'].to_list()[0]
@@ -476,7 +499,7 @@ clinical['provisionalPhenotype'] = dt.Frame([
 
 # collapse all excludedPhenotype codes by ID
 clinical['unobservedPhenotype'] = dt.Frame([
-    cosasUtils.extract_phenotypic_codes(
+    cosasUtils.extract_phenotypicCodes(
         id = d,
         column = f.unobservedPhenotype
     ) for d in clinical['belongsToSubject'].to_list()[0]
@@ -493,49 +516,102 @@ clinical = clinical[
 ]
 
 
+# add ID check
+clinical['flag'] = dt.Frame([
+    True if d in subjectIdList else False for d in clinical['belongsToSubject'].to_list()[0]
+])
+
+if clinical[f.flag == False,:].nrows > 0:
+    raise ValueError(
+        'Error in clinical mappings: Excepted 0 flagged cases, but found {}.'
+        .format(clinical[f.flag == False,:].nrows)
+    )
+else:
+    del clinical['flag']
+
 #//////////////////////////////////////////////////////////////////////////////
 
-# Create COSAS SAMPLES
-
+# Build Sample Table
+#
+# Pull data from `cosasportal_samples` and map to the new samples table.
+# Information about the laboratory procedures will be mapped to the 
+# samplePreparation, sequencing, and laboratoryProcedures tables. The
+# reason for the sampling will be populated from the laboratory data
+# exports (ADLAS and Darwin). Row level metadata will be added before import
+# into Molgenis.
+#
+# It is possible to add the test codes in this table. I've included a short
+# mapping that collapses testCodes into the `alternativeIdentifers` columns,
+# but I am not using it at the moment as it takes a little while. If it is
+# decided at a later timepoint that it is necessary, we can add it in.
+#
 status_msg('Mapping COSAS Samples...')
 
+# Pull attributes of interest
 samples = raw_samples[:,
     {
-        'umcgID': f.UMCG_NUMMER,
-        'requestID': f.ADVVRG_ID,
-        'requestDate': f.ADVIESVRAAG_DATUM,
-        'sampleID': f.MONSTER_ID,
-        'testCode': f.TEST_CODE,
-        'dnaID': f.DNA_NUMMER,
-        'materialType': f.MATERIAAL,
-        'result': f.EINDUITSLAGTEKST,
-        'resultDate': f.EINDUITSLAG_DATUM,
-        'requestResultID': f.ADVIESVRAAGUITSLAG_ID,
-        'disorderCode': f.AANDOENING_CODE,
-        'labResult': f.LABUITSLAGTEKST,
-        'labResultComment': f.LABUITSLAG_COMMENTAAR,
-        'labResultDate': f.LABUITSLAG_DATUM,
-        'labResultID': f.LABUITSLAG_ID,
-        'labResultAvailability': f.LABRESULTS,
-        'authorizationStatus': f.AUTHORISED
+        'sampleID': f.DNA_NUMMER,
+        'belongsToSubject': f.UMCG_NUMMER,
+        'belongsToRequest': f.ADVVRG_ID,
+        'dateOfRequest': f.ADVIESVRAAG_DATUM,
+        'samplingReason': None,
+        # 'biospecimenType': f.MATERIAAL,
+        'alternativeIdentifiers': f.TEST_CODE
     }
 ]
 
-# recode dates
-samples['requestDate'] = dt.Frame([
-    cosasUtils.format_date(d, asString = True) for d in samples['requestDate'].to_list()[0]
-])
-samples['resultDate'] = dt.Frame([
-    cosasUtils.format_date(d, asString = True) for d in samples['resultDate'].to_list()[0]
-])
-samples['labResultDate'] = dt.Frame([
-    cosasUtils.format_date(d, asString = True) for d in samples['labResultDate'].to_list()[0]
+# format `dateOfRequest` as yyyy-mm-dd
+samples['dateOfRequest'] = dt.Frame([
+    cosasUtils.format_date(d, asString = True) for d in samples['dateOfRequest'].to_list()[0]
 ])
 
-# format testCode: to lower
-samples['testCode'] = dt.Frame([
-    d.lower() for d in samples['testCode'].to_list()[0]
+# Create core structure for samples tables 
+coreDataForSamplesTables = samples[:, ['sampleID', 'belongsToSubject', 'alternativeIdentifiers']]
+
+# Remove altID column, it isn't necessary unless you are mapping testCodes in this table
+del samples['alternativeIdentifiers']
+
+
+# recode biospecimenType
+# samples[:, first(f[1:]), dt.by(f.biospecimenType)]['biospecimenType']
+
+# Get list of unique test codes by sample, subject, and request
+# samples['alternativeIdentifiers'] = dt.Frame([  
+#     ','.join(
+#         list(
+#             set(
+#                 samples[
+#                     (f.sampleID == d[0]) & (f.belongsToSubject == d[1]) & (f.belongsToRequest == d[2]),
+#                     'alternativeIdentifiers'
+#                 ].to_list()[0]
+#             )
+#         )
+#     ) for d in samples[
+#         :,(f.sampleID, f.belongsToSubject, f.belongsToRequest, f.alternativeIdentifiers)
+#     ].to_tuples()
+# ])
+
+# pull unique rows only since codes were duplicated
+samples = samples[
+    :, first(f[:]), dt.by(f.sampleID,f.belongsToSubject,f.belongsToRequest)
+][
+    :, :, dt.sort(as_type(f.belongsToSubject, int))
+]
+
+
+# add ID check
+samples['flag'] = dt.Frame([
+    True if d in subjectIdList else False for d in samples['belongsToSubject'].to_list()[0]
 ])
+
+if samples[f.flag == False,:].nrows > 0:
+    raise ValueError(
+        'Error in clinical mappings: Excepted 0 flagged cases, but found {}.'
+        .format(samples[f.flag == False,:].nrows)
+    )
+else:
+    del samples['flag']
+
 
 #//////////////////////////////////////////////////////////////////////////////
 
