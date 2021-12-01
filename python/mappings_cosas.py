@@ -2,7 +2,7 @@
 #' FILE: mappings_cosas.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-10-05
-#' MODIFIED: 2021-10-14
+#' MODIFIED: 2021-12-01
 #' PURPOSE: primary mapping script for COSAS
 #' STATUS: working
 #' PACKAGES: **see below**
@@ -224,8 +224,37 @@ class cosasUtils:
         ','.join(values)
       
     def recode_biospecimenType(value):
-        if re.search(r'(DNA|bloed|gekweekt|)', value):
-            return 'Blood DNA'
+        typeMappings = {
+            'DNA': 'Blood DNA',
+            'DNA reeds aanwezig': 'DNA Library',
+            'beenmerg': 'Bone Marrow Sample',
+            'bloed': 'Whole Blood',
+            'fibroblastenkweek': 'Bone Marrow-Derived Fibroblasts',
+            # 'foetus': None,  # not enough information
+            'gekweekt foetaal weefsel': 'Human Fetal Tissue',
+            'gekweekt weefsel': 'Tissue Sample',
+            'gekweekte Amnion cellen': 'Amnion',
+            'gekweekte Chorion villi': 'Chorionic Villus', 
+            'gekweekte amnion cellen': 'Amnion',
+            'huidbiopt': 'Skin/Subcutaneous Tissue',
+            'navelstrengbloed': 'Umbilical Cord Blood',
+            'ongekweekt foetaal weefsel': 'Human Fetal Tissue',
+            'ongekweekt weefsel': 'Tissue Sample',
+            'ongekweekte amnion cellen': 'Amnion',
+            'ongekweekte chorion villi': 'Chorionic Villus',
+            'overig': 'Tissue Sample',  # generic term
+            # 'paraffine normaal': None, # these are storage conditions
+            # 'paraffine tumor': None, # these are storage conditions
+            'plasmacellen': 'Serum or Plasma',
+            'speeksel': 'Saliva Sample',
+            'suspensie': 'Mixed Adherent Cells in Suspension',
+            # 'toegestuurd DNA foetaal': None  # mix of 'fetal tissue' and 'DNA'
+        }
+        
+        try:
+            return typeMappings[value]
+        except KeyError as err:
+            return None
     
     def recode_cineasToHpo(value: str, refData):
         """Recode Cineas Code to HPO
@@ -581,8 +610,6 @@ samples = raw_samples[:,
     }
 ]
 
-newSubjectIdList = samples['belongsToSubject'].to_list()[0]
-
 # format `dateOfRequest` as yyyy-mm-dd
 samples['dateOfRequest'] = dt.Frame([
     cosasUtils.format_date(d, asString = True) for d in samples['dateOfRequest'].to_list()[0]
@@ -590,7 +617,7 @@ samples['dateOfRequest'] = dt.Frame([
 
 # recode biospecimentType
 samples['biospecimenType'] = dt.Frame([
-    cosasUtils.recode_biospecimenTypes(d) for d in samples['biospecimenType'].to_list()[0]
+    cosasUtils.recode_biospecimenType(d) for d in samples['biospecimenType'].to_list()[0]
 ])
 
 # Create core structure for samples tables 
