@@ -10,7 +10,7 @@
 #'////////////////////////////////////////////////////////////////////////////
 
 import molgenis.client as molgenis
-from datatable import dt, f, as_type, first, count
+from datatable import dt, f, as_type, first
 from urllib.parse import quote_plus
 from datetime import datetime
 import json
@@ -223,6 +223,10 @@ class cosasUtils:
         values = [v for v in value.split(',') if (v in idList) and not (v == id)]
         ','.join(values)
       
+    def recode_biospecimenType(value):
+        if re.search(r'(DNA|bloed|gekweekt|)', value):
+            return 'Blood DNA'
+    
     def recode_cineasToHpo(value: str, refData):
         """Recode Cineas Code to HPO
         Find the HPO term to a corresponding Cineas
@@ -292,16 +296,42 @@ status_msg('Reading data from the portal...')
 cosas = molgenis(url = 'http://localhost/api/', token = '${molgenisToken}')
 
 
+import pandas as pd
+raw_subjects = dt.Frame(pd.read_excel('_raw/cosasportal_patients.xlsx',dtype=str))
+raw_clinical = dt.Frame(pd.read_excel('_raw/cosasportal_diagnoses.xlsx',dtype=str))
+raw_bench_cnv = dt.Frame(pd.read_excel('_raw/cosasportal_bench_cnv.xlsx',dtype=str))
+raw_samples = dt.Frame(pd.read_excel('_raw/cosasportal_samples.xlsx',dtype=str))
+raw_array_adlas = dt.Frame(pd.read_excel('_raw/cosasportal_array_adlas.xlsx',dtype=str))
+raw_array_darwin = dt.Frame(pd.read_excel('_raw/cosasportal_array_darwin.xlsx',dtype=str))
+raw_ngs_adlas = dt.Frame(pd.read_excel('_raw/cosasportal_ngs_adlas.xlsx',dtype=str))
+raw_ngs_darwin = dt.Frame(pd.read_excel('_raw/cosasportal_ngs_darwin.xlsx',dtype=str))
+cineasHpoMappings = dt.Frame(pd.read_csv('emx/lookups/cosasrefs_cineasHpoMappings.csv',dtype=str))
 
+# pull list of subjects from COSAS and merge with new subject ID list
+cosasSubjectIdList = raw_subjects[:, 'UMCG_NUMBER'].to_list()[0]
+# subjectIdList = dt.Frame(
+#   cosas.get('cosas_subjects',attributes='subjectID',batch_size=10000)
+# )['subjectID'].to_list()[0]
+# cosasSubjectIdList = list(set(cosasSubjectIdList.append(subjectIdList)))
 
-cineasHpoMappings = dt.Frame(cosas.get('cosasrefs_cineasHpoMappings', batch_size = 10000))
-raw_subjects = dt.Frame(cosas.get('cosasportal_patients', batch_size = 10000))
-raw_clinical = dt.Frame(cosas.get('cosasportal_diagnoses', batch_size = 10000))
-raw_samples = dt.Frame(cosas.get('cosasportal_samples', batch_size = 10000))
-raw_array_adlas = dt.Frame(cosas.get('cosasportal_labs_array_adlas', batch_size = 10000))
-raw_array_darwin = dt.Frame(cosas.get('cosasportal_labs_array_darwin', batch_size = 10000))
-raw_ngs_adlas = dt.Frame(cosas.get('cosasportal_labs_ngs_adlas', batch_size = 10000))
-raw_ngs_darwin = dt.Frame(cosas.get('cosasportal_labs_ngs_darwin', batch_size = 10000))
+#//////////////////////////////////////////////////////////////////////////////
+
+# Build Phenotypic Data from workbench export
+#
+# This dataset provides historical records on observedPhenotypes for older cases.
+# This allows us to populate the COSAS Clinical table with extra information. 
+
+# Process data from external provider
+confirmedHpoDF = raw_bench_cnv[:, {'clinicalID': f.primid, 'observedPhenotype': f.Phenotype}]
+confirmedHpoDF['flag'] = dt.Frame([
+    True if d in cosasSubjectIdList else False for d in confirmedHpoDF['clinicalID'].to_list()[0]
+])
+confirmedHpoDF = confirmedHpoDF[f.flag == True, :]
+confirmedHpoDF['observedPhenotype'] = dt.Frame([
+    ','.join(list(set(d.strip().split()))) for d in confirmedHpoDF['observedPhenotype'].to_list()[0]
+])
+confirmedHpoDF.key = 'clinicalID'
+del confirmedHpoDF['flag']
 
 #//////////////////////////////////////////////////////////////////////////////
 
@@ -317,7 +347,7 @@ raw_ngs_darwin = dt.Frame(cosas.get('cosasportal_labs_ngs_darwin', batch_size = 
 #
 status_msg('Mapping COSAS Patients...')
 
-# pull variables of interest from the portal
+# pull variables of interest from portal table
 subjects = raw_subjects[
     :,{
         'subjectID': f.UMCG_NUMBER,
@@ -337,17 +367,14 @@ subjects = raw_subjects[
     }
 ][:, :, dt.sort(as_type(f.subjectID, int))]
 
-# pull list of IDs for validation
-subjectIdList = subjects['subjectID'].to_list()[0]
-
 # validate `belongsToMother`
 subjects['belongsToMother'] = dt.Frame([
-    d if d in subjectIdList else None for d in subjects['belongsToMother'].to_list()[0]
+    d if d in cosasSubjectIdList else None for d in subjects['belongsToMother'].to_list()[0]
 ])
 
 # validate `belongsToFather`
 subjects['belongsToMother'] = dt.Frame([
-    d if d in subjectIdList else None for d in subjects['belongsToMother'].to_list()[0]
+    d if d in cosasSubjectIdList else None for d in subjects['belongsToMother'].to_list()[0]
 ])
 
 # format linked family IDs: remove spaces and IDs that aren't included in the export
@@ -355,7 +382,7 @@ subjects['belongsWithFamilyMembers'] = dt.Frame([
     cosasUtils.format_familyMemberIDs(
         id = d[0],
         value = d[1],
-        idList = subjectIdList
+        idList = cosasSubjectIdList
     ) for d in subjects[
         :, (f.subjectID, f.belongsWithFamilyMembers)
     ].to_tuples()
@@ -410,13 +437,9 @@ subjects['dateOfDeath'] = dt.Frame([
     str(d) if bool(d) else None for d in subjects['dateOfDeath'].to_list()[0]
 ])
 
-
-# Create Subset of Patients
-subjectFamilyIDs = subjects[:, (f.subjectID, f.belongsToFamily)]
-subjectFamilyIDs.key = 'subjectID'
+status_msg('Mapped {} new records'.format(subjects.nrows))
 
 #//////////////////////////////////////////////////////////////////////////////
-
 
 # Build COSAS Clinical Table
 #
@@ -434,7 +457,8 @@ subjectFamilyIDs.key = 'subjectID'
 # Since we do not have a unique clinical diagnostic identifier, subjectID will
 # be used instead.
 #
-status_msg('Mapping COSAS Clinical...')
+
+status_msg('Processing new clinical data...')
 
 # restructure dataset: rowbind all diagnoses and certainty ratings
 clinical = dt.rbind(
@@ -509,16 +533,13 @@ clinical['unobservedPhenotype'] = dt.Frame([
 del clinical[:, ['certainty','code','hpo']]
 
 # pull unique rows only since codes were duplicated
-clinical = clinical[
-    :, first(f[1:]), dt.by(f.clinicalID)
-][
-    :, :, dt.sort(as_type(f.clinicalID, int))
-]
-
+clinical = clinical[:, first(f[1:]), dt.by(f.clinicalID)]
+clinical.key = 'clinicalID'
+clinical = clinical[:, :, dt.join(confirmedHpoDF)][:, :, dt.sort(as_type(f.clinicalID, int))]
 
 # add ID check
 clinical['flag'] = dt.Frame([
-    True if d in subjectIdList else False for d in clinical['belongsToSubject'].to_list()[0]
+    True if d in cosasSubjectIdList else False for d in clinical['belongsToSubject'].to_list()[0]
 ])
 
 if clinical[f.flag == False,:].nrows > 0:
@@ -545,7 +566,7 @@ else:
 # but I am not using it at the moment as it takes a little while. If it is
 # decided at a later timepoint that it is necessary, we can add it in.
 #
-status_msg('Mapping COSAS Samples...')
+status_msg('Processing new sample data...')
 
 # Pull attributes of interest
 samples = raw_samples[:,
@@ -555,22 +576,28 @@ samples = raw_samples[:,
         'belongsToRequest': f.ADVVRG_ID,
         'dateOfRequest': f.ADVIESVRAAG_DATUM,
         'samplingReason': None,
-        # 'biospecimenType': f.MATERIAAL,
-        'alternativeIdentifiers': f.TEST_CODE
+        'biospecimenType': f.MATERIAAL,
+        # 'alternativeIdentifiers': f.TEST_CODE
     }
 ]
+
+newSubjectIdList = samples['belongsToSubject'].to_list()[0]
 
 # format `dateOfRequest` as yyyy-mm-dd
 samples['dateOfRequest'] = dt.Frame([
     cosasUtils.format_date(d, asString = True) for d in samples['dateOfRequest'].to_list()[0]
 ])
 
+# recode biospecimentType
+samples['biospecimenType'] = dt.Frame([
+    cosasUtils.recode_biospecimenTypes(d) for d in samples['biospecimenType'].to_list()[0]
+])
+
 # Create core structure for samples tables 
-coreDataForSamplesTables = samples[:, ['sampleID', 'belongsToSubject', 'alternativeIdentifiers']]
+# coreDataForSamplesTables = samples[:, ['sampleID', 'belongsToSubject', 'alternativeIdentifiers']]
 
-# Remove altID column, it isn't necessary unless you are mapping testCodes in this table
-del samples['alternativeIdentifiers']
-
+# # Remove altID column, it isn't necessary unless you are mapping testCodes in this table
+# del samples['alternativeIdentifiers']
 
 # recode biospecimenType
 # samples[:, first(f[1:]), dt.by(f.biospecimenType)]['biospecimenType']
@@ -601,7 +628,7 @@ samples = samples[
 
 # add ID check
 samples['flag'] = dt.Frame([
-    True if d in subjectIdList else False for d in samples['belongsToSubject'].to_list()[0]
+    True if d in cosasSubjectIdList else False for d in samples['belongsToSubject'].to_list()[0]
 ])
 
 if samples[f.flag == False,:].nrows > 0:
@@ -615,7 +642,15 @@ else:
 
 #//////////////////////////////////////////////////////////////////////////////
 
-# CREATE LABS ARRAY
+
+# Build Sample Prepation Table
+
+
+
+#//////////////////////////////////////////////////////////////////////////////
+
+
+
 # map and merge both array datasets
 
 status_msg('Mapping COSAS Labs Array...')
