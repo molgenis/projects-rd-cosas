@@ -125,7 +125,6 @@ def status_msg(*args):
     
 # create class of methods used in the mappings
 class cosasUtils:
-      # calculate age (in years) based on two dates
     def calculate_age(earliest = None, recent = None):
         """Calculate Years of Age between two dates
         
@@ -177,7 +176,6 @@ class cosasUtils:
         unique = list(set(values))
         return ','.join(unique)
         
-    # format_year
     def format_asYear(date: datetime.date = None):
         """Format Date as Year"""
         if date is None or str(date) == 'nan':
@@ -185,7 +183,6 @@ class cosasUtils:
 
         return date.strftime('%Y')
 
-    # Create function for formating datetime value to yyyy-mm-dd
     def format_date(date: str, pattern = '%Y-%m-%d %H:%M:%S', asString = False) -> str:
         """Format Date String
         
@@ -268,7 +265,6 @@ class cosasUtils:
             
         refData[f.value == value, f.hpo][0][0]
                     
-    # recode phenotypic sex
     def recode_phenotypicSex(value: str = None):
         """Recode Phenotypic Sex
         
@@ -287,7 +283,18 @@ class cosasUtils:
             
         return val
 
-    # set subjectStatus based on date deceased
+    def recode_samplingReason(value: str):
+        mappings = {
+            'Diagnostisch': 'Diagnostic',
+            'Dragerschap': 'Carrier Status',
+            'Hematologische maligniteiten': 'Diagnostic',
+            'Informativiteit': 'Informative',
+            'Presymptomatisch': 'Presymptomatic Testing'
+        }
+        try:
+            return mappings[value]
+        except KeyError:
+            return None
     def recode_subjectStatus(date):
         """Recode Subject Status
         
@@ -670,141 +677,139 @@ else:
 #//////////////////////////////////////////////////////////////////////////////
 
 
-# Build Sample Prepation Table
+# Build Sample Prepation and Sequencing Tables
+#
+# Using the Adlas and Darwin files, map the data into the structure of the
+# `samplePreparation` and `sequencing` tables. The column `samplingReason`
+# (i.e., `labIndication`) must also be merged with the `samples` table.
+#
+status_msg('Preparing data for the samplePrepation and sequencing tables...')
 
 
-
-#//////////////////////////////////////////////////////////////////////////////
-
-
-
-# map and merge both array datasets
-
-status_msg('Mapping COSAS Labs Array...')
-
-# map array adlas data
+# map array adlas data: select vars, pull distinct entries, and sort 
 array_adlas = raw_array_adlas[
-    # select variables of interest
     :, {
-        'umcgID': f.UMCG_NUMBER,
-        'requestID': f.ADVVRG_ID,
-        'dnaID': f.DNA_NUMMER,
-        'testCode': f.TEST_CODE
+        'belongsToSubject': f.UMCG_NUMBER,
+        'belongsToRequest': f.ADVVRG_ID,
+        'sampleID': f.DNA_NUMMER,
+        'belongsToSamplePreparation': f.DNA_NUMMER,
+        'belongsToLabProcedure': f.TEST_CODE
     }
 ][
-    # find distinct cases
-    :, first(f[1:]), dt.by('umcgID', 'requestID', 'dnaID', 'testCode')
+    :,
+    first(f[:]),
+    dt.by(
+        f.belongsToSubject,
+        f.belongsToRequest,
+        f.sampleID,
+        f.belongsToLabProcedure
+    )
 ][
-    # drop vars and sort
-    :, (f.umcgID, f.requestID, f.dnaID, f.testCode),
-    dt.sort(as_type(f.umcgID, int))
+    :,
+    (f.belongsToSubject, f.belongsToRequest, f.sampleID, f.belongsToLabProcedure),
+    dt.sort(as_type(f.belongsToSubject, int))
 ]
 
 
-# map array darwin data
+# map array darwin data: select vars, pull distinct entries, and sort
 array_darwin = raw_array_darwin[
-    # map variables of intest
     :, {
-        'umcgID': f.UmcgNr,
-        'testCode': f.TestId, # codes are written into ID
-        'testDate': f.TestDatum, # recode date
-        'labIndication': f.Indicatie # format lab indication
+        'belongsToSubject': f.UmcgNr,
+        'belongsToLabProcedure': f.TestId, # codes are written into ID
+        'sequencingDate': f.TestDatum, # recode date
+        'reasonForSampling': f.Indicatie, # format lab indication
+        'sequencingMethod': None,
     }
 ][
-    # get unique rows
-    :, first(f[1:]), dt.by('umcgID', 'testCode')
+    :, first(f[:]), dt.by(f.belongsToSubject, f.belongsToLabProcedure)
 ][
-    # drop vars and sort
-    :, (f.umcgID, f.testCode, f.testDate, f.labIndication),
-    dt.sort(as_type(f.umcgID, int))
+    :, (f.belongsToSubject, f.belongsToLabProcedure, f.sequencingDate, f.reasonForSampling),
+    dt.sort(as_type(f.belongsToSubject, int))
 ]
 
 # join tables
-array_darwin.key = ['umcgID','testCode']
-lab_array = array_adlas[:, :, dt.join(array_darwin)]
+array_darwin.key = ['belongsToSubject','belongsToLabProcedure']
+arrayData = array_adlas[:, :, dt.join(array_darwin)]
 
-# format `testDate` as yyyy-mm-dd
-lab_array['testDate'] = dt.Frame([
-    cosasUtils.format_date(d, asString = True) for d in lab_array['testDate'].to_list()[0]
-])
+# format `sequencingDate` as yyyy-mm-dd
+# arrayData['sequencingDate'] = dt.Frame([
+#     cosasUtils.format_date(d, asString = True) for d in arrayData['sequencingDate'].to_list()[0]
+# ])
 
-# format `labindication` as lowercase
-lab_array['labIndication'] = dt.Frame([
-    d.lower() for d in lab_array['labIndication'].to_list()[0]
-])
-
-# format `testCode`: to lowercase
-lab_array['testCode'] = dt.Frame([
-    d.lower() for d in lab_array['testCode'].to_list()[0]
-])
-
-#//////////////////////////////////////////////////////////////////////////////
-
-# Create NGS Lab Tables
-
-status_msg('Mapping COSAS Labs NGS...')
-
+# reshape: NGS data from ADLAS
 ngs_adlas = raw_ngs_adlas[
-    # select variables of interest
     :, {
-        'umcgID': f.UMCG_NUMBER,
-        'requestID': f.ADVVRG_ID,
-        'dnaID': f.DNA_NUMMER,
-        'testCode': f.TEST_CODE
+        'belongsToSubject': f.UMCG_NUMBER,
+        'belongsToRequest': f.ADVVRG_ID,
+        'sampleID': f.DNA_NUMMER,
+        'belongsToSamplePreparation': f.DNA_NUMMER,
+        'belongsToLabProcedure': f.TEST_CODE
     }
 ][
-    # find distinct cases
-    :, first(f[1:]), dt.by('umcgID', 'requestID', 'dnaID', 'testCode')
+    :,
+    first(f[:]),
+    dt.by(
+        f.belongsToSubject,
+        f.belongsToRequest,
+        f.sampleID,
+        f.belongsToLabProcedure
+    )
 ][
-    # drop vars and sort
-    :, (f.umcgID, f.requestID, f.dnaID, f.testCode),
-    dt.sort(as_type(f.umcgID, int))
+    :,
+    (
+        f.belongsToSubject,
+        f.belongsToRequest,
+        f.sampleID,
+        f.belongsToLabProcedure
+    ),
+    dt.sort(as_type(f.belongsToSubject, int))
 ]
 
-
+# reshape: NGS data from Darwin
 ngs_darwin = raw_ngs_darwin[
-    # select variables of intest
     :, {
-        'umcgID': f.UmcgNr,
-        'testCode': f.TestId,  # reformat
-        'testDate': f.TestDatum, # recode
-        'labIndication': f.Indicatie, # recode
-        'sequencer': f.Sequencer,
-        'prepKit': f.PrepKit,
-        'sequencingType': f.SequencingType,
-        'seqType': f.SeqType,
-        'capturingKit': f.CapturingKit,
-        'batchName': f.BatchNaam,
+        'belongsToSubject': f.UmcgNr,
+        'belongsToLabProcedure': f.TestId,
+        'sequencingDate': f.TestDatum,
+        'reasonForSampling': f.Indicatie,
+        'sequencingPlatform': f.Sequencer,
+        'sequencingInstrumentModel': f.Sequencer,
+        'sequencingMethod': None,
+        'belongsToBatch': f.BatchNaam,
         'genomeBuild': f.GenomeBuild
     }
 ][
-    # find distinct cases
-    :, first(f[1:]), dt.by('umcgID', 'testCode')
+    :, first(f[:]), dt.by(f.belongsToSubject, f.belongsToLabProcedure)
 ][
-    # sort
-    :, :, dt.sort(as_type(f.umcgID, int))
+    :, :, dt.sort(as_type(f.belongsToSubject, int))
 ]
-
-del ngs_darwin[:, ['testCode.0']]
 
 
 # join tables
-ngs_darwin.key = ['umcgID', 'testCode']
-lab_ngs = ngs_adlas[:, :, dt.join(ngs_darwin)]
+ngs_darwin.key = ['belongsToSubject', 'belongsToLabProcedure']
+ngsData = ngs_adlas[:, :, dt.join(ngs_darwin)]
 
-# format `testCode`: to lowercase
-lab_ngs['testCode'] = dt.Frame([
-    d.lower() for d in lab_ngs['testCode'].to_list()[0]
+# bind array and ngs datasets
+sampleSequencingData = dt.rbind(arrayData, ngsData, force=True)
+
+# format `sequencingDate` as yyyy-mm-dd
+sampleSequencingData['sequencingDate'] = dt.Frame([
+    cosasUtils.format_date(d, asString = True) for d in sampleSequencingData['sequencingDate'].to_list()[0]
 ])
 
-# format `testDate` as yyyy-mm-dd
-lab_ngs['testDate'] = dt.Frame([
-    cosasUtils.format_date(d, asString = True) for d in lab_ngs['testDate'].to_list()[0]
+# format `labIndication`: use urdm_lookups_samplingReason
+sampleSequencingData['reasonForSampling'] = dt.Frame([
+    cosasUtils.recode_samplingReason(d) for d in sampleSequencingData['reasonForSampling'].to_list()[0]
 ])
 
-# format `labIndication`: to lowercase
-lab_ngs['labIndication'] = dt.Frame([
-    d.lower() for d in lab_ngs['labIndication'].to_list()[0]
+# recode `sequencingPlatform`
+sampleSequencingData['sequencingPlatform'] = dt.Frame([
+    d for d in sampleSequencingData['sequencingPlatform'].to_list()[0]
+])
+
+# recode `sequencingInstrumentModel`
+sampleSequencingData['sequencingInstrumentModel'] = dt.Frame([
+    d for d in sampleSequencingData['sequencingInstrumentModel'].to_list()[0]
 ])
 
 #//////////////////////////////////////////////////////////////////////////////
