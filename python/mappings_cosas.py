@@ -221,7 +221,7 @@ class cosasUtils:
         ','.join(values)
       
     def recode_biospecimenType(value):
-        typeMappings = {
+        mappings = {
             'DNA': 'Blood DNA',
             'DNA reeds aanwezig': 'DNA Library',
             'beenmerg': 'Bone Marrow Sample',
@@ -247,10 +247,11 @@ class cosasUtils:
             'suspensie': 'Mixed Adherent Cells in Suspension',
             # 'toegestuurd DNA foetaal': None  # mix of 'fetal tissue' and 'DNA'
         }
-        
         try:
-            return typeMappings[value]
-        except KeyError as err:
+            return mappings[value]
+        except KeyError:
+            if bool(value):
+                status_msg('Error in biospecimentType mappings: {} does not exist'.format(value))
             return None
     
     def recode_cineasToHpo(value: str, refData):
@@ -274,14 +275,13 @@ class cosasUtils:
         
         @return string
         """
-        codes = {'vrouw': 'female', 'man': 'male'}
-        
+        mappings = {'vrouw': 'female', 'man': 'male'}
         try:
-            val = codes[value.lower()]
-        except KeyError as ke:
-            raise KeyError('Error in recode_phenotypicSex: value not recognized'.format(str(ke)))
-            
-        return val
+            return mappings[value.lower()]
+        except KeyError:
+            if bool(value):
+                status_msg('Error in phenotypicSex mappings: {} does not exist'.format(value))
+            return None
 
     def recode_samplingReason(value: str):
         mappings = {
@@ -294,6 +294,44 @@ class cosasUtils:
         try:
             return mappings[value]
         except KeyError:
+            if bool(value):
+                status_msg('Error in samplingReason mapping: {} does not exist'.format(value))
+            return None
+    
+    def recode_sequencingInfo(value: str, type: str):
+        mappings = {
+            'HiSeq' : {
+                'platform': 'Illumina platform',
+                'model': 'Illumina HiSeq Sequencer'
+            },
+            'MiSeq sequencer 1' : {
+                'platform': 'Illumina platform',
+                'model': 'MiSeq'
+            },
+            'MiSeq sequencer 2' : {
+                'platform': 'Illumina platform',
+                'model': 'MiSeq'
+            },
+            'NextSeq sequencer 1' : {
+                'platform': 'Illumina platform',
+                'model': 'Illumina NextSeq 1000'
+            },
+            'NextSeq sequencer 2' : {
+                'platform': 'Illumina platform',
+                'model': 'Illumina NextSeq 2000'
+            },
+            'NextSeq sequencer 3' : {
+                'platform': 'Illumina platform',
+                'model': None
+            }
+        }
+        if not (type in ['platform','model']):
+            raise ValueError('Error in Sequencing Info recode: type {} unknown'.format(str(type)))
+        try:
+            return mappings[value].get(type)
+        except KeyError:
+            if bool(value):
+                status_msg('Error in sequencingPlatform mappings: {} does not exist'.format(value))
             return None
     def recode_subjectStatus(date):
         """Recode Subject Status
@@ -804,12 +842,18 @@ sampleSequencingData['reasonForSampling'] = dt.Frame([
 
 # recode `sequencingPlatform`
 sampleSequencingData['sequencingPlatform'] = dt.Frame([
-    d for d in sampleSequencingData['sequencingPlatform'].to_list()[0]
+    cosasUtils.recode_sequencingInfo(
+        value = d,
+        type = 'platform'
+    ) for d in sampleSequencingData['sequencingPlatform'].to_list()[0]
 ])
 
 # recode `sequencingInstrumentModel`
 sampleSequencingData['sequencingInstrumentModel'] = dt.Frame([
-    d for d in sampleSequencingData['sequencingInstrumentModel'].to_list()[0]
+    cosasUtils.recode_sequencingInfo(
+        value = d,
+        type = 'model'
+    ) for d in sampleSequencingData['sequencingInstrumentModel'].to_list()[0]
 ])
 
 #//////////////////////////////////////////////////////////////////////////////
