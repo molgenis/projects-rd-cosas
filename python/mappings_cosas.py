@@ -219,7 +219,6 @@ class cosasUtils:
             
         values = [v for v in value.split(',') if (v in idList) and not (v == id)]
         ','.join(values)
-      
     def recode_biospecimenType(value):
         mappings = {
             'DNA': 'Blood DNA',
@@ -227,7 +226,7 @@ class cosasUtils:
             'beenmerg': 'Bone Marrow Sample',
             'bloed': 'Whole Blood',
             'fibroblastenkweek': 'Bone Marrow-Derived Fibroblasts',
-            # 'foetus': None,  # not enough information
+            'foetus': None,  # not enough information to make a specific mapping
             'gekweekt foetaal weefsel': 'Human Fetal Tissue',
             'gekweekt weefsel': 'Tissue Sample',
             'gekweekte Amnion cellen': 'Amnion',
@@ -240,20 +239,19 @@ class cosasUtils:
             'ongekweekte amnion cellen': 'Amnion',
             'ongekweekte chorion villi': 'Chorionic Villus',
             'overig': 'Tissue Sample',  # generic term
-            # 'paraffine normaal': None, # these are storage conditions
-            # 'paraffine tumor': None, # these are storage conditions
+            'paraffine normaal': None, # these are storage conditions
+            'paraffine tumor': None, # these are storage conditions
             'plasmacellen': 'Serum or Plasma',
             'speeksel': 'Saliva Sample',
             'suspensie': 'Mixed Adherent Cells in Suspension',
-            # 'toegestuurd DNA foetaal': None  # mix of 'fetal tissue' and 'DNA'
+            'toegestuurd DNA foetaal': None  # mix of 'fetal tissue' and 'DNA'
         }
         try:
             return mappings[value]
         except KeyError:
             if bool(value):
-                status_msg('Error in biospecimentType mappings: {} does not exist'.format(value))
+                status_msg('Error in biospecimenType mappings: {} does not exist'.format(value))
             return None
-    
     def recode_cineasToHpo(value: str, refData):
         """Recode Cineas Code to HPO
         Find the HPO term to a corresponding Cineas
@@ -265,7 +263,9 @@ class cosasUtils:
             return None
             
         refData[f.value == value, f.hpo][0][0]
-                    
+    def recode_genomeBuild(value: str):        
+        if value == 'Feb. 2009 (GRCh37/hg19)':
+            return 'GRCh37'
     def recode_phenotypicSex(value: str = None):
         """Recode Phenotypic Sex
         
@@ -282,7 +282,6 @@ class cosasUtils:
             if bool(value):
                 status_msg('Error in phenotypicSex mappings: {} does not exist'.format(value))
             return None
-
     def recode_samplingReason(value: str):
         mappings = {
             'Diagnostisch': 'Diagnostic',
@@ -296,8 +295,7 @@ class cosasUtils:
         except KeyError:
             if bool(value):
                 status_msg('Error in samplingReason mapping: {} does not exist'.format(value))
-            return None
-    
+            return None 
     def recode_sequencingInfo(value: str, type: str):
         mappings = {
             'HiSeq' : {
@@ -347,13 +345,9 @@ class cosasUtils:
             'Alive'
         else:
             'Deceased'
-        
-    # timestamp
     def timestamp():
         """Return Generic timestamp as yyyy-mm-ddThh:mm:ssZ"""
         return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-        
-    # to_dict
     def as_records(data = None):
         """Convert a datatable object to list of dictionaries (i.e., records)
         
@@ -648,31 +642,32 @@ samples = raw_samples[:,
         'sampleID': f.DNA_NUMMER,
         'belongsToSubject': f.UMCG_NUMMER,
         'belongsToRequest': f.ADVVRG_ID,
-        'dateOfRequest': f.ADVIESVRAAG_DATUM,
-        'samplingReason': None,
+        # 'dateOfRequest': f.ADVIESVRAAG_DATUM,
+        'reasonForSampling': None,
         'biospecimenType': f.MATERIAAL,
         # 'alternativeIdentifiers': f.TEST_CODE
     }
 ]
 
+# collapse request by sampleID into a comma seperated string
+samples['belongsToRequest'] = dt.Frame([
+    ','.join(
+        list(
+            set(
+                samples[
+                    f.sampleID == d[0], 'belongsToRequest'
+                ].to_list()[0]
+            )
+        )
+    ) for d in samples[
+        :, (f.sampleID, f.belongsToRequest)
+    ].to_tuples()
+])
+
 # format `dateOfRequest` as yyyy-mm-dd
-samples['dateOfRequest'] = dt.Frame([
-    cosasUtils.format_date(d, asString = True) for d in samples['dateOfRequest'].to_list()[0]
-])
-
-# recode biospecimentType
-samples['biospecimenType'] = dt.Frame([
-    cosasUtils.recode_biospecimenType(d) for d in samples['biospecimenType'].to_list()[0]
-])
-
-# Create core structure for samples tables 
-# coreDataForSamplesTables = samples[:, ['sampleID', 'belongsToSubject', 'alternativeIdentifiers']]
-
-# # Remove altID column, it isn't necessary unless you are mapping testCodes in this table
-# del samples['alternativeIdentifiers']
-
-# recode biospecimenType
-# samples[:, first(f[1:]), dt.by(f.biospecimenType)]['biospecimenType']
+# samples['dateOfRequest'] = dt.Frame([
+#     cosasUtils.format_date(d, asString = True) for d in samples['dateOfRequest'].to_list()[0]
+# ])
 
 # Get list of unique test codes by sample, subject, and request
 # samples['alternativeIdentifiers'] = dt.Frame([  
@@ -692,10 +687,15 @@ samples['biospecimenType'] = dt.Frame([
 
 # pull unique rows only since codes were duplicated
 samples = samples[
-    :, first(f[:]), dt.by(f.sampleID,f.belongsToSubject,f.belongsToRequest)
+    :, first(f[:]), dt.by(f.sampleID,f.belongsToSubject)
 ][
     :, :, dt.sort(as_type(f.belongsToSubject, int))
 ]
+
+# recode biospecimenType
+samples['biospecimenType'] = dt.Frame([
+    cosasUtils.recode_biospecimenType(d) for d in samples['biospecimenType'].to_list()[0]
+])
 
 
 # add ID check
@@ -814,7 +814,7 @@ ngs_darwin = raw_ngs_darwin[
         'sequencingInstrumentModel': f.Sequencer,
         'sequencingMethod': None,
         'belongsToBatch': f.BatchNaam,
-        'genomeBuild': f.GenomeBuild
+        'referenceGenomeUsed': f.GenomeBuild
     }
 ][
     :, first(f[:]), dt.by(f.belongsToSubject, f.belongsToLabProcedure)
@@ -827,8 +827,23 @@ ngs_darwin = raw_ngs_darwin[
 ngs_darwin.key = ['belongsToSubject', 'belongsToLabProcedure']
 ngsData = ngs_adlas[:, :, dt.join(ngs_darwin)]
 
-# bind array and ngs datasets
+
+# bind array and ngs datasets; create additional attributes
 sampleSequencingData = dt.rbind(arrayData, ngsData, force=True)
+sampleSequencingData[
+    :, dt.update(
+        belongsToSample = f.sampleID,
+        belongsToSamplePreparation = f.sampleID,
+        sequencingFacilityOrganization = 'UCMG', # will always be UMCG
+    )
+]
+
+# create sequencingID a combination of sampleID + belongsToLabProcedure
+sampleSequencingData['sequencingID'] = dt.Frame([
+    f'{d[0]}_{d[1]}_{d[2]}' for d in sampleSequencingData[
+        :, (f.belongsToSample,f.belongsToRequest, f.belongsToLabProcedure)
+    ].to_tuples()
+])
 
 # format `sequencingDate` as yyyy-mm-dd
 sampleSequencingData['sequencingDate'] = dt.Frame([
@@ -855,6 +870,53 @@ sampleSequencingData['sequencingInstrumentModel'] = dt.Frame([
         type = 'model'
     ) for d in sampleSequencingData['sequencingInstrumentModel'].to_list()[0]
 ])
+
+# recode `genomeBuild`
+sampleSequencingData['referenceGenomeUsed'] = dt.Frame([
+    cosasUtils.recode_genomeBuild(d) for d in sampleSequencingData['referenceGenomeUsed'].to_list()[0]
+])
+
+#//////////////////////////////////////
+
+# Create SamplePreparation and Sequencing tables
+#
+# Using the main dataset `sampleSequencingData` that we have created above,
+# create the `samplePrepation` and `sequencingData` tables.
+#
+# We will have to add, at some point, the mappings for `libraryPreparationKit`
+# and `targetEnrichmentKit`. This information should be stored in the
+# `samplePreparation` table. See commented lines below.
+#
+# In addition, we will also need to add `sequencingMethod`. I'm not sure what
+# mappings should be used. This will require further discussion.
+#
+samplePreparation = sampleSequencingData[
+    :, (
+        f.sampleID,
+        f.belongsToLabProcedure,
+        f.belongsToSample,
+        f.belongsToRequest,
+        # f.libraryPreparationKit,
+        # f.targetEnrichmentKit,
+        f.belongsToBatch
+    )
+][
+    :, first(f[:]), dt.by(f.sampleID, f.belongsToSample,f.belongsToLabProcedure,f.belongsToRequest)
+]
+
+sequencing = sampleSequencingData[
+    :, (
+        f.sequencingID,
+        f.belongsToLabProcedure,
+        f.belongsToSamplePreparation,
+        f.sequencingDate,
+        f.sequencingFacilityOrganization,
+        f.sequencingPlatform,
+        f.sequencingInstrumentModel,
+        # f.sequencingMethod,
+        f.referenceGenomeUsed
+    )
+]
 
 #//////////////////////////////////////////////////////////////////////////////
 
