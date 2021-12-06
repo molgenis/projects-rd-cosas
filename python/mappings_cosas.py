@@ -2,129 +2,25 @@
 #' FILE: mappings_cosas.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-10-05
-#' MODIFIED: 2021-12-01
+#' MODIFIED: 2021-12-06
 #' PURPOSE: primary mapping script for COSAS
 #' STATUS: working
 #' PACKAGES: **see below**
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
-import molgenis.client as molgenis
+from python.utils_cosas import status_msg #, molgenis
 from datatable import dt, f, as_type, first
-from urllib.parse import quote_plus
 from datetime import datetime
-import json
-import requests
-import re
+import pandas as pd
 import numpy as np
+import re
 
-# extend molgenis.Session class
-class molgenis(molgenis.Session):
-    """molgenis
-    An extension of the molgenis.client class
-    """
-    
-    # update_table
-    def update_table(self, entity: str, data: list):
-        """Update Table
-        
-        When importing data into a new table using the client, there is a 1000
-        row limit. This method allows you push data without having to worry
-        about the limits.
-        
-        @param entity (str) : name of the entity to import data into
-        @param data (list) : data to import
-        
-        @return a status message
-        """
-        props = list(self.__dict__.keys())
-        if '_url' in props: url = self._url
-        if '_api_url' in props: url = self._api_url
-        url = f'{url}v2/{quote_plus(entity)}'
-        
-        # single push
-        if len(data) < 1000:
-            try:
-                response = self._session.post(
-                    url = url,
-                    headers = self._get_token_header_with_content_type(),
-                    data = json.dumps({'entities' : data})
-                )
-                if not response.status_code // 100 == 2:
-                    return f'Error: unable to import data({response.status_code}): {response.content}'
-                
-                return f'Imported {len(data)} entities into {str(entity)}'
-            except requests.exceptions.HTTPError as err:
-                raise SystemError(err)
-        
-        # batch push
-        if len(data) >= 1000:    
-            for d in range(0, len(data), 1000):
-                try:
-                    response = self._session.post(
-                        url = url,
-                        headers = self._get_token_header_with_content_type(),
-                        data = json.dumps({'entities': data[d:d+1000] })
-                    )
-                    if not response.status_code // 100 == 2:
-                        raise response.raise_for_status()
-
-                    return f'Batch {d}: Imported {len(data)} entities into {str(entity)}'
-                except requests.exceptions.HTTPError as err:
-                    raise SystemError(f'Batch {d} Error: unable to import data:\n{str(err)}')
-
-    # batch_update_one_attr
-    def batch_update_one_attr(self, entity: str, attr: str, data: list):
-        """Batch Update One Attribute
-        
-        Import data for an attribute in batches (i.e., into groups of 1000 entities).
-        Data should be a list of dictionaries with two keys: `id` and <attr> where
-        attr is the name of the attribute that you would like to update
-        
-        @param data (list) : data to import
-        @param attr (str) : name of the attribute to update
-        @param entity (str) : name of the entity to import data into
-        
-        @return a response code
-        """
-        props = self.__dict__.keys()
-        if '_url' in props: url = self._url
-        if '_api_url' in props: url = self._api_url
-        url = f'{url}v2/{quote_plus(entity)}/{attr}'
-        
-        for d in range(0, len(data), 1000):
-            try:
-                response = self._session.put(
-                    url = url,
-                    headers = self._get_token_header_with_content_type(),
-                    data = json.dumps({'entities': data[d:d+1000] })
-                )
-                
-                if not response.status_code // 100 == 2:
-                    raise response.raise_for_status()
-                
-                return f'Batch {d}: Imported {len(data)} entities into {str(entity)}' 
-            except requests.exceptions.HTTPError as err:
-                raise SystemError(f'Batch {d} Error: unable to import data:\n{str(err)}')
-
-# create status message
-def status_msg(*args):
-    """Status Message
-    
-    Prints a message with a timestamp
-    
-    @param *args : message to write 
-    
-    @example
-    status_msg('hello world')
-    
-    """
-    msg = ' '.join(map(str, args))
-    t = datetime.utcnow().strftime('%H:%M:%S.%f')[:-3]
-    print('\033[94m[' + t + '] \033[0m' + msg)
     
 # create class of methods used in the mappings
 class cosasUtils:
+    def as_records(data = None):
+        return data.to_pandas().replace({np.nan:None}).to_dict('records')
     def calculate_age(earliest = None, recent = None):
         """Calculate Years of Age between two dates
         
@@ -137,7 +33,6 @@ class cosasUtils:
             return None
 
         return round(int((recent - earliest).days) / 365.25, 4)
-    
     def extract_phenotypicCodes(id, column):
         """Extract Phenotypic Codes
         
@@ -153,7 +48,6 @@ class cosasUtils:
         values = list(filter(None, clinical[f.belongsToSubject == id, column].to_list()[0]))
         unique = list(set(values))
         return ','.join(unique)
-    
     def extract_testCodes(subjectID, sampleID, requestID, column):
         """Extract and collapse test codes from the column `alternativeIdentifers`
         
@@ -175,14 +69,12 @@ class cosasUtils:
         )
         unique = list(set(values))
         return ','.join(unique)
-        
     def format_asYear(date: datetime.date = None):
         """Format Date as Year"""
         if date is None or str(date) == 'nan':
             return None
 
         return date.strftime('%Y')
-
     def format_date(date: str, pattern = '%Y-%m-%d %H:%M:%S', asString = False) -> str:
         """Format Date String
         
@@ -204,21 +96,11 @@ class cosasUtils:
         if asString: value = str(value)
         
         return value
-        
-    def format_familyMemberIDs(id: str, value: str, idList: list):
-        """Format Family Member IDs
-        Remove family IDs that aren't in the data export and reformat string
-        
-        @param value (str) : comma-separated string containing family IDs
-        @param idist (list) : reference list of IDs to compare in the value
-        
-        @param comma separated string
-        """
-        if value is None or str(value) == 'nan' or value == '-':
+    def format_idString(idString: str, idToRemove: str):
+        if (str(idString) in ['nan','-','']) or (idString is None):
             return None
-            
-        values = [v for v in value.split(',') if (v in idList) and not (v == id)]
-        ','.join(values)
+        newString=re.sub(re.compile(f'((,)?({idToRemove})(,)?)'), '', idString).strip()
+        return re.sub(r'([,]$)', '',newString)
     def recode_biospecimenType(value):
         mappings = {
             'DNA': 'Blood DNA',
@@ -261,7 +143,6 @@ class cosasUtils:
         """
         if value is None:
             return None
-            
         refData[f.value == value, f.hpo][0][0]
     def recode_genomeBuild(value: str):        
         if value == 'Feb. 2009 (GRCh37/hg19)':
@@ -310,13 +191,15 @@ class cosasUtils:
                 'platform': 'Illumina platform',
                 'model': 'MiSeq'
             },
+            # for NextSeq sequencers, I'm using model None. Numbers 1:3 likely
+            # represents machine number not model number.
             'NextSeq sequencer 1' : {
                 'platform': 'Illumina platform',
-                'model': 'Illumina NextSeq 1000'
+                'model': None #'Illumina NextSeq 1000'
             },
             'NextSeq sequencer 2' : {
                 'platform': 'Illumina platform',
-                'model': 'Illumina NextSeq 2000'
+                'model': None # 'Illumina NextSeq 2000'
             },
             'NextSeq sequencer 3' : {
                 'platform': 'Illumina platform',
@@ -348,23 +231,13 @@ class cosasUtils:
     def timestamp():
         """Return Generic timestamp as yyyy-mm-ddThh:mm:ssZ"""
         return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-    def as_records(data = None):
-        """Convert a datatable object to list of dictionaries (i.e., records)
-        
-        @param data (datatable) : datatable object to convert
-        
-        @return list of dictionaries
-        """
-        return data.to_pandas().replace({np.nan:None}).to_dict('records')
-
+    
 #//////////////////////////////////////////////////////////////////////////////
 
 # Read Portal Data
-status_msg('Reading data from the portal...')
-cosas = molgenis(url = 'http://localhost/api/', token = '${molgenisToken}')
+# cosas = molgenis(url = 'http://localhost/api/', token = '${molgenisToken}')
 
-
-import pandas as pd
+status_msg('Loading the latest data exports...')
 raw_subjects = dt.Frame(pd.read_excel('_raw/cosasportal_patients.xlsx',dtype=str))
 raw_clinical = dt.Frame(pd.read_excel('_raw/cosasportal_diagnoses.xlsx',dtype=str))
 raw_bench_cnv = dt.Frame(pd.read_excel('_raw/cosasportal_bench_cnv.xlsx',dtype=str))
@@ -376,30 +249,11 @@ raw_ngs_darwin = dt.Frame(pd.read_excel('_raw/cosasportal_ngs_darwin.xlsx',dtype
 cineasHpoMappings = dt.Frame(pd.read_csv('emx/lookups/cosasrefs_cineasHpoMappings.csv',dtype=str))
 
 # pull list of subjects from COSAS and merge with new subject ID list
-cosasSubjectIdList = raw_subjects[:, 'UMCG_NUMBER'].to_list()[0]
+cosasSubjectIdList = list(set(raw_subjects[:, 'UMCG_NUMBER'].to_list()[0]))
 # subjectIdList = dt.Frame(
 #   cosas.get('cosas_subjects',attributes='subjectID',batch_size=10000)
 # )['subjectID'].to_list()[0]
 # cosasSubjectIdList = list(set(cosasSubjectIdList.append(subjectIdList)))
-
-#//////////////////////////////////////////////////////////////////////////////
-
-# Build Phenotypic Data from workbench export
-#
-# This dataset provides historical records on observedPhenotypes for older cases.
-# This allows us to populate the COSAS Clinical table with extra information. 
-
-# Process data from external provider
-confirmedHpoDF = raw_bench_cnv[:, {'clinicalID': f.primid, 'observedPhenotype': f.Phenotype}]
-confirmedHpoDF['flag'] = dt.Frame([
-    True if d in cosasSubjectIdList else False for d in confirmedHpoDF['clinicalID'].to_list()[0]
-])
-confirmedHpoDF = confirmedHpoDF[f.flag == True, :]
-confirmedHpoDF['observedPhenotype'] = dt.Frame([
-    ','.join(list(set(d.strip().split()))) for d in confirmedHpoDF['observedPhenotype'].to_list()[0]
-])
-confirmedHpoDF.key = 'clinicalID'
-del confirmedHpoDF['flag']
 
 #//////////////////////////////////////////////////////////////////////////////
 
@@ -435,26 +289,68 @@ subjects = raw_subjects[
     }
 ][:, :, dt.sort(as_type(f.subjectID, int))]
 
-# validate `belongsToMother`
-subjects['belongsToMother'] = dt.Frame([
-    d if d in cosasSubjectIdList else None for d in subjects['belongsToMother'].to_list()[0]
-])
 
-# validate `belongsToFather`
-subjects['belongsToMother'] = dt.Frame([
-    d if d in cosasSubjectIdList else None for d in subjects['belongsToMother'].to_list()[0]
-])
+# find new subjects to register
+# `belongsToMother`, `belongsToFather`, and `belongsWithFamilyMembers`
+status_msg('Identifying unregistered subjects...')
+maternalIDs = subjects['belongsToMother'].to_list()[0]
+paternalIDs = subjects['belongsToFather'].to_list()[0]
+belongsWithFamilyMembers = []
+for entity in subjects[:, (f.belongsWithFamilyMembers,f.belongsToFamily, f.subjectID)].to_tuples():
+    if not (entity[0] is None):
+        ids = [d.strip() for d in entity[0].split(',') if not (d is None) or (d != '')]
+        for el in ids:
+            if (
+                (el != '') and 
+                (el != entity[2]) and
+                not (el in paternalIDs) and
+                not (el in maternalIDs) and
+                not (el in cosasSubjectIdList) 
+            ):
+                belongsWithFamilyMembers.append({
+                    'subjectID': el,
+                    'belongsToFamily': entity[1],
+                    'comments': 'manually registered in COSAS'
+                })
 
-# format linked family IDs: remove spaces and IDs that aren't included in the export
+# convert to datatable object and select unique subjects only
+belongsWithFamilyMembers = dt.Frame(belongsWithFamilyMembers)[
+    :, first(f[:]), dt.by('subjectID')
+][:, :, dt.sort(as_type(f.subjectID, int))]
+
+# bind new subject objects
+subjectsToRegister = dt.rbind(
+    dt.Frame([
+        {
+            'subjectID': d[0],
+            'belongsToFamily': d[1],
+            'phenotypicSex': 'Vrouw',
+            'comments': 'manually registered in COSAS'
+        } for d in subjects[:, (f.belongsToMother, f.belongsToFamily)].to_tuples()
+        if not (d[0] is None) and not (d[0] in cosasSubjectIdList)
+    ]),
+    dt.Frame([
+        {
+            'subjectID': d[0],
+            'belongsToFamily': d[1],
+            'comments': 'manually registered in COSAS'
+        } for d in subjects[:, (f.belongsToFather, f.belongsToFamily)].to_tuples()
+        if not (d[0] is None) and not (d[0] in cosasSubjectIdList)
+    ]),
+    belongsWithFamilyMembers,
+    force = True
+)
+
+# format belongsWithFamilyMembers in base subjects object before joining new subjects
+status_msg('Formating linked Family IDs...')
 subjects['belongsWithFamilyMembers'] = dt.Frame([
-    cosasUtils.format_familyMemberIDs(
-        id = d[0],
-        value = d[1],
-        idList = cosasSubjectIdList
-    ) for d in subjects[
-        :, (f.subjectID, f.belongsWithFamilyMembers)
-    ].to_tuples()
+    cosasUtils.format_idString(d[0],d[1])
+    for d in subjects[:, (f.belongsWithFamilyMembers, f.subjectID)].to_tuples()
 ])
+
+
+# bind
+subjects = dt.rbind(subjects, subjectsToRegister, force = True)[:, first(f[:]), dt.by(f.subjectID)][:, :, dt.sort(as_type(f.subjectID, int))]
 
 # format dateOfBirth: as yyyy-mm-dd
 subjects['dateOfBirth'] = dt.Frame([
@@ -496,7 +392,7 @@ subjects['ageAtDeath'] = dt.Frame([
     ) for d in subjects[:, (f.dateOfBirth, f.dateOfDeath)].to_tuples()
 ])
 
-# format variables post-mapping
+# format dates as string now that age calcuations are complete
 subjects['dateOfBirth'] = dt.Frame([
     str(d) if bool(d) else None for d in subjects['dateOfBirth'].to_list()[0]
 ])
@@ -506,8 +402,27 @@ subjects['dateOfDeath'] = dt.Frame([
 ])
 
 status_msg('Mapped {} new records'.format(subjects.nrows))
+del maternalIDs, paternalIDs, belongsWithFamilyMembers, subjectsToRegister
 
 #//////////////////////////////////////////////////////////////////////////////
+
+
+# Build Phenotypic Data from workbench export
+#
+# This dataset provides historical records on observedPhenotypes for older cases.
+# This allows us to populate the COSAS Clinical table with extra information. 
+
+# Process data from external provider
+confirmedHpoDF = raw_bench_cnv[:, {'clinicalID': f.primid, 'observedPhenotype': f.Phenotype}]
+confirmedHpoDF['flag'] = dt.Frame([
+    True if d in cosasSubjectIdList else False for d in confirmedHpoDF['clinicalID'].to_list()[0]
+])
+confirmedHpoDF = confirmedHpoDF[f.flag == True, :]
+confirmedHpoDF['observedPhenotype'] = dt.Frame([
+    ','.join(list(set(d.strip().split()))) for d in confirmedHpoDF['observedPhenotype'].to_list()[0]
+])
+confirmedHpoDF.key = 'clinicalID'
+del confirmedHpoDF['flag']
 
 # Build COSAS Clinical Table
 #
@@ -617,6 +532,8 @@ if clinical[f.flag == False,:].nrows > 0:
     )
 else:
     del clinical['flag']
+    
+del confirmedHpoDF
 
 #//////////////////////////////////////////////////////////////////////////////
 
@@ -721,8 +638,10 @@ else:
 # `samplePreparation` and `sequencing` tables. The column `samplingReason`
 # (i.e., `labIndication`) must also be merged with the `samples` table.
 #
+# In this section, combine the ADLAS and Darwin exports for each test type
+# indepently, and then bind them into one object.
+#
 status_msg('Preparing data for the samplePrepation and sequencing tables...')
-
 
 # map array adlas data: select vars, pull distinct entries, and sort 
 array_adlas = raw_array_adlas[
@@ -755,7 +674,7 @@ array_darwin = raw_array_darwin[
         'belongsToSubject': f.UmcgNr,
         'belongsToLabProcedure': f.TestId, # codes are written into ID
         'sequencingDate': f.TestDatum, # recode date
-        'reasonForSampling': f.Indicatie, # format lab indication
+        'reasonForSequencing': f.Indicatie, # format lab indication
         'sequencingMethod': None,
     }
 ][
@@ -769,11 +688,6 @@ array_darwin = raw_array_darwin[
 array_darwin.key = ['belongsToSubject','belongsToLabProcedure']
 arrayData = array_adlas[:, :, dt.join(array_darwin)]
 
-# format `sequencingDate` as yyyy-mm-dd
-# arrayData['sequencingDate'] = dt.Frame([
-#     cosasUtils.format_date(d, asString = True) for d in arrayData['sequencingDate'].to_list()[0]
-# ])
-
 # reshape: NGS data from ADLAS
 ngs_adlas = raw_ngs_adlas[
     :, {
@@ -784,22 +698,11 @@ ngs_adlas = raw_ngs_adlas[
         'belongsToLabProcedure': f.TEST_CODE
     }
 ][
-    :,
-    first(f[:]),
-    dt.by(
-        f.belongsToSubject,
-        f.belongsToRequest,
-        f.sampleID,
-        f.belongsToLabProcedure
-    )
+    :, first(f[:]),
+    dt.by(f.belongsToSubject,f.belongsToRequest, f.sampleID, f.belongsToLabProcedure)
 ][
     :,
-    (
-        f.belongsToSubject,
-        f.belongsToRequest,
-        f.sampleID,
-        f.belongsToLabProcedure
-    ),
+    (f.belongsToSubject,f.belongsToRequest,f.sampleID,f.belongsToLabProcedure),
     dt.sort(as_type(f.belongsToSubject, int))
 ]
 
@@ -809,7 +712,7 @@ ngs_darwin = raw_ngs_darwin[
         'belongsToSubject': f.UmcgNr,
         'belongsToLabProcedure': f.TestId,
         'sequencingDate': f.TestDatum,
-        'reasonForSampling': f.Indicatie,
+        'reasonForSequencing': f.Indicatie,
         'sequencingPlatform': f.Sequencer,
         'sequencingInstrumentModel': f.Sequencer,
         'sequencingMethod': None,
@@ -851,15 +754,14 @@ sampleSequencingData['sequencingDate'] = dt.Frame([
 ])
 
 # format `labIndication`: use urdm_lookups_samplingReason
-sampleSequencingData['reasonForSampling'] = dt.Frame([
-    cosasUtils.recode_samplingReason(d) for d in sampleSequencingData['reasonForSampling'].to_list()[0]
+sampleSequencingData['reasonForSequencing'] = dt.Frame([
+    cosasUtils.recode_samplingReason(d) for d in sampleSequencingData['reasonForSequencing'].to_list()[0]
 ])
 
 # recode `sequencingPlatform`
 sampleSequencingData['sequencingPlatform'] = dt.Frame([
     cosasUtils.recode_sequencingInfo(
-        value = d,
-        type = 'platform'
+        value = d, type = 'platform'
     ) for d in sampleSequencingData['sequencingPlatform'].to_list()[0]
 ])
 
@@ -876,6 +778,8 @@ sampleSequencingData['referenceGenomeUsed'] = dt.Frame([
     cosasUtils.recode_genomeBuild(d) for d in sampleSequencingData['referenceGenomeUsed'].to_list()[0]
 ])
 
+del arrayData, ngsData
+
 #//////////////////////////////////////
 
 # Create SamplePreparation and Sequencing tables
@@ -890,6 +794,7 @@ sampleSequencingData['referenceGenomeUsed'] = dt.Frame([
 # In addition, we will also need to add `sequencingMethod`. I'm not sure what
 # mappings should be used. This will require further discussion.
 #
+status_msg('Building samplePreparation and sequencing tables...')
 samplePreparation = sampleSequencingData[
     :, (
         f.sampleID,
@@ -909,6 +814,7 @@ sequencing = sampleSequencingData[
         f.sequencingID,
         f.belongsToLabProcedure,
         f.belongsToSamplePreparation,
+        f.reasonForSequencing,
         f.sequencingDate,
         f.sequencingFacilityOrganization,
         f.sequencingPlatform,
@@ -918,46 +824,33 @@ sequencing = sampleSequencingData[
     )
 ]
 
-#//////////////////////////////////////////////////////////////////////////////
-
-# Finalize Samples
-# Merge data from Lab tables
-
-vars = [f.umcgID, f.requestID, f.dnaID, f.testCode, f.testDate, f.labIndication]
-keys = ['umcgID', 'requestID', 'dnaID', 'testCode']
-
-lab_subset = dt.rbind(lab_ngs[:, (vars)], lab_array[:, (vars)])
-lab_subset.key = keys
-
-samples = samples[:, :, dt.join(lab_subset)][:, :, dt.join(subjectFamilyIDs)]
-
+# cleanup
+del arrayData, array_adlas, array_darwin, ngsData, ngs_adlas, ngs_darwin
 
 #//////////////////////////////////////////////////////////////////////////////
 
-# IMPORT DATA
+# Prep data for import
+#
+# All primary data tables will be written to csv, and then import via a
+# secondary script. Before writing to files, we will need to set a few
+# of the row-level metadata attributes.
+# 
+status_msg('Updating row-level metadata...')
 
-status_msg('Preparing data for import into COSAS...')
+# set record-level metadata
+subjects[:, dt.update(dateRecordCreated = cosasUtils.timestamp(),recordCreatedBy="david")]
+clinical[:, dt.update(dateRecordCreated = cosasUtils.timestamp(),recordCreatedBy="david")]
+samples[:, dt.update(dateRecordCreated = cosasUtils.timestamp(),recordCreatedBy="david")]
+samplePreparation[:, dt.update(
+    dateRecordCreated = cosasUtils.timestamp(),
+    recordCreatedBy="david"
+)]
+sequencing[:, dt.update(dateRecordCreated = cosasUtils.timestamp(),recordCreatedBy="david")]
 
-# set timestamps
-subjects[:, dt.update(dateLastUpdated = cosasUtils.timestamp())]
-clinical[:, dt.update(dateLastUpdated = cosasUtils.timestamp())]
-samples[:, dt.update(dateLastUpdated = cosasUtils.timestamp())]
-lab_array[:, dt.update(dateLastUpdated = cosasUtils.timestamp())]
-lab_ngs[:, dt.update(dateLastUpdated = cosasUtils.timestamp())]
-
-# convert to list of dictionaries (make sure all nan's are recoded!)
-cosas_subjects = cosasUtils.as_records(subjects)
-cosas_clinical = cosasUtils.as_records(clinical)
-cosas_samples = cosasUtils.as_records(samples)
-cosas_labs_array = cosasUtils.as_records(lab_array)
-cosas_labs_ngs = cosasUtils.as_records(lab_ngs)
-
-status_msg('Importing mapping COSAS data...')
-cosas.update_table(entity = 'cosas_patients', data = cosas_subjects)
-cosas.update_table(entity = 'cosas_clinical', data = cosas_clinical)
-cosas.update_table(entity = 'cosas_samples', data = cosas_samples)
-cosas.update_table(entity = 'cosas_labs_array', data = cosas_labs_array)
-cosas.update_table(entity = 'cosas_labs_ngs', data = cosas_labs_ngs)
-
-# delete tables (useful for debugging)
-# [cosas.delete(x) for x in ['cosas_labs_array','cosas_labs_ngs', 'cosas_samples', 'cosas_clinical','cosas_patients']]
+# convert to list of dictionaries (make sure all nan's are recoded!), and save
+status_msg('Writing data to files...')
+cosasUtils.as_records(subjects).to_csv('')
+cosasUtils.as_records(clinical).to_csv('')
+cosasUtils.as_records(samples).to_csv('')
+cosasUtils.as_records(samplePreparation).to_csv('')
+cosasUtils.as_records(sequencing).to_csv('')
