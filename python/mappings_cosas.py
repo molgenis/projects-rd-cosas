@@ -4,23 +4,32 @@
 #' CREATED: 2021-10-05
 #' MODIFIED: 2021-12-06
 #' PURPOSE: primary mapping script for COSAS
-#' STATUS: working
+#' STATUS: stable
 #' PACKAGES: **see below**
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
-from python.utils_cosas import status_msg #, molgenis
+from utils_cosas import status_msg #, molgenis
 from datatable import dt, f, as_type, first
 from datetime import datetime
 import pandas as pd
 import numpy as np
+import yaml
 import re
 
-    
+starttime = datetime.now()
+
+def __readConfig__(path):
+    with open(path, 'r') as stream:
+        contents = yaml.safe_load(stream)
+    stream.close()
+    return contents
+
+def to_csv(data, path: str):
+    return data.to_pandas().replace({np.nan:None}).to_csv(path,index=False)
+
 # create class of methods used in the mappings
 class cosasUtils:
-    def as_records(data = None):
-        return data.to_pandas().replace({np.nan:None}).to_dict('records')
     def calculate_age(earliest = None, recent = None):
         """Calculate Years of Age between two dates
         
@@ -75,7 +84,7 @@ class cosasUtils:
             return None
 
         return date.strftime('%Y')
-    def format_date(date: str, pattern = '%Y-%m-%d %H:%M:%S', asString = False) -> str:
+    def format_date(date: str, pattern = '%Y-%m-%d %H:%M:%S', asString = False):
         """Format Date String
         
         Format date string to yyyy-mm-dd format
@@ -163,6 +172,10 @@ class cosasUtils:
             if bool(value):
                 status_msg('Error in phenotypicSex mappings: {} does not exist'.format(value))
             return None
+        except AttributeError:
+            if bool(value):
+                status_msg('Error in phenotypicSex mappings: {} does not exist'.format(value))
+            return None
     def recode_samplingReason(value: str):
         mappings = {
             'Diagnostisch': 'Diagnostic',
@@ -216,21 +229,20 @@ class cosasUtils:
             return None
     def recode_subjectStatus(date):
         """Recode Subject Status
-        
         Using the values in the column `dateOfDeath`, determine the current
         status of the subject. The values are either 'deceased' or 'alive'.
-        
         @param date (str) : a date string
-        
         @return string
         """
-        if date is None or str(date) == 'nan':
-            'Alive'
-        else:
-            'Deceased'
+        if not bool(date):
+            return 'Presumed Alive'
+        return 'Dead'
     def timestamp():
         """Return Generic timestamp as yyyy-mm-ddThh:mm:ssZ"""
         return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+    
+# load cosas mapping config
+cosasConfig = __readConfig__('data/mappings_cosas_config.yaml')
     
 #//////////////////////////////////////////////////////////////////////////////
 
@@ -257,6 +269,7 @@ cosasSubjectIdList = list(set(raw_subjects[:, 'UMCG_NUMBER'].to_list()[0]))
 
 #//////////////////////////////////////////////////////////////////////////////
 
+status_msg('')
 # Build Subjects Table
 #
 # Map COSAS portal data into harmonized model structure for subject metadata.
@@ -267,7 +280,7 @@ cosasSubjectIdList = list(set(raw_subjects[:, 'UMCG_NUMBER'].to_list()[0]))
 #
 # Row level metadata will be applied at the end of the script.
 #
-status_msg('Mapping COSAS Patients...')
+status_msg('==== Building COSAS Patients ====')
 
 # pull variables of interest from portal table
 subjects = raw_subjects[
@@ -277,7 +290,6 @@ subjects = raw_subjects[
         'belongsToMother': f.UMCG_MOEDER,
         'belongsToFather': f.UMCG_VADER,
         'belongsWithFamilyMembers': f.FAMILIELEDEN,
-        'subjectStatus': None,
         'dateOfBirth': f.GEBOORTEDATUM,
         'yearOfBirth': None,
         'dateOfDeath': f.OVERLIJDENSDATUM,
@@ -296,7 +308,11 @@ status_msg('Identifying unregistered subjects...')
 maternalIDs = subjects['belongsToMother'].to_list()[0]
 paternalIDs = subjects['belongsToFather'].to_list()[0]
 belongsWithFamilyMembers = []
-for entity in subjects[:, (f.belongsWithFamilyMembers,f.belongsToFamily, f.subjectID)].to_tuples():
+for entity in subjects[:, (
+    f.belongsWithFamilyMembers,
+    f.belongsToFamily,
+    f.subjectID
+)].to_tuples():
     if not (entity[0] is None):
         ids = [d.strip() for d in entity[0].split(',') if not (d is None) or (d != '')]
         for el in ids:
@@ -319,6 +335,7 @@ belongsWithFamilyMembers = dt.Frame(belongsWithFamilyMembers)[
 ][:, :, dt.sort(as_type(f.subjectID, int))]
 
 # bind new subject objects
+status_msg('Creating new subjects to register dataset...')
 subjectsToRegister = dt.rbind(
     dt.Frame([
         {
@@ -341,6 +358,10 @@ subjectsToRegister = dt.rbind(
     force = True
 )
 
+status_msg('Registering {} new subjects'.format(subjectsToRegister.nrows))
+
+#//////////////////////////////////////
+
 # format belongsWithFamilyMembers in base subjects object before joining new subjects
 status_msg('Formating linked Family IDs...')
 subjects['belongsWithFamilyMembers'] = dt.Frame([
@@ -350,7 +371,10 @@ subjects['belongsWithFamilyMembers'] = dt.Frame([
 
 
 # bind
+status_msg('Binding subjects with new subjects...')
 subjects = dt.rbind(subjects, subjectsToRegister, force = True)[:, first(f[:]), dt.by(f.subjectID)][:, :, dt.sort(as_type(f.subjectID, int))]
+
+status_msg('Transforming variables...')
 
 # format dateOfBirth: as yyyy-mm-dd
 subjects['dateOfBirth'] = dt.Frame([
@@ -406,11 +430,14 @@ del maternalIDs, paternalIDs, belongsWithFamilyMembers, subjectsToRegister
 
 #//////////////////////////////////////////////////////////////////////////////
 
+status_msg('')
+status_msg('==== Building COSAS Clinical ====')
 
 # Build Phenotypic Data from workbench export
 #
 # This dataset provides historical records on observedPhenotypes for older cases.
 # This allows us to populate the COSAS Clinical table with extra information. 
+status_msg('Mapping historical phenotypic data...')
 
 # Process data from external provider
 confirmedHpoDF = raw_bench_cnv[:, {'clinicalID': f.primid, 'observedPhenotype': f.Phenotype}]
@@ -458,6 +485,8 @@ clinical = dt.rbind(
         'certainty': f.EXTRA_DIAGNOSE_ZEKERHEID
     }]
 )[f.code != '-', :]
+
+status_msg('Transforming variables...')
 
 # extract CINEAS code for string
 clinical['code'] = dt.Frame([
@@ -533,9 +562,13 @@ if clinical[f.flag == False,:].nrows > 0:
 else:
     del clinical['flag']
     
+status_msg('Processing {} new records for the clinical table'.format(clinical.nrows))
 del confirmedHpoDF
 
 #//////////////////////////////////////////////////////////////////////////////
+
+status_msg('')
+status_msg('==== Building COSAS Samples ====')
 
 # Build Sample Table
 #
@@ -560,15 +593,16 @@ samples = raw_samples[:,
         'belongsToSubject': f.UMCG_NUMMER,
         'belongsToRequest': f.ADVVRG_ID,
         # 'dateOfRequest': f.ADVIESVRAAG_DATUM,
-        'reasonForSampling': None,
         'biospecimenType': f.MATERIAAL,
         # 'alternativeIdentifiers': f.TEST_CODE
     }
 ]
 
+status_msg('Transforming variables...')
+
 # collapse request by sampleID into a comma seperated string
 samples['belongsToRequest'] = dt.Frame([
-    ','.join(
+    ', '.join(
         list(
             set(
                 samples[
@@ -576,9 +610,7 @@ samples['belongsToRequest'] = dt.Frame([
                 ].to_list()[0]
             )
         )
-    ) for d in samples[
-        :, (f.sampleID, f.belongsToRequest)
-    ].to_tuples()
+    ) for d in samples[:, (f.sampleID, f.belongsToRequest)].to_tuples()
 ])
 
 # format `dateOfRequest` as yyyy-mm-dd
@@ -628,9 +660,12 @@ if samples[f.flag == False,:].nrows > 0:
 else:
     del samples['flag']
 
+status_msg('Processing {} new records for the samples table'.format(samples.nrows))
 
 #//////////////////////////////////////////////////////////////////////////////
 
+status_msg('')
+status_msg('==== Building COSAS SamplePreparation and Sequencing ====')
 
 # Build Sample Prepation and Sequencing Tables
 #
@@ -641,9 +676,10 @@ else:
 # In this section, combine the ADLAS and Darwin exports for each test type
 # indepently, and then bind them into one object.
 #
-status_msg('Preparing data for the samplePrepation and sequencing tables...')
+status_msg('Building Array dataset...')
 
 # map array adlas data: select vars, pull distinct entries, and sort 
+status_msg('Processing ADLAS data...')
 array_adlas = raw_array_adlas[
     :, {
         'belongsToSubject': f.UMCG_NUMBER,
@@ -669,6 +705,7 @@ array_adlas = raw_array_adlas[
 
 
 # map array darwin data: select vars, pull distinct entries, and sort
+status_msg('Processing Darwin data...')
 array_darwin = raw_array_darwin[
     :, {
         'belongsToSubject': f.UmcgNr,
@@ -680,7 +717,7 @@ array_darwin = raw_array_darwin[
 ][
     :, first(f[:]), dt.by(f.belongsToSubject, f.belongsToLabProcedure)
 ][
-    :, (f.belongsToSubject, f.belongsToLabProcedure, f.sequencingDate, f.reasonForSampling),
+    :, (f.belongsToSubject, f.belongsToLabProcedure, f.sequencingDate, f.reasonForSequencing),
     dt.sort(as_type(f.belongsToSubject, int))
 ]
 
@@ -688,7 +725,12 @@ array_darwin = raw_array_darwin[
 array_darwin.key = ['belongsToSubject','belongsToLabProcedure']
 arrayData = array_adlas[:, :, dt.join(array_darwin)]
 
+#//////////////////////////////////////
+
 # reshape: NGS data from ADLAS
+status_msg('Building NGS dataset...')
+
+status_msg('Processing ADLAS data...')
 ngs_adlas = raw_ngs_adlas[
     :, {
         'belongsToSubject': f.UMCG_NUMBER,
@@ -707,6 +749,7 @@ ngs_adlas = raw_ngs_adlas[
 ]
 
 # reshape: NGS data from Darwin
+status_msg('Processing Darwin data...')
 ngs_darwin = raw_ngs_darwin[
     :, {
         'belongsToSubject': f.UmcgNr,
@@ -730,6 +773,9 @@ ngs_darwin = raw_ngs_darwin[
 ngs_darwin.key = ['belongsToSubject', 'belongsToLabProcedure']
 ngsData = ngs_adlas[:, :, dt.join(ngs_darwin)]
 
+#//////////////////////////////////////
+
+status_msg('Combining array and ngs dataset...')
 
 # bind array and ngs datasets; create additional attributes
 sampleSequencingData = dt.rbind(arrayData, ngsData, force=True)
@@ -740,6 +786,8 @@ sampleSequencingData[
         sequencingFacilityOrganization = 'UCMG', # will always be UMCG
     )
 ]
+
+status_msg('Transforming variables...')
 
 # create sequencingID a combination of sampleID + belongsToLabProcedure
 sampleSequencingData['sequencingID'] = dt.Frame([
@@ -778,8 +826,6 @@ sampleSequencingData['referenceGenomeUsed'] = dt.Frame([
     cosasUtils.recode_genomeBuild(d) for d in sampleSequencingData['referenceGenomeUsed'].to_list()[0]
 ])
 
-del arrayData, ngsData
-
 #//////////////////////////////////////
 
 # Create SamplePreparation and Sequencing tables
@@ -794,7 +840,7 @@ del arrayData, ngsData
 # In addition, we will also need to add `sequencingMethod`. I'm not sure what
 # mappings should be used. This will require further discussion.
 #
-status_msg('Building samplePreparation and sequencing tables...')
+status_msg('Pull attributes for the samplePreparation table...')
 samplePreparation = sampleSequencingData[
     :, (
         f.sampleID,
@@ -809,6 +855,9 @@ samplePreparation = sampleSequencingData[
     :, first(f[:]), dt.by(f.sampleID, f.belongsToSample,f.belongsToLabProcedure,f.belongsToRequest)
 ]
 
+status_msg('Processed {} new records for the samplePreparation table'.format(samplePreparation.nrows))
+
+status_msg('Pulling attributes for the sequencing table...')
 sequencing = sampleSequencingData[
     :, (
         f.sequencingID,
@@ -824,8 +873,7 @@ sequencing = sampleSequencingData[
     )
 ]
 
-# cleanup
-del arrayData, array_adlas, array_darwin, ngsData, ngs_adlas, ngs_darwin
+status_msg('Processed {} new records for the sequencing table'.format(sequencing.nrows))
 
 #//////////////////////////////////////////////////////////////////////////////
 
@@ -835,22 +883,45 @@ del arrayData, array_adlas, array_darwin, ngsData, ngs_adlas, ngs_darwin
 # secondary script. Before writing to files, we will need to set a few
 # of the row-level metadata attributes.
 # 
+status_msg('')
 status_msg('Updating row-level metadata...')
 
+createdBy = [x['data']['createdBy'] for x in cosasConfig['options'] if x['name'] == 'recordMetadata'][0]
+
 # set record-level metadata
-subjects[:, dt.update(dateRecordCreated = cosasUtils.timestamp(),recordCreatedBy="david")]
-clinical[:, dt.update(dateRecordCreated = cosasUtils.timestamp(),recordCreatedBy="david")]
-samples[:, dt.update(dateRecordCreated = cosasUtils.timestamp(),recordCreatedBy="david")]
+subjects[:, dt.update(
+    dateRecordCreated=cosasUtils.timestamp(),
+    recordCreatedBy=createdBy
+)]
+
+clinical[:, dt.update(
+    dateRecordCreated=cosasUtils.timestamp(),
+    recordCreatedBy=createdBy
+)]
+
+samples[:, dt.update(
+    dateRecordCreated=cosasUtils.timestamp(),
+    recordCreatedBy=createdBy
+)]
+
 samplePreparation[:, dt.update(
     dateRecordCreated = cosasUtils.timestamp(),
-    recordCreatedBy="david"
+    recordCreatedBy=createdBy
 )]
-sequencing[:, dt.update(dateRecordCreated = cosasUtils.timestamp(),recordCreatedBy="david")]
+
+sequencing[:, dt.update(
+    dateRecordCreated=cosasUtils.timestamp(),
+    recordCreatedBy=createdBy
+)]
 
 # convert to list of dictionaries (make sure all nan's are recoded!), and save
-status_msg('Writing data to files...')
-cosasUtils.as_records(subjects).to_csv('')
-cosasUtils.as_records(clinical).to_csv('')
-cosasUtils.as_records(samples).to_csv('')
-cosasUtils.as_records(samplePreparation).to_csv('')
-cosasUtils.as_records(sequencing).to_csv('')
+status_msg('Writing data to file...')
+to_csv(subjects,'data/cosas/subjects.csv')
+to_csv(clinical,'data/cosas/clinical.csv')
+to_csv(samples,'data/cosas/samples.csv')
+to_csv(samplePreparation,'data/cosas/samplePreparation.csv')
+to_csv(sequencing,'data/cosas/sequencing.csv')
+
+endtime = datetime.now()
+totaltime = endtime - starttime
+status_msg('Completed job in {} seconds'.format(totaltime.total_seconds()))
