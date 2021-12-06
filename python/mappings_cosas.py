@@ -190,6 +190,10 @@ class cosasUtils:
             if bool(value):
                 status_msg('Error in samplingReason mapping: {} does not exist'.format(value))
             return None 
+        except AttributeError:
+            if bool(value):
+                status_msg('Error in samplingReason mapping: {} does not exist'.format(value))
+            return None
     def recode_sequencingInfo(value: str, type: str):
         mappings = {
             'HiSeq' : {
@@ -551,7 +555,7 @@ clinical = clinical[:, :, dt.join(confirmedHpoDF)][:, :, dt.sort(as_type(f.clini
 
 # add ID check
 clinical['flag'] = dt.Frame([
-    True if d in cosasSubjectIdList else False for d in clinical['belongsToSubject'].to_list()[0]
+    d in cosasSubjectIdList for d in clinical['belongsToSubject'].to_list()[0]
 ])
 
 if clinical[f.flag == False,:].nrows > 0:
@@ -636,7 +640,7 @@ samples['belongsToRequest'] = dt.Frame([
 
 # pull unique rows only since codes were duplicated
 samples = samples[
-    :, first(f[:]), dt.by(f.sampleID,f.belongsToSubject)
+    :, first(f[:]), dt.by(f.sampleID)
 ][
     :, :, dt.sort(as_type(f.belongsToSubject, int))
 ]
@@ -649,7 +653,7 @@ samples['biospecimenType'] = dt.Frame([
 
 # add ID check
 samples['flag'] = dt.Frame([
-    True if d in cosasSubjectIdList else False for d in samples['belongsToSubject'].to_list()[0]
+    d in cosasSubjectIdList for d in samples['belongsToSubject'].to_list()[0]
 ])
 
 if samples[f.flag == False,:].nrows > 0:
@@ -782,19 +786,40 @@ sampleSequencingData = dt.rbind(arrayData, ngsData, force=True)
 sampleSequencingData[
     :, dt.update(
         belongsToSample = f.sampleID,
-        belongsToSamplePreparation = f.sampleID,
-        sequencingFacilityOrganization = 'UCMG', # will always be UMCG
+        belongsToSamplePreparation = f.sampleID
     )
 ]
+
+# removing entries that aren't registered in samples table
+# This can happen for a number of reasons!
+status_msg('Identifying unregistered samples...')
+registeredSamples = samples['sampleID'].to_list()[0]
+
+sampleSequencingData['flag'] = dt.Frame([
+    d in registeredSamples for d in sampleSequencingData['belongsToSample'].to_list()[0]
+])
+
+unregisteredSamples = sampleSequencingData[f.flag == False, :]
+unregisteredSamples.to_csv('data/cosas/unregistered_samples.csv')
+status_msg('Found {} unregistered samples'.format(unregisteredSamples.nrows))
+
+sampleSequencingData = sampleSequencingData[f.flag == True, :]
 
 status_msg('Transforming variables...')
 
 # create sequencingID a combination of sampleID + belongsToLabProcedure
+sampleSequencingData['belongsToSamplePreparation'] = dt.Frame([
+    f'{d[0]}_{d[1]}_{d[2]}' for d in sampleSequencingData[
+        :, (f.belongsToSample,f.belongsToRequest, f.belongsToLabProcedure)
+    ].to_tuples()
+])
+
 sampleSequencingData['sequencingID'] = dt.Frame([
     f'{d[0]}_{d[1]}_{d[2]}' for d in sampleSequencingData[
         :, (f.belongsToSample,f.belongsToRequest, f.belongsToLabProcedure)
     ].to_tuples()
 ])
+
 
 # format `sequencingDate` as yyyy-mm-dd
 sampleSequencingData['sequencingDate'] = dt.Frame([
@@ -843,7 +868,7 @@ sampleSequencingData['referenceGenomeUsed'] = dt.Frame([
 status_msg('Pull attributes for the samplePreparation table...')
 samplePreparation = sampleSequencingData[
     :, (
-        f.sampleID,
+        f.sequencingID,
         f.belongsToLabProcedure,
         f.belongsToSample,
         f.belongsToRequest,
@@ -851,12 +876,13 @@ samplePreparation = sampleSequencingData[
         # f.targetEnrichmentKit,
         f.belongsToBatch
     )
-][
-    :, first(f[:]), dt.by(f.sampleID, f.belongsToSample,f.belongsToLabProcedure,f.belongsToRequest)
 ]
 
+samplePreparation.names={'sequencingID': 'sampleID'}
+samplePreparation = samplePreparation[:, first(f[:]), dt.by(f.sampleID)]
 status_msg('Processed {} new records for the samplePreparation table'.format(samplePreparation.nrows))
 
+ 
 status_msg('Pulling attributes for the sequencing table...')
 sequencing = sampleSequencingData[
     :, (
@@ -865,7 +891,7 @@ sequencing = sampleSequencingData[
         f.belongsToSamplePreparation,
         f.reasonForSequencing,
         f.sequencingDate,
-        f.sequencingFacilityOrganization,
+        # f.sequencingFacilityOrganization,
         f.sequencingPlatform,
         f.sequencingInstrumentModel,
         # f.sequencingMethod,
