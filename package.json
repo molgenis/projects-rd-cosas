@@ -4,9 +4,10 @@
   "description": "The `molgenis-cosas` repository contains all of the code and scripts used to create and maintain the samples database.",
   "main": "index.js",
   "scripts": {
-    "m:config": "mcmd config set host https://david.gcc.rug.nl/",
-    "m:predeploy": "mcmd delete -p urdm",
-    "data:map": "python3 python/mappings_cosas.py"
+    "m:config": "dotenv cross-var mcmd config set host %MOLGENIS_HOST",
+    "m:predeploy": "mcmd delete -p umdm",
+    "data:map": "python3 python/mappings_cosas.py",
+    "data:zip": "zip -r -j data/zip/cosas.zip data/cosas/* emx/lookups/* && dotenv cross-var mv data/zip/cosas.zip %ZIP_LOCATION%"
   },
   "repository": {
     "type": "git",
@@ -18,5 +19,9 @@
   "bugs": {
     "url": "https://github.com/molgenis/molgenis-cosas/issues"
   },
-  "homepage": "https://github.com/molgenis/molgenis-cosas#readme"
+  "homepage": "https://github.com/molgenis/molgenis-cosas#readme",
+  "devDependencies": {
+    "cross-var": "^1.1.0",
+    "dotenv-cli": "^4.1.0"
+  }
 }
