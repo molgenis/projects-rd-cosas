@@ -1,9 +1,6 @@
 .DS_STORE
 data
 python/__pycache__
-python/_config.yml
-molgenis_config.yml
-_zip
-
-raw
 _raw
+.env
+node_modules
