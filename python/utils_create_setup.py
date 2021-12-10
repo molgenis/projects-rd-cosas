@@ -9,7 +9,6 @@
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
-import pandas as pd
 import requests
 
 # define class for listing metadata for public github repos

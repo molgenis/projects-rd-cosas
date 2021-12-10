@@ -10,26 +10,29 @@
 
 
 # <!--- start: utils_create_setup.py --->
-mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/dist/urdm.xlsx
-mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/urdm_lookups_anatomicalSource.csv
-mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/urdm_lookups_ancestry.csv
-mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/urdm_lookups_biospecimenType.csv
-mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/urdm_lookups_country.csv
-mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/urdm_lookups_dataUsePermissions.csv
-mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/urdm_lookups_diseases.csv
-mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/urdm_lookups_genomeAccessions.csv
-mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/urdm_lookups_genotypicSex.csv
-mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/urdm_lookups_inclusionCriteria.csv
-mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/urdm_lookups_inclusionStatus.csv
-mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/urdm_lookups_labIndication.csv
-mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/urdm_lookups_ngsKits.csv
-mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/urdm_lookups_pathologicalState.csv
-mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/urdm_lookups_phenotype.csv
-mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/urdm_lookups_phenotypicSex.csv
-mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/urdm_lookups_sequencingInstrumentModels.csv
-mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/urdm_lookups_sequencingMethods.csv
-mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/urdm_lookups_sequencingPlatform.csv
-mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/urdm_lookups_studyStatus.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/dist/umdm.xlsx
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_anatomicalSource.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_ancestry.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_biospecimenType.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_country.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_dataUseModifiers.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_dataUsePermissions.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_diagnosisConfirmationStatuses.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_diseases.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_fileStatus.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_genomeAccessions.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_genotypicSex.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_inclusionCriteria.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_ngsKits.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_pathologicalState.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_phenotype.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_phenotypicSex.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_samplingReason.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_sequencingInstrumentModels.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_sequencingMethods.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_sequencingPlatform.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_studyStatus.csv
+mcmd import -u https://raw.githubusercontent.com/molgenis/rd-datamodel/main/emx/lookups/umdm_lookups_subjectStatus.csv
 # <!--- end: utils_create_setup.py --->
 
 # import lookup tables and extensions first
