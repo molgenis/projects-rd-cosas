@@ -9,27 +9,25 @@
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
-from utils_cosas import status_msg #, molgenis
+from python.utils_cosas import status_msg #, molgenis
 from datatable import dt, f, as_type, first
 from datetime import datetime
+from dotenv import load_dotenv
+from os import environ
 import pandas as pd
 import numpy as np
-import yaml
 import re
+
+
+load_dotenv()
+host = environ['MOLGENIS_HOST_ACC']
+token = environ['MOLGENIS_TOKEN_ACC']
 
 starttime = datetime.now()
 
-def __readConfig__(path):
-    with open(path, 'r') as stream:
-        contents = yaml.safe_load(stream)
-    stream.close()
-    return contents
-
-def to_csv(data, path: str):
-    return data.to_pandas().replace({np.nan:None}).to_csv(path,index=False)
-
 # create class of methods used in the mappings
 class cosasUtils:
+    @staticmethod
     def calculate_age(earliest = None, recent = None):
         """Calculate Years of Age between two dates
         
@@ -42,6 +40,8 @@ class cosasUtils:
             return None
 
         return round(int((recent - earliest).days) / 365.25, 4)
+    
+    @staticmethod
     def extract_phenotypicCodes(id, column):
         """Extract Phenotypic Codes
         
@@ -57,6 +57,8 @@ class cosasUtils:
         values = list(filter(None, clinical[f.belongsToSubject == id, column].to_list()[0]))
         unique = list(set(values))
         return ','.join(unique)
+    
+    @staticmethod
     def extract_testCodes(subjectID, sampleID, requestID, column):
         """Extract and collapse test codes from the column `alternativeIdentifers`
         
@@ -78,12 +80,16 @@ class cosasUtils:
         )
         unique = list(set(values))
         return ','.join(unique)
+    
+    @staticmethod
     def format_asYear(date: datetime.date = None):
         """Format Date as Year"""
         if date is None or str(date) == 'nan':
             return None
 
         return date.strftime('%Y')
+    
+    @staticmethod
     def format_date(date: str, pattern = '%Y-%m-%d %H:%M:%S', asString = False):
         """Format Date String
         
@@ -105,11 +111,15 @@ class cosasUtils:
         if asString: value = str(value)
         
         return value
+    
+    @staticmethod
     def format_idString(idString: str, idToRemove: str):
         if (str(idString) in ['nan','-','']) or (idString is None):
             return None
         newString=re.sub(re.compile(f'((,)?({idToRemove})(,)?)'), '', idString).strip()
         return re.sub(r'([,]$)', '',newString)
+    
+    @staticmethod
     def recode_biospecimenType(value):
         mappings = {
             'DNA': 'Blood DNA',
@@ -143,6 +153,8 @@ class cosasUtils:
             if bool(value):
                 status_msg('Error in biospecimenType mappings: {} does not exist'.format(value))
             return None
+    
+    @staticmethod
     def recode_cineasToHpo(value: str, refData):
         """Recode Cineas Code to HPO
         Find the HPO term to a corresponding Cineas
@@ -153,9 +165,13 @@ class cosasUtils:
         if value is None:
             return None
         refData[f.value == value, f.hpo][0][0]
+    
+    @staticmethod
     def recode_genomeBuild(value: str):        
         if value == 'Feb. 2009 (GRCh37/hg19)':
             return 'GRCh37'
+    
+    @staticmethod
     def recode_phenotypicSex(value: str = None):
         """Recode Phenotypic Sex
         
@@ -176,6 +192,8 @@ class cosasUtils:
             if bool(value):
                 status_msg('Error in phenotypicSex mappings: {} does not exist'.format(value))
             return None
+    
+    @staticmethod
     def recode_samplingReason(value: str):
         mappings = {
             'Diagnostisch': 'Diagnostic',
@@ -194,6 +212,8 @@ class cosasUtils:
             if bool(value):
                 status_msg('Error in samplingReason mapping: {} does not exist'.format(value))
             return None
+    
+    @staticmethod
     def recode_sequencingInfo(value: str, type: str):
         mappings = {
             'HiSeq' : {
@@ -231,6 +251,8 @@ class cosasUtils:
             if bool(value):
                 status_msg('Error in sequencingPlatform mappings: {} does not exist'.format(value))
             return None
+    
+    @staticmethod
     def recode_subjectStatus(date):
         """Recode Subject Status
         Using the values in the column `dateOfDeath`, determine the current
@@ -241,12 +263,15 @@ class cosasUtils:
         if not bool(date):
             return 'Presumed Alive'
         return 'Dead'
+    
+    @staticmethod
     def timestamp():
         """Return Generic timestamp as yyyy-mm-ddThh:mm:ssZ"""
         return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
     
-# load cosas mapping config
-cosasConfig = __readConfig__('data/mappings_cosas_config.yaml')
+    @staticmethod
+    def to_csv(data, path: str):
+        return data.to_pandas().replace({np.nan:None}).to_csv(path,index=False)
     
 #//////////////////////////////////////////////////////////////////////////////
 
@@ -274,6 +299,7 @@ cosasSubjectIdList = list(set(raw_subjects[:, 'UMCG_NUMBER'].to_list()[0]))
 #//////////////////////////////////////////////////////////////////////////////
 
 status_msg('')
+# ~ 1 ~
 # Build Subjects Table
 #
 # Map COSAS portal data into harmonized model structure for subject metadata.
@@ -282,7 +308,7 @@ status_msg('')
 # Therefore, any ID that does not exist in the export should not be referenced
 # in this export.
 #
-# Row level metadata will be applied at the end of the script.
+# NOTE: Row level metadata will be applied at the end of the script.
 #
 status_msg('==== Building COSAS Patients ====')
 
@@ -306,41 +332,70 @@ subjects = raw_subjects[
 ][:, :, dt.sort(as_type(f.subjectID, int))]
 
 
-# find new subjects to register
-# `belongsToMother`, `belongsToFather`, and `belongsWithFamilyMembers`
+#
+# ~ 1a ~
+# Identify new linked family members
+#
+# In the new data, find subjects that do not exist in the following columns:
+# `belongsWithFamilyMembers`. These IDs are import to keep, but it throws
+# an error because the referenced IDs do not exist in the column `subjectID`.
+# Instead of removing the IDs, it is better to register these cases as new
+# COSAS subjects.
+#
+# The following code identifies missing IDs, creates a new COSAS record, and
+# appends them to the main subject dataset.
+#
 status_msg('Identifying unregistered subjects...')
+
 maternalIDs = subjects['belongsToMother'].to_list()[0]
 paternalIDs = subjects['belongsToFather'].to_list()[0]
-belongsWithFamilyMembers = []
-for entity in subjects[:, (
-    f.belongsWithFamilyMembers,
-    f.belongsToFamily,
-    f.subjectID
-)].to_tuples():
+
+belongsWithFamilyMembers = dt.Frame()
+for entity in subjects[:, (f.belongsWithFamilyMembers, f.belongsToFamily,f.subjectID)].to_tuples():
     if not (entity[0] is None):
         ids = [d.strip() for d in entity[0].split(',') if not (d is None) or (d != '')]
         for el in ids:
+            
+            # value must not be blank, not equal to subject ID, and isn't a known ID
             if (
-                (el != '') and 
+                (el != '') and
                 (el != entity[2]) and
-                not (el in paternalIDs) and
-                not (el in maternalIDs) and
-                not (el in cosasSubjectIdList) 
+                (el not in cosasSubjectIdList) and
+                (el not in maternalIDs) and
+                (el not in paternalIDs)
             ):
-                belongsWithFamilyMembers.append({
-                    'subjectID': el,
-                    'belongsToFamily': entity[1],
-                    'comments': 'manually registered in COSAS'
-                })
+                belongsWithFamilyMembers.rbind(
+                    dt.Frame([
+                        {
+                            'subjectID': el,
+                            'belongsToFamily': entity[1],
+                            'belongsWithFamilyMembers': entity[0],
+                            'comments': 'manually registered in COSAS'
+                        }
+                    ])
+                )
 
-# convert to datatable object and select unique subjects only
-belongsWithFamilyMembers = dt.Frame(belongsWithFamilyMembers)[
+# select unique subjects only
+belongsWithFamilyMembers = belongsWithFamilyMembers[
     :, first(f[:]), dt.by('subjectID')
 ][:, :, dt.sort(as_type(f.subjectID, int))]
+
+
+#
+# ~ 1b ~
+# Identify New Maternal- and Paternal IDs
+#
+# Like the column `belongsWithFamilyMembers`, we will also check the columns
+# `belongsToMother` and `belongsToFather` to make sure all subjects are properly
+# registered in COSAS. The following code will also bind new family members so
+# that we can bind the data in one step.
+#
 
 # bind new subject objects
 status_msg('Creating new subjects to register dataset...')
 subjectsToRegister = dt.rbind(
+    
+    # register new IDs identified in `belongsToMother`
     dt.Frame([
         {
             'subjectID': d[0],
@@ -350,21 +405,36 @@ subjectsToRegister = dt.rbind(
         } for d in subjects[:, (f.belongsToMother, f.belongsToFamily)].to_tuples()
         if not (d[0] is None) and not (d[0] in cosasSubjectIdList)
     ]),
+    
+    # register new IDs identified in `belongsToFather`
     dt.Frame([
         {
             'subjectID': d[0],
             'belongsToFamily': d[1],
+            'phenotypicSex': 'Man',
             'comments': 'manually registered in COSAS'
         } for d in subjects[:, (f.belongsToFather, f.belongsToFamily)].to_tuples()
         if not (d[0] is None) and not (d[0] in cosasSubjectIdList)
     ]),
+    
+    # bind family members
     belongsWithFamilyMembers,
+
     force = True
 )
 
 status_msg('Registering {} new subjects'.format(subjectsToRegister.nrows))
 
 #//////////////////////////////////////
+
+#
+# ~ 1b ~
+# Merge and format subject data
+#
+# In this step, we will create the table `umdm_subjects` using the objects
+# `subjects` and `subjectsToRegister`. Afterwards, several columns will need
+# to be recoded or formated for MOLGENIS.
+#
 
 # format belongsWithFamilyMembers in base subjects object before joining new subjects
 status_msg('Formating linked Family IDs...')
@@ -374,45 +444,55 @@ subjects['belongsWithFamilyMembers'] = dt.Frame([
 ])
 
 
-# bind
+#
+# Bind `subjectsToRegister` with subjects so that all columns can be formated
+# at once. Make sure distinct cases are selected and the dataset is sorted by
+# ID.
+#
 status_msg('Binding subjects with new subjects...')
-subjects = dt.rbind(subjects, subjectsToRegister, force = True)[:, first(f[:]), dt.by(f.subjectID)][:, :, dt.sort(as_type(f.subjectID, int))]
+subjects = dt.rbind(subjects, subjectsToRegister, force = True)[
+    :, first(f[:]), dt.by(f.subjectID)
+][:, :, dt.sort(as_type(f.subjectID, int))]
 
-status_msg('Transforming variables...')
 
-# format dateOfBirth: as yyyy-mm-dd
+# recode phenotypicSex
+status_msg('Recoding phenotypicSex...')
+
+subjects['phenotypicSex'] = dt.Frame([
+    cosasUtils.recode_phenotypicSex(d) for d in subjects['phenotypicSex'].to_list()[0]
+])
+
+
+# format date columns to the correct format (yyyy-mm-dd)
+status_msg('Transforming and calculating date variables...')
+
 subjects['dateOfBirth'] = dt.Frame([
     cosasUtils.format_date(
         date = d
     ) for d in subjects['dateOfBirth'].to_list()[0]
 ])
 
-# extract yearOfBirth from dateOfBirth
+
 subjects['yearOfBirth'] = dt.Frame([
     cosasUtils.format_asYear(d) for d in subjects['dateOfBirth'].to_list()[0]
 ])
 
-# format dateOfDeath: as yyyy-mm-dd
+
 subjects['dateOfDeath'] = dt.Frame([
     cosasUtils.format_date(d) for d in subjects['dateOfDeath'].to_list()[0]
 ])
 
-# extract yearOfDeath from dateOfDeath
+
 subjects['yearOfDeath'] = dt.Frame([
     cosasUtils.format_asYear(d) for d in subjects['dateOfDeath'].to_list()[0]
 ])
 
-# format biological sex: lower values
-subjects['phenotypicSex'] = dt.Frame([
-    cosasUtils.recode_phenotypicSex(d) for d in subjects['phenotypicSex'].to_list()[0]
-])
 
-# recode subject status: based on `dateOfDeath`
 subjects['subjectStatus'] = dt.Frame([
     cosasUtils.recode_subjectStatus(d) for d in subjects['dateOfDeath'].to_list()[0]
 ])
 
-# calculate `ageAtDeath`: using `dateofBirth` and `dateOfDeath`
+
 subjects['ageAtDeath'] = dt.Frame([
     cosasUtils.calculate_age(
         earliest = d[0],
@@ -420,7 +500,9 @@ subjects['ageAtDeath'] = dt.Frame([
     ) for d in subjects[:, (f.dateOfBirth, f.dateOfDeath)].to_tuples()
 ])
 
-# format dates as string now that age calcuations are complete
+
+# format dates as string now that age calcuations are complete. Otherwise, you 
+# will get an error when the data is imported.
 subjects['dateOfBirth'] = dt.Frame([
     str(d) if bool(d) else None for d in subjects['dateOfBirth'].to_list()[0]
 ])
@@ -437,6 +519,82 @@ del maternalIDs, paternalIDs, belongsWithFamilyMembers, subjectsToRegister
 status_msg('')
 status_msg('==== Building COSAS Clinical ====')
 
+
+maternalIDs = subjects[
+    f.belongsToMother != None, f.belongsToMother
+][
+    :, first(f[:]), dt.by(f.belongsToMother)
+].to_list()[0]
+
+familyIDs = subjects[
+    f.belongsToFamily != None, f.belongsToFamily
+][
+    :, first(f[:1]), dt.by(f.belongsToFamily)
+].to_list()[0]
+
+
+clinicalDF = raw_bench_cnv[:, {
+    'id': f.primid,
+    'belongsToFamily': f.secid,
+    'observedPhenotype': f.Phenotype
+}]
+
+clinicalDF['observedPhenotype'] = dt.Frame([
+    ','.join(list(set(d.strip().split())))
+    for d in clinicalDF['observedPhenotype'].to_list()[0]
+])
+
+clinicalDF['isFetus'] = dt.Frame([
+    'f' in d.lower()
+    for d in clinicalDF['id'].to_list()[0]
+])
+
+fetusData = clinicalDF[f.isFetus == True, :].to_pandas().to_dict('records')
+for index,row in enumerate(fetusData):
+    value = row.get('id').strip().replace(' ', '')
+    
+    if row['isFetus']:
+
+        # Pattern 1: 99999F, 99999F1, 99999F1.2
+        pattern1 = re.search(r'((F)|(F[-_])|(F[0-9]{,2})|(F[0-9]{1,2}.[0-9]{1,2}))$', value)
+        
+        # Patern 2: 99999F-88888, 99999_88888
+        pattern2 = re.search(r'^([0-9]{1,}(F)?([0-9]{1,2})?[-_=][0-9]{1,})$', value)
+
+        if pattern1:
+            row['belongsToMother'] = pattern1.string.replace(pattern1.group(0),'')
+            row['validMaternalID'] = row['belongsToMother'] in maternalIDs
+            row['validFamilyID'] = row['belongsToFamily'] in familyIDs
+            row['subjectID'] = pattern1.string
+        elif pattern2:
+            ids = re.split(r'[-_=]', pattern2.string)
+            row['belongsToMother'] = ids[0].replace('F', '')
+            row['validMaternalID'] = row['belongsToMother'] in maternalIDs
+            row['validFamilyID'] = row['belongsToFamily'] in familyIDs
+            row['subjectID'] = ids[0] #.replace('F', '')
+            row['alternativeIdentifiers'] = ids[1]
+        else:
+            status_msg('{}. F detected in {}, but pattern is unexpected'.format(index, value))
+
+
+fetusData = pd.DataFrame(fetusData).replace({np.nan:None})
+fetusData = fetusData[[
+    'id',
+    'subjectID',
+    'belongsToFamily',
+    'belongsToMother',
+    'alternativeIdentifiers',
+    'isFetus',
+    'validMaternalID',
+    'validFamilyID'
+]]
+
+fetusData['belongsToMother'] = fetusData['belongsToMother'].astype('str')
+fetusData['subjectID'] = fetusData['subjectID'].astype('str')
+fetusData['alternativeIdentifiers'] = fetusData['alternativeIdentifiers'].astype('str')
+fetusData.sort_values(by=['validMaternalID','subjectID']).to_excel('~/Desktop/fetus_data_review.xlsx',index=False)
+
+# ~ 2 ~
 # Build Phenotypic Data from workbench export
 #
 # This dataset provides historical records on observedPhenotypes for older cases.
@@ -455,6 +613,10 @@ confirmedHpoDF['observedPhenotype'] = dt.Frame([
 confirmedHpoDF.key = 'clinicalID'
 del confirmedHpoDF['flag']
 
+
+#//////////////////////////////////////////////////////////////////////////////
+
+# ~ 3 ~
 # Build COSAS Clinical Table
 #
 # Map data from the portal into the preferred structure of the harmonized
@@ -912,7 +1074,7 @@ status_msg('Processed {} new records for the sequencing table'.format(sequencing
 status_msg('')
 status_msg('Updating row-level metadata...')
 
-createdBy = [x['data']['createdBy'] for x in cosasConfig['options'] if x['name'] == 'recordMetadata'][0]
+createdBy = environ['COSAS_CREATED_BY']
 
 # set record-level metadata
 subjects[:, dt.update(
@@ -942,11 +1104,11 @@ sequencing[:, dt.update(
 
 # convert to list of dictionaries (make sure all nan's are recoded!), and save
 status_msg('Writing data to file...')
-to_csv(subjects,'data/cosas/subjects.csv')
-to_csv(clinical,'data/cosas/clinical.csv')
-to_csv(samples,'data/cosas/samples.csv')
-to_csv(samplePreparation,'data/cosas/samplePreparation.csv')
-to_csv(sequencing,'data/cosas/sequencing.csv')
+# to_csv(subjects,'data/cosas/subjects.csv')
+# to_csv(clinical,'data/cosas/clinical.csv')
+# to_csv(samples,'data/cosas/samples.csv')
+# to_csv(samplePreparation,'data/cosas/samplePreparation.csv')
+# to_csv(sequencing,'data/cosas/sequencing.csv')
 
 endtime = datetime.now()
 totaltime = endtime - starttime

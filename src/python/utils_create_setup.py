@@ -2,7 +2,7 @@
 #' FILE: utils_create_setup.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-12-06
-#' MODIFIED: 2021-12-06
+#' MODIFIED: 2022-02-08
 #' PURPOSE: refresh setup.py file
 #' STATUS: experimental
 #' PACKAGES: pandas, requests
@@ -52,7 +52,7 @@ files = [file['download_url'] for file in emx if file['name'] == 'urdm.xlsx'] + 
 files = [f'mcmd import -u {file}\n' for file in files]
 
 # Read existing setup.sh script and refresh contents
-with open('emx/setup.sh', 'r') as stream:
+with open('dist/setup.sh', 'r') as stream:
     scriptContents = stream.readlines()
     stream.close()
  
@@ -61,7 +61,7 @@ endPattern = '# <!--- end: utils_create_setup.py --->\n'
 baseContents = scriptContents[0:scriptContents.index(startPattern)+1]
 endContents = scriptContents[scriptContents.index(endPattern):len(scriptContents)]
 
-with open('emx/setup.sh', 'w') as stream:
+with open('dist/setup.sh', 'w') as stream:
     stream.writelines(baseContents)
     stream.writelines(files)
     stream.writelines(endContents)
