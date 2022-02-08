@@ -26,118 +26,8 @@ defaults:
   nillable: true
   visible: true
 
-# define entities
+# Define primary tables and then reference entities
 entities:
-  
-  # @name ucu_ref
-  - name: ref
-    abstract: true
-    attributes:
-  
-      - name: id
-        description: One or more characters used to identify, name, or characterize the nature, properties, or contents of a thing.
-        tags: http://purl.obolibrary.org/obo/NCIT_C25364
-        idAttribute: true
-        nillable: false
-        lookupAttribute: true
-        labelAttribute: true
-    
-      - name: label
-        description: A brief description given for purposes of identification; an identifying or descriptive marker that is attached to an object.
-        tags: http://purl.obolibrary.org/obo/NCIT_C45561
-        
-      - name: description
-        dataType: text
-        tags: http://purl.obolibrary.org/obo/NCIT_C25365
-        description: A written or verbal account, representation, statement, or explanation of something
-      
-      - name: codesystem
-        tags: http://purl.obolibrary.org/obo/NCIT_C70895
-        description: A systematized collection of concepts that define corresponding codes.
-      
-      - name: code
-        tags: http://purl.obolibrary.org/obo/NCIT_C25162
-        description: A symbol or combination of symbols which is assigned to the members of a collection.
-      
-      - name: iri
-        dataType: hyperlink
-        tags: http://purl.obolibrary.org/obo/NCIT_C165071
-        description: A unique symbol that establishes identity of the resource.
-      
-
-  # @name ucu_consent
-  - name: consent	
-    description: The situation, with regard to obtaining consent from a respondent, at a particular stage during a process.
-    tags: http://purl.obolibrary.org/obo/SCDO_1000490
-    extends: ucu_ref
-    data:
-    
-      # originally "written consent"
-      - id: 1
-        label: Yes, signed document
-        description: When the participant or a legal representative or family member provides consent by filling out and/or signing a written form.
-        codesystem: SCDO
-        code: 1000466
-        iri: http://purl.obolibrary.org/obo/SCDO_1000466
-    
-      - id: 2
-        label: Yes, Verbal Consent
-        description: When the participant communicates consent orally rather than by filling out and signing a written form. Normally a witness is present when verbal consent is given.
-        codesystem: SCDO
-        code: 1000467
-        iri: http://purl.obolibrary.org/obo/SCDO_1000467
-        
-      # TODO: find a better code
-      - id: 3
-        label: Not yet
-        description: Not known, observed, recorded; or reported as unknown by the data contributor.
-        codesystem: NCIT
-        code: C17998
-        iri: http://purl.obolibrary.org/obo/NCIT_C17998
-        
-      
-
-  # @name ucu_file    
-  - name: file
-    description: Format of an electronic file.
-    tags: http://purl.obolibrary.org/obo/NCIT_C171252
-    extends: ucu_ref
-    data:
-      - id: 1
-        label: VCF
-        description: Variant Call Format (VCF) is tabular format for storing genomic sequence variations.
-        codesystem: EDAM
-        code: format_3016
-        iri: http://edamontology.org/format_3016
-        
-      - id: 2
-        label: FASTQ
-        description: FASTQ short read format ignoring quality scores.
-        codesystem: EDAM
-        code: format_1930
-        iri: http://edamontology.org/format_1930
-        
-      - id: 3
-        label: BAM
-        description: BAM format, the binary, BGZF-formatted compressed version of SAM format for alignment of nucleotide sequences (e.g. sequencing reads) to (a) reference sequence(s). May contain base-call and alignment qualities and other data.
-        codesystem: EDAM
-        code: format_2572
-        iri: http://edamontology.org/format_2572
-        
-      - id: 4
-        label: TXT
-        description: Plain text sequence format (essentially unformatted).
-        codesystem: EDAM
-        code: format_1964
-        iri: http://edamontology.org/format_1964
-
-      - id: 5
-        label: Other
-        description: The actual value is not a member of the set of permitted data values in the constrained value domain of a variable.The actual value is not a member of the set of permitted data values in the constrained value domain of a variable. (e.g., concept not provided by required code system).
-        codesystem: HL7
-        code: OTH
-        iri: http://terminology.hl7.org/CodeSystem/v3-NullFlavor#OTH
-
   # @name ucu_patient
   - name: patient	
     label: Patient Requests
@@ -359,7 +249,249 @@ entities:
         partOfAttribute: status
         tags: http://purl.obolibrary.org/obo/NCIT_C25638
         
+  # @name ucu_technique
+  - name: technique	
+    label: Technique Requests
+    description:
+    tags:
+    attributes:
+
+      - name: identifier
+        idAttribute: true
+        labelAttribute: true
+        lookupAttribute: true
+        nillable: false
+        tags: http://purl.obolibrary.org/obo/NCIT_C25364
+        
+      - name: submitter
+        label: Submitter (UMCG)
+        tags: http://purl.obolibrary.org/obo/NCIT_C54269
+
+      - name: email_address
+        label: Email address (UMCG)
+        dataType: email
+        nillable: false
+        tags: http://purl.obolibrary.org/obo/NCIT_C42775
+        
+      - name: date
+        label: Date submission
+        dataType: date
+        nillable: false
+        tags: http://semanticscience.org/resource/SIO_001083
+        
+      - name: tech
+        label: Technique description
+        dataType: compound
+
+      - name: summary
+        label: Summary
+        description: Brief description including preferred phenotype (use HPO terms), variant type (i.e., splicing, nonsense, mosaicism, etc.), newly published gene/phenotype association, UniParental Disomy (UPD), etc.
+        dataType: text
+        nillable: false
+        partOfAttribute: tech
+
+      - name: suitable
+        label: Suitable for specific patients
+        dataType: categorical
+        refEntity: ucu_yesno
+        nillable: false 
+        partOfAttribute: tech
+        
+      - name: suitableYes
+        label: If yes, please specify
+        partOfAttribute: tech
+        dataType: text
+        nillable: "{suitable} !='1'"
+        visible: "{suitable} ='1'"
+
+      - name: type
+        label: Type technique
+        partOfAttribute: tech
+        dataType: categorical
+        refEntity: ucu_type
+
+      - name: sample_tech_other
+        label: If other, please specify
+        partOfAttribute: tech
+        dataType: text
+        nillable: "{type} !='6'"
+        visible: "{type} ='6'"
+
+      - name: sample_type
+        label: Which sample/data type(s) is required?
+        partOfAttribute: tech
+        dataType: categoricalmref
+        refEntity: ucu_sample_types
+        
+      - name: sample_type_other
+        label: If other, please specify
+        partOfAttribute: tech
+        dataType: text
+        nillable: false
+        visible: "{sample_type} contains '6'"
+        
+      - name: data_file
+        label: If a data file is required, what type of file is necessary?
+        partOfAttribute: tech
+        dataType: categoricalmref
+        refEntity: ucu_file
+        
+      - name: data_file_other
+        label: If other, please specify
+        partOfAttribute: tech
+        dataType: text
+        nillable: false
+        visible: "{data_file} contains '5'"
+
+      - name: stage
+        label: Stage of development
+        partOfAttribute: tech
+        dataType: categorical
+        refEntity: ucu_stage
+
+      - name: addinfo
+        label: Additional information over stage of development
+        partOfAttribute: tech
+        dataType: text
+
+      - name: status
+        label: Status of the request
+        description: Will be completed by the UCU team
+        dataType: compound
+        tags: http://purl.obolibrary.org/obo/NCIT_C25688
+        
+      - name: status_info
+        label: Status
+        dataType: categorical
+        refEntity: ucu_status
+        partOfAttribute: status
+        tags: http://purl.obolibrary.org/obo/NCIT_C164628
+        
+      - name: datestatus
+        label: Date changed status
+        dataType: date
+        partOfAttribute: status
+        tags: http://purl.obolibrary.org/obo/NCIT_C93675
+        
+      - name: reason
+        label: reason status
+        dataType: text
+        partOfAttribute: status
+        tags: http://purl.obolibrary.org/obo/NCIT_C25638
     
+  #////////////////////////////////////////////////////////////////////////////
+  
+  # Define reference entities
+  
+  # @name ucu_ref
+  - name: ref
+    abstract: true
+    attributes:
+  
+      - name: id
+        description: One or more characters used to identify, name, or characterize the nature, properties, or contents of a thing.
+        tags: http://purl.obolibrary.org/obo/NCIT_C25364
+        idAttribute: true
+        nillable: false
+        lookupAttribute: true
+        labelAttribute: true
+    
+      - name: label
+        description: A brief description given for purposes of identification; an identifying or descriptive marker that is attached to an object.
+        tags: http://purl.obolibrary.org/obo/NCIT_C45561
+        
+      - name: description
+        dataType: text
+        tags: http://purl.obolibrary.org/obo/NCIT_C25365
+        description: A written or verbal account, representation, statement, or explanation of something
+      
+      - name: codesystem
+        tags: http://purl.obolibrary.org/obo/NCIT_C70895
+        description: A systematized collection of concepts that define corresponding codes.
+      
+      - name: code
+        tags: http://purl.obolibrary.org/obo/NCIT_C25162
+        description: A symbol or combination of symbols which is assigned to the members of a collection.
+      
+      - name: iri
+        dataType: hyperlink
+        tags: http://purl.obolibrary.org/obo/NCIT_C165071
+        description: A unique symbol that establishes identity of the resource.
+      
+
+  # @name ucu_consent
+  - name: consent	
+    description: The situation, with regard to obtaining consent from a respondent, at a particular stage during a process.
+    tags: http://purl.obolibrary.org/obo/SCDO_1000490
+    extends: ucu_ref
+    data:
+    
+      # originally "written consent"
+      - id: 1
+        label: Yes, signed document
+        description: When the participant or a legal representative or family member provides consent by filling out and/or signing a written form.
+        codesystem: SCDO
+        code: 1000466
+        iri: http://purl.obolibrary.org/obo/SCDO_1000466
+    
+      - id: 2
+        label: Yes, Verbal Consent
+        description: When the participant communicates consent orally rather than by filling out and signing a written form. Normally a witness is present when verbal consent is given.
+        codesystem: SCDO
+        code: 1000467
+        iri: http://purl.obolibrary.org/obo/SCDO_1000467
+        
+      # TODO: find a better code
+      - id: 3
+        label: Not yet
+        description: Not known, observed, recorded; or reported as unknown by the data contributor.
+        codesystem: NCIT
+        code: C17998
+        iri: http://purl.obolibrary.org/obo/NCIT_C17998
+  
+        
+  # @name ucu_file    
+  - name: file
+    description: Format of an electronic file.
+    tags: http://purl.obolibrary.org/obo/NCIT_C171252
+    extends: ucu_ref
+    data:
+      - id: 1
+        label: VCF
+        description: Variant Call Format (VCF) is tabular format for storing genomic sequence variations.
+        codesystem: EDAM
+        code: format_3016
+        iri: http://edamontology.org/format_3016
+        
+      - id: 2
+        label: FASTQ
+        description: FASTQ short read format ignoring quality scores.
+        codesystem: EDAM
+        code: format_1930
+        iri: http://edamontology.org/format_1930
+        
+      - id: 3
+        label: BAM
+        description: BAM format, the binary, BGZF-formatted compressed version of SAM format for alignment of nucleotide sequences (e.g. sequencing reads) to (a) reference sequence(s). May contain base-call and alignment qualities and other data.
+        codesystem: EDAM
+        code: format_2572
+        iri: http://edamontology.org/format_2572
+        
+      - id: 4
+        label: TXT
+        description: Plain text sequence format (essentially unformatted).
+        codesystem: EDAM
+        code: format_1964
+        iri: http://edamontology.org/format_1964
+
+      - id: 5
+        label: Other
+        description: The actual value is not a member of the set of permitted data values in the constrained value domain of a variable.The actual value is not a member of the set of permitted data values in the constrained value domain of a variable. (e.g., concept not provided by required code system).
+        codesystem: HL7
+        code: OTH
+        iri: http://terminology.hl7.org/CodeSystem/v3-NullFlavor#OTH
+  
+  
   # @name ucu_sample_types
   # TODO: find code. Current code is for biospecimenTypes, but these values seem like a mix of types of specimen and types of data
   - name: sample_types
@@ -410,6 +542,7 @@ entities:
         codesystem: HL7
         code: OTH
         iri: http://terminology.hl7.org/CodeSystem/v3-NullFlavor#OTH
+    
     
   # @name ucu_stage
   - name: stage
@@ -478,10 +611,7 @@ entities:
         codesystem: NCIT
         code: C53470
         iri: http://purl.obolibrary.org/obo/NCIT_C53470
-    
-  # @name ucu_technique
-  - name: technique	
-    label: Technique Requests
+  
     
   # @name ucu_type
   - name: type
@@ -489,20 +619,34 @@ entities:
     data: 
       - id: 1
         label: Software
+        description: Computer software, or generally just software, is any set of machine-readable instructions (most often in the form of a computer program) that conform to a given syntax (sometimes referred to as a language) that is interpretable by a given processor and that directs a computer's processor to perform specific operations.
+        codesystem: SWO
+        code: 0000001
+        tags: http://www.ebi.ac.uk/swo/SWO_0000001
+        
       - id: 2
         label: Lab technique
+        description: Any procedure that involves testing or manipulating a sample of blood, urine, or other body substance in a laboratory setting.
+        codesystem: NCIT
+        code: C25294
+        iri: http://purl.obolibrary.org/obo/NCIT_C25294
+        
       - id: 3
         label: New tool
+
       - id: 4
         label: Technique in development
+
       - id: 5
         label: Existing technique
+
       - id: 6
         label: Other
         description: The actual value is not a member of the set of permitted data values in the constrained value domain of a variable.The actual value is not a member of the set of permitted data values in the constrained value domain of a variable. (e.g., concept not provided by required code system).
         codesystem: HL7
         code: OTH
         iri: http://terminology.hl7.org/CodeSystem/v3-NullFlavor#OTH
+  
     
   # @name ucu_yesno
   - name: yesno
@@ -510,5 +654,14 @@ entities:
     data: 
       - id: 1
         label: Yes
+        description: The affirmative response to a question.
+        codesystem: NCIT
+        code: C49488
+        iri: http://purl.obolibrary.org/obo/NCIT_C49488
+
       - id: 2
         label: No
+        description: The non-affirmative response to a question.
+        codesystem: NCIT
+        code: C49487
+        iri: http://purl.obolibrary.org/obo/NCIT_C49487
