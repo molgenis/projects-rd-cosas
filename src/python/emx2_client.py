@@ -13,7 +13,6 @@
 from urllib.parse import urlparse, urlunparse
 import requests
 
-
 def __clean__url__(url):
     """Clean Urls
     @param url (str) : string containing a URL
@@ -120,6 +119,3 @@ class molgenis:
         except requests.exceptions.HTTPError as error:
             self.cli.alert_error(f'unable to sign into {self.user_info}')
             raise SystemError(error)
-        
-m = molgenis(url = 'https://diagnostics-acc.molgeniscloud.org', database = 'umdm')
-m.signin(email = '', signin = '')
