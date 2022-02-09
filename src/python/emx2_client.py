@@ -122,7 +122,4 @@ class molgenis:
             raise SystemError(error)
         
 m = molgenis(url = 'https://diagnostics-acc.molgeniscloud.org', database = 'umdm')
-m.signin(
-    email = 'admin',
-    password = 'SOLID-stoppage-magnify-bounce'
-)
+m.signin(email = '', signin = '')
