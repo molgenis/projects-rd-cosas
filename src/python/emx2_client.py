@@ -24,37 +24,59 @@ def __clean__url__(url):
 
 class cli:
     def __init__(self):
-        self._stop = '\033[0m'
-        self.success = '\033[92m✓' + self._stop
-        self.fail = '\033[91mx' + self._stop
-        self.warning = '\033[93m!' + self._stop
-        self.blue = '\033[94m'
-    
-    def alert_success(self, message):
-        """Print a success message"""
-        print(f'{self.success} {message}')
-
-    def alert_error(self, message):
-        """Print an error message"""
-        print(f'{self.fail} {message}')
-
-    def alert_warning(self, message):
-        """Print a warning message"""
-        print(f'{self.warning} {message}')
+        self._start = '\u001b'
+        self._stop = '\u001b[0m'
+        self._blue = '[34;1m'
+        self._green = '[32:1m'
+        self._red = '[31;1m'
+        self._white = '[37;1m'
+        self._yellow = '[33;1m'
         
-    def value(self, value):
-        """Wrap value in a color"""
-        return self.blue + str(value) + self._stop
+        self.error = self.__setStatus__(self._red, '⨉')
+        self.success = self.__setStatus__(self._green, '✓')
+        self.warning = self.__setStatus__(self._yellow, '!')
+        
+    def __setStatus__(self, color, text):
+        return self._start + color + text + self._stop
+    
+    def alert_success(self, text):
+        """Print a success message"""
+        print(f'{self.success} {text}')
+
+    def alert_error(self, text):
+        """Print an error message"""
+        print(f'{self.error} {text}')
+
+    def alert_warning(self, text):
+        """Print a warning message"""
+        print(f'{self.warning} {text}')
+        
+    def text_value(self, text):
+        """Style text as a value"""
+        return self._start + self._blue + str(text) + self._stop
+    
+    def text_success(self, text):
+        """Style text as a success message"""
+        return self._start + self._green + str(text) + self._stop
+        
+    def text_error(self, text):
+        """Style text as an error message"""
+        return self._start + self._red + str(text) + self._stop
+    
+    def text_warning(self, text):
+        """Style text as an warning message"""
+        return self._start + self._yellow + str(text) + self._stop
 
 
-class molgenis:
+class Molgenis:
     def __init__(self, url, database):
         self.user_email = None
         self.user_info = None
         self.database = database
-        self.url = __clean__url__(url)
-        self._url_signin = f'{self.url}/apps/central/graphql'
-        self._url_db = f'{self.url}/{self.database}/'
+        self.signedIn = False
+        self._url = __clean__url__(url)
+        self._url_signin = f'{self._url}/apps/central/graphql'
+        self._url_db = f'{self._url}/{self.database}'
         self._url_db_api = f'{self._url_db}/api'
         self._url_db_graphql = f'{self._url_db}/graphql'
         self.session = requests.Session()
@@ -69,7 +91,7 @@ class molgenis:
         """
         
         self.user_email = email
-        self.user_info = f'{self.cli.value(self.database)} as {self.cli.value(email)}'
+        self.user_info = f'{self.cli.text_value(self.database)} as {self.cli.text_value(email)}'
         variables = {'email': email, 'password': password}
         
         query = """
@@ -101,21 +123,32 @@ class molgenis:
             self.cli.alert_error(f'Unable to sign into {self.user_info}')
             return SystemError(error)
             
-    def importCSV(self, table, data):
+    def importCSV(self, table, filename):
         """Import Data
         """
         try:
             response = self.session.post(
                 url = f'{self._url_db_api}/csv/{table}',
-                headers = {'Content-Type': 'text/csv'},
-                data = data
+                files = {'filename': (filename, open(filename, 'rb'), 'text/csv')}
             )
             
-            if response.status_code // 100 == 2:
-                self.cli.alert_success(f'imported data into {table}')
+            if response.status_code == 200:
+                self.cli.alert_success(
+                    'imported dataset into {}/{}'
+                    .format(
+                        self.cli.text_value(self.database),
+                        self.cli.text_value(table)
+                    )
+                )
             else:
-                self.cli.alert_error(f'failed to import data into {table}')
-        
+                self.cli.alert_error(
+                    'failed to import data into {}/{}:\n  {}'
+                    .format(
+                        self.cli.text_value(self.database),
+                        self.cli.text_value(table),
+                        response.json().get('errors')[0].get('message')
+                    )
+                )
         except requests.exceptions.HTTPError as error:
             self.cli.alert_error(f'unable to sign into {self.user_info}')
             raise SystemError(error)
