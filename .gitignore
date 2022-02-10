@@ -1,6 +1,6 @@
 .DS_STORE
 _data
-python/__pycache__
+__pycache__
 _raw
 .env
 node_modules
