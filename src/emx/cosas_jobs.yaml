@@ -1,0 +1,89 @@
+
+
+# define package
+name: cosasreports
+label: Cosas Reports
+description: Reports on COSAS jobs, imports, and processing
+tags: http://purl.obolibrary.org/obo/NCIT_C82964
+version: 1.0.0
+date: 2022-02-11
+
+# set defaults
+defaults:
+  dataType: string
+  idAttribute: false
+  lookupAttribute: false
+  labelAttribute: false
+  nillable: true
+  
+# define entities
+entities:
+  
+  # @name cosasjobs_logs
+  - name: jobs
+    description: Reports about every COSAS portal ingest and processing
+    tags: http://purl.obolibrary.org/obo/NCIT_C82964
+    attributes:
+    
+      - name: jobIdentifier
+        description: An identifier of a submitted job.
+        tags: http://edamontology.org/data_2098
+        dataType: string
+        idAttribute: true
+        nillable: false
+        
+      - name: jobType
+        description: Something distinguishable as an identifiable class based on common qualities.
+        tags: http://purl.obolibrary.org/obo/NCIT_C25284
+        dataType: categorical
+        refEntity: cosasreports_jobtypes
+        
+      - name: dateProcessStarted
+        description: A data item that is the date when a process was initiated.
+        tags: http://purl.obolibrary.org/obo/OBI_0002471
+        dataType: datetime
+        
+  # @name cosasreports_jobtypes
+  - name: jobtypes
+    description: Something distinguishable as an identifiable class based on common qualities.
+    tags: http://purl.obolibrary.org/obo/NCIT_C25284
+    attributes:
+    
+      - name: value
+        idAttribute: true
+        nillable: false
+        lookupAttribute: true
+        labelAttribute: true
+        tags: http://purl.obolibrary.org/obo/NCIT_C49100
+        description: The information contained in a data field. It may represent a numeric quantity, a textual characterization, a date or time measurement, or some other state, depending on the nature of the attribute.
+        
+      - name: description
+        dataType: text
+        tags: http://purl.obolibrary.org/obo/NCIT_C25365
+        description: A written or verbal account, representation, statement, or explanation of something
+      
+      - name: codesystem
+        tags: http://purl.obolibrary.org/obo/NCIT_C70895
+        description: A systematized collection of concepts that define corresponding codes.
+      
+      - name: code
+        tags: http://purl.obolibrary.org/obo/NCIT_C25162
+        description: A symbol or combination of symbols which is assigned to the members of a collection.
+      
+      - name: iri
+        dataType: hyperlink
+        tags: http://purl.obolibrary.org/obo/NCIT_C165071
+        description: A unique symbol that establishes identity of the resource.
+    
+    data:
+      - value: Import
+        description: An activity concerned with bringing any good, commodity, or service from a foreign source.
+        codesystem: NCIT
+        code: C73599
+        iri: http://purl.obolibrary.org/obo/NCIT_C73599
+        
+      - value: Export
+        description: To transfer from a local area to an external or distant area; to move data out of one file or system with the purpose of importing it into another file or system.
+        codeystem: NCIT
+        code: C71586
+        iri: http://purl.obolibrary.org/obo/NCIT_C71586
