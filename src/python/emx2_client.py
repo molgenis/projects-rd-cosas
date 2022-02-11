@@ -10,7 +10,10 @@
 #'////////////////////////////////////////////////////////////////////////////
 
 
+from asyncio import exceptions
+from urllib.error import HTTPError
 from urllib.parse import urlparse, urlunparse
+from os import path
 import requests
 
 def __clean__url__(url):
@@ -122,20 +125,18 @@ class Molgenis:
         except requests.exceptions.HTTPError as error:
             self.cli.alert_error(f'Unable to sign into {self.user_info}')
             return SystemError(error)
-            
-    def importCSV(self, table, filename):
-        """Import Data
-        """
+         
+   
+    def __postData__(self, table, data):
         try:
             response = self.session.post(
                 url = f'{self._url_db_api}/csv/{table}',
-                files = {'filename': (filename, open(filename, 'rb'), 'text/csv')}
+                data = data
             )
             
             if response.status_code == 200:
                 self.cli.alert_success(
-                    'imported dataset into {}/{}'
-                    .format(
+                    'imported data into {}/{}'.format(
                         self.cli.text_value(self.database),
                         self.cli.text_value(table)
                     )
@@ -149,6 +150,71 @@ class Molgenis:
                         response.json().get('errors')[0].get('message')
                     )
                 )
+
         except requests.exceptions.HTTPError as error:
-            self.cli.alert_error(f'unable to sign into {self.user_info}')
+            self.cli.alert_error(
+                'failed to import data into {}/{}:'
+                .format(
+                    self.cli.text_value(self.database),
+                    self.cli.text_value(table),
+                )
+            )
             raise SystemError(error)
+            
+        
+    def importCsvFile(self, table, filename):
+        """Import CSV File
+        Import a csv file into a table
+        
+        Attributes:
+            table     : name of the table
+            filename  : location to a csv file
+            
+        Examples:
+            ````
+            from src.python.emx2_client import Molgenis
+            
+            # connect to EMX2 database
+            db = Molgenis(url='https://my-emx2-server.com', database='test')
+            db.signin(email='myusername', password='mypassword')
+            
+            # import file
+            db.importCsvFile(table = 'myTable', filename='data.csv')
+            ````
+        """
+        
+        if not path.isfile(filename):
+            raise ValueError('File does not exist')
+        
+        with open(filename, 'rb') as data:
+            self.__postData__(table = table, data = data)
+            data.close()
+                
+            
+    def importData(self, table: str = None, data: str = None):
+        """Import Data
+        Import a data object into a schema table
+       
+        Attributes:
+            table : name of the table
+            data  : a string containing your data as a text/csv object
+            
+        Example:
+            ````
+            from src.python.emx2_client import Molgenis
+            import pandas as pd
+            
+            # connect to EMX2 database
+            db = Molgenis(url='https://my-emx2-server.com', database='test')
+            db.signin(email='myusername', password='mypassword')
+            
+            # load data and apply transformations (if applicable)
+            data = pd.read_csv('data.csv')
+            data_str = data.to_csv(index=False)
+            
+            # import data
+            db.importData(table = 'myTable', data = data_str)
+            
+            ````
+        """
+        self.__postData__(table = table, data = data)

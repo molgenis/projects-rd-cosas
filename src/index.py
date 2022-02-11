@@ -2,7 +2,7 @@
 #' FILE: emx.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-10-05
-#' MODIFIED: 2021-10-05
+#' MODIFIED: 2022-02-11
 #' PURPOSE: generate emx files for COSAS
 #' STATUS: working
 #' PACKAGES: emxconvert
@@ -34,6 +34,9 @@ umdm.write_schema(path = 'emx/schemas/umdmportal_schema.md')
 from src.python.emx2_client import Molgenis
 from dotenv import load_dotenv
 from os import environ
+
+import pandas as pd
+
 load_dotenv()
 
 host = environ['EMX2_HOST']
@@ -41,4 +44,7 @@ database = environ['EMX2_DB_PRIMARY']
 
 db = Molgenis(url = host, database = database)
 db.signin(email=environ['EMX2_USERNAME'],password=environ['EMX2_PASSWORD'])
-db.importCSV(table = 'organizations', filename='dist/cosas_organizations.csv')
+
+data = pd.read_csv('dist/cosas_organizations.csv').to_csv(index=False)
+db.importData(table = 'organizations', data = data)
+# db.importCsvFile(table ='organizations', filename='dist/cosas_organizations.csv')
