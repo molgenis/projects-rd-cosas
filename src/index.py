@@ -12,10 +12,10 @@
 from yamlemxconvert import Convert
 
 # render umdm portal
-umdm = Convert(files = ['emx/src/umdmportal.yaml'])
-umdm.convert()
-umdm.write('umdmportal', format='xlsx', outDir='emx/dist')
-umdm.write_schema(path = 'emx/schemas/umdmportal_schema.md')
+cosas = Convert(files = ['src/emx/cosas_portal.yaml'])
+cosas.convert()
+cosas.write('cosasportal', format='xlsx', outDir='dist')
+cosas.write_schema(path = 'dist/schema_cosasportal.md')
 
 
 # Jobs: the main jobs module is located here on GitHub (see 'jobs.xlsx')

@@ -1,8 +1,8 @@
-name: umdmportal
-label: UMDM Portal
+name: cosasportal
+label: COSAS Portal
 description: Staging tables for raw data exports
-version: 1.0.0
-date: 2021-12-10
+version: 1.1.0
+date: 2022-02-10
 
 # define entity level defaults
 defaults:
