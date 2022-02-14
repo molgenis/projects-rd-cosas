@@ -6,6 +6,7 @@ date: 2022-02-10
 
 # define entity level defaults
 defaults:
+  auto: false
   idAttribute: false
   dataType: string
   nillable: true
@@ -28,11 +29,16 @@ entities:
         dataType: text
       - name: UMCG_MOEDER
       - name: UMCG_VADER
+      
+      # row level metadata
       - name: processed
         dataType: bool
         defaultValue: false
-      - name: dataProcessed
+      - name: dateProcessed
+        description:
         dataType: datetime
+        auto: true
+        tags: http://purl.obolibrary.org/obo/NCIT_C25164
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
@@ -53,11 +59,13 @@ entities:
       - name: EXTRA_DIAGNOSE_ZEKERHEID
       - name: DATUM_EERSTE_CONSULT
       - name: OND_ID
+      
       - name: processed
         dataType: bool
-        defaultValue: false
+        defaultValue: false  
       - name: dataProcessed
         dataType: datetime
+        
       - name: id
         description: auto generated Molgenis ID
         description-nl: automatisch gegenereerde Molgenis-ID
