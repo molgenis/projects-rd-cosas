@@ -46,7 +46,10 @@ def buildEmxTags(attributes: list = []):
     # set known tags that do not follow the default
     # pattern: [a-zA-Z]{1,}_[a-zA-Z0-9]{1,}
     knownDcmiTags = ['http://purl.org/dc/terms/valid']
-    knownW3Tags = ['https://w3id.org/reproduceme#wasUpdatedBy']
+    knownW3Tags = [
+        'https://w3id.org/reproduceme#wasUpdatedBy',
+        'https://w3id.org/reproduceme#ProcessedData'
+    ]
     knownDcatTags = {
         'https://www.w3.org/TR/vocab-dcat-3/#Property:catalog_dataset' : {
             'label': 'dcat:Dataset' 

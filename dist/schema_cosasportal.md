@@ -4,12 +4,13 @@
 
 | Name | Description | Parent |
 |:---- |:-----------|:------|
-| cosasportal | Staging tables for raw data exports (v1.1.0, 2022-02-10) | - |
+| cosasportal | Staging tables for raw data exports (v1.2.0, 2022-02-10) | - |
 
 ## Entities
 
 | Name | Description | Package |
 |:---- |:-----------|:-------|
+| template | attribute template for staging tables | cosasportal |
 | patients | Raw metadata for patients and families | cosasportal |
 | diagnoses | Raw diagnostic metadata | cosasportal |
 | samples | Raw data table for samples | cosasportal |
@@ -17,9 +18,21 @@
 | labs_array_darwin | Raw array metadata from Darwin | cosasportal |
 | labs_ngs_adlas | Raw NGS data from ADLAS | cosasportal |
 | labs_ngs_darwin | Raw NSG metadata from Darwin | cosasportal |
-| bench_cnv | Staging table for CNV exports | cosasportal |
+| benchcnv | Staging table for CNV exports | cosasportal |
 
 ## Attributes
+
+### Entity: cosasportal_template
+
+attribute template for staging tables
+
+| Name | Label | Description | Data Type |
+|:---- |:-----|:-----------|:---------|
+| id&#8251; | - | auto generated row identifier | string |
+| recordMetadata | - | metadata is data that provides information about data. | compound |
+| processed | - | The data which is modified and processed for analysis or other experiments. If True, data from the row has been imported into COSAS. | bool |
+| dateRecordCreated | - | The date on which the activity or entity is created. | datetime |
+| recordCreatedBy | - | Indicates the person or authoritative body who brought the item into existence. | string |
 
 ### Entity: cosasportal_patients
 
@@ -35,9 +48,6 @@ Raw metadata for patients and families
 | FAMILIELEDEN | - | - | text |
 | UMCG_MOEDER | - | - | string |
 | UMCG_VADER | - | - | string |
-| processed | - | - | bool |
-| dataProcessed | - | - | datetime |
-| id&#8251; | - | auto generated Molgenis ID | string |
 
 ### Entity: cosasportal_diagnoses
 
@@ -52,9 +62,6 @@ Raw diagnostic metadata
 | EXTRA_DIAGNOSE_ZEKERHEID | - | - | string |
 | DATUM_EERSTE_CONSULT | - | - | string |
 | OND_ID | - | - | string |
-| processed | - | - | bool |
-| dataProcessed | - | - | datetime |
-| id&#8251; | - | auto generated Molgenis ID | string |
 
 ### Entity: cosasportal_samples
 
@@ -82,9 +89,6 @@ Raw data table for samples
 | LABUITSLAG_CODE | - | - | text |
 | LABRESULTS | - | - | string |
 | AUTHORISED | - | - | string |
-| processed | - | - | bool |
-| dataProcessed | - | - | datetime |
-| id&#8251; | - | auto generated Molgenis ID | string |
 
 ### Entity: cosasportal_labs_array_adlas
 
@@ -120,9 +124,6 @@ Raw array metadata from ADLAS
 | SGA_REGIONS_UMCG_CNV_NL_COUNT | - | - | string |
 | SGA_SIMILAR_PREVIOUS_CASES | - | - | string |
 | SGA_OVERERVING | - | - | string |
-| processed | - | - | bool |
-| dataProcessed | - | - | datetime |
-| id&#8251; | - | auto generated Molgenis ID | string |
 
 ### Entity: cosasportal_labs_array_darwin
 
@@ -137,9 +138,6 @@ Raw array metadata from Darwin
 | BatchNaam | - | - | string |
 | CallRate | - | - | string |
 | StandaardDeviatie | - | - | string |
-| processed | - | - | bool |
-| dataProcessed | - | - | datetime |
-| id&#8251; | - | auto generated Molgenis ID | string |
 
 ### Entity: cosasportal_labs_ngs_adlas
 
@@ -161,9 +159,6 @@ Raw NGS data from ADLAS
 | AMPLICON | - | - | string |
 | ALLELFREQUENTIE | - | - | string |
 | OVERERVING | - | - | string |
-| processed | - | - | bool |
-| dataProcessed | - | - | datetime |
-| id&#8251; | - | auto generated Molgenis ID | string |
 
 ### Entity: cosasportal_labs_ngs_darwin
 
@@ -184,11 +179,8 @@ Raw NSG metadata from Darwin
 | GenomeBuild | - | - | string |
 | CallRate | - | - | string |
 | StandaardDeviatie | - | - | string |
-| processed | - | - | bool |
-| dataProcessed | - | - | datetime |
-| id&#8251; | - | auto generated Molgenis ID | string |
 
-### Entity: cosasportal_bench_cnv
+### Entity: cosasportal_benchcnv
 
 Staging table for CNV exports
 
@@ -199,12 +191,8 @@ Staging table for CNV exports
 | externalid | - | - | string |
 | gender | - | - | string |
 | comment | - | - | text |
-| phenotype | - | HPO code (HPO:1234567) | text |
+| Phenotype | - | - | text |
 | created | - | - | string |
-| processed | - | - | bool |
-| Phenotype | - | - | string |
-| dataProcessed | - | - | datetime |
-| id&#8251; | - | auto generated Molgenis ID | string |
 
 Note: The symbol &#8251; denotes attributes that are primary keys
 

@@ -1,7 +1,7 @@
 name: cosasportal
 label: COSAS Portal
 description: Staging tables for raw data exports
-version: 1.1.0
+version: 1.2.0
 date: 2022-02-10
 
 # define entity level defaults
@@ -15,10 +15,49 @@ defaults:
 # define tables
 entities:
 
-  # @name umdmportal_patients
+  # @name cosasportal_template
+  - name: template
+    description: attribute template for staging tables
+    abstract: true
+    attributes:
+
+      - name: id
+        description: auto generated row identifier
+        idAttribute: true
+        auto: true
+        nillable: false
+        lookupAttribute: true
+        # tags: http://purl.obolibrary.org/obo/NCIT_C25364
+        
+      - name: recordMetadata
+        description: metadata is data that provides information about data.
+        dataType: compound
+        # tags: http://semanticscience.org/resource/SIO_001330
+        
+      - name: processed
+        description: The data which is modified and processed for analysis or other experiments. If True, data from the row has been imported into COSAS.
+        dataType: bool
+        defaultValue: false
+        # tags: https://w3id.org/reproduceme#ProcessedData
+
+      - name: dateRecordCreated
+        description: The date on which the activity or entity is created.
+        nillable: false
+        dataType: datetime
+        auto: true
+        partOfAttribute: recordMetadata
+        # tags: http://purl.obolibrary.org/obo/NCIT_C164483
+      
+      - name: recordCreatedBy
+        description: Indicates the person or authoritative body who brought the item into existence.
+        partOfAttribute: recordMetadata
+        # tags: http://purl.obolibrary.org/obo/NCIT_C42628
+    
+
+  # @name cosasportal_patients
   - name: patients
-    label: Patients
     description: Raw metadata for patients and families
+    extends: cosasportal_template
     attributes:
       - name: UMCG_NUMBER
       - name: OVERLIJDENSDATUM
@@ -29,28 +68,11 @@ entities:
         dataType: text
       - name: UMCG_MOEDER
       - name: UMCG_VADER
-      
-      # row level metadata
-      - name: processed
-        dataType: bool
-        defaultValue: false
-      - name: dateProcessed
-        description:
-        dataType: datetime
-        auto: true
-        tags: http://purl.obolibrary.org/obo/NCIT_C25164
-      - name: id
-        description: auto generated Molgenis ID
-        description-nl: automatisch gegenereerde Molgenis-ID
-        idAttribute: true
-        auto: true
-        nillable: false
-        lookupAttribute: true
   
-  # @name umdmportal_diagnoses
+  # @name cosasportal_diagnoses
   - name: diagnoses
-    label: Diagnoses
     description: Raw diagnostic metadata
+    extends: cosasportal_template
     attributes:
       - name: UMCG_NUMBER
       - name: HOOFDDIAGNOSE
@@ -59,25 +81,11 @@ entities:
       - name: EXTRA_DIAGNOSE_ZEKERHEID
       - name: DATUM_EERSTE_CONSULT
       - name: OND_ID
-      
-      - name: processed
-        dataType: bool
-        defaultValue: false  
-      - name: dataProcessed
-        dataType: datetime
-        
-      - name: id
-        description: auto generated Molgenis ID
-        description-nl: automatisch gegenereerde Molgenis-ID
-        idAttribute: true
-        auto: true
-        nillable: false
-        lookupAttribute: true
   
-  # @name umdmportal_samples
+  # @name cosasportal_samples
   - name: samples
-    label: Samples
     description: Raw data table for samples
+    extends: cosasportal_template
     attributes:
       - name: UMCG_NUMMER
       - name: ADVVRG_ID
@@ -105,23 +113,11 @@ entities:
         dataType: text
       - name: LABRESULTS
       - name: AUTHORISED
-      - name: processed
-        dataType: bool
-        defaultValue: false
-      - name: dataProcessed
-        dataType: datetime
-      - name: id
-        description: auto generated Molgenis ID
-        description-nl: automatisch gegenereerde Molgenis-ID
-        idAttribute: true
-        auto: true
-        nillable: false
-        lookupAttribute: true
 
-  # @name umdmportal_labs_array_adlas
+  # @name cosasportal_labs_array_adlas
   - name: labs_array_adlas
-    label: Labs array ADLAS
     description: Raw array metadata from ADLAS
+    extends: cosasportal_template
     attributes:
       - name: UMCG_NUMBER
       - name: ADVVRG_ID
@@ -155,23 +151,11 @@ entities:
       - name: SGA_REGIONS_UMCG_CNV_NL_COUNT
       - name: SGA_SIMILAR_PREVIOUS_CASES
       - name: SGA_OVERERVING
-      - name: processed
-        dataType: bool
-        defaultValue: false
-      - name: dataProcessed
-        dataType: datetime
-      - name: id
-        description: auto generated Molgenis ID
-        description-nl: automatisch gegenereerde Molgenis-ID
-        idAttribute: true
-        auto: true
-        nillable: false
-        lookupAttribute: true
   
-  # @name umdmportal_labs_array_darwin
+  # @name cosasportal_labs_array_darwin
   - name: labs_array_darwin
-    label: Labs array Darwin
     description: Raw array metadata from Darwin
+    extends: cosasportal_template
     attributes:
       - name: UmcgNr
       - name: TestId
@@ -180,23 +164,11 @@ entities:
       - name: BatchNaam
       - name: CallRate
       - name: StandaardDeviatie
-      - name: processed
-        dataType: bool
-        defaultValue: false
-      - name: dataProcessed
-        dataType: datetime
-      - name: id
-        description: auto generated Molgenis ID
-        description-nl: automatisch gegenereerde Molgenis-ID
-        idAttribute: true
-        auto: true
-        nillable: false
-        lookupAttribute: true
 
-  # @name umdmportal_labs_ngs_adlas
+  # @name cosasportal_labs_ngs_adlas
   - name: labs_ngs_adlas
-    label: Labs NGS Adlas
     description: Raw NGS data from ADLAS
+    extends: cosasportal_template
     attributes:
       - name: UMCG_NUMBER
       - name: ADVVRG_ID
@@ -212,23 +184,11 @@ entities:
       - name: AMPLICON
       - name: ALLELFREQUENTIE
       - name: OVERERVING
-      - name: processed
-        dataType: bool
-        defaultValue: false
-      - name: dataProcessed
-        dataType: datetime
-      - name: id
-        description: auto generated Molgenis ID
-        description-nl: automatisch gegenereerde Molgenis-ID
-        idAttribute: true
-        auto: true
-        nillable: false
-        lookupAttribute: true
 
-  # @name umdmportal_labs_ngs_darwin
+  # @name cosasportal_labs_ngs_darwin
   - name: labs_ngs_darwin
-    label: Labs NGS Darwin
     description: Raw NSG metadata from Darwin
+    extends: cosasportal_template
     attributes:
       - name: UmcgNr
       - name: TestId
@@ -243,50 +203,21 @@ entities:
       - name: GenomeBuild
       - name: CallRate
       - name: StandaardDeviatie
-      - name: processed
-        dataType: bool
-        defaultValue: false
-      - name: dataProcessed
-        dataType: datetime
-      - name: id
-        description: auto generated Molgenis ID
-        description-nl: automatisch gegenereerde Molgenis-ID
-        idAttribute: true
-        auto: true
-        nillable: false
-        lookupAttribute: true
 
-  # @name umdmportal_bench_cnv
-  - name: bench_cnv
-    label: UMCG BenchCNV
+  # @name cosasportal_benchcnv
+  - name: benchcnv
     description: Staging table for CNV exports
+    extends: cosasportal_template
     attributes:
       - name: primid
         description: UMCG Number
-        description-nl: UMCG nummber
       - name: secid
         description: Family Number
-        description-nl: Familie Number
       - name: externalid
       - name: gender
       - name: comment
         dataType: text
-      - name: phenotype
-        description: HPO code (HPO:1234567)
-        description-nl: HPO code (HPO:1234567)
+      - name: Phenotype
         dataType: text
       - name: created
-      - name: processed
-        dataType: bool
-        defaultValue: false
-      - name: Phenotype
-      - name: dataProcessed
-        dataType: datetime
-      - name: id
-        description: auto generated Molgenis ID
-        description-nl: automatisch gegenereerde Molgenis-ID
-        idAttribute: true
-        auto: true
-        nillable: false
-        lookupAttribute: true
 
