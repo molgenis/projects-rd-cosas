@@ -12,52 +12,49 @@
 from datatable import dt, f, as_type, first
 import molgenis.client as molgenis
 from datetime import datetime
-from os import environ
-import pandas as pd
 import numpy as np
 import requests
 import json
 import re
 
-
-# from dotenv import load_dotenv
-# load_dotenv()
-# host = environ['MOLGENIS_HOST_ACC']
-# token = environ['MOLGENIS_TOKEN_ACC']
 starttime = datetime.now()
+createdBy='cosasbot'
 
 
 def status_msg(*args):
     """Status Message
     Print a log-style message, e.g., "[16:50:12.245] Hello world!"
+
+    @param *args one or more strings containing a message to print
     
-    Attributes:
-        *args (str) : strings containing a message to print 
-    
-    Example:
-        ```py
-        status_msg('Hello World!')
-        ```
+    @return string
     """
     msg = ' '.join(map(str, args))
     t = datetime.utcnow().strftime('%H:%M:%S.%f')[:-3]
     print('\033[94m[' + t + '] \033[0m' + msg)
 
-
+# extension of molgenis.client
 class Molgenis(molgenis.Session):
-    """Molgenis
-    An extension of molgenis.client
-    """
+    def __init__(self, *args, **kwargs):
+        super(Molgenis, self).__init__(*args, **kwargs)
+        self.__getApiUrl__()
     
-    def __init__(self):
-        self.__baseUrl__()
-    
-    def __baseUrl__(self):
+    def __getApiUrl__(self):
+        """Get endpoint for api version"""
         props = list(self.__dict__.keys())
         if '_url' in props:
             self._apiUrl = self._url
         if '_api_url' in props:
             self._apiUrl = self._api_url
+    
+    def _checkResponseStatus(self, response):
+        """Check Response Status Code"""
+        print(response)
+        if (response.status_code // 100) != 2:
+            err = response.json().get('errors')[0].get('message')
+            status_msg(f'Error: unable to import data ({response.status_code}): {err}')
+        else:
+            status_msg(f'Imported data')
     
     def _POST(self, url: str = None, data: list = None):
         try:
@@ -67,19 +64,29 @@ class Molgenis(molgenis.Session):
                 data = json.dumps({'entities': data})
             )
             
+            self._checkResponseStatus(response)
             response.raise_for_status()
             
-            if not response.status_code // 100 == 2:
-                    status_msg(f'Error: unable to import data({response.status_code}): {response.content}')
-                    
-            status_msg(f'Imported {len(data)} entities into {str(entity)}')
+        except requests.exceptions.HTTPError as e:
+            raise SystemError(e)
+            
+    def _PUT(self, url: str=None, data: list=None):
+        try:
+            response = self._session.put(
+                url = url,
+                headers = self._get_token_header_with_content_type(),
+                data = json.dumps({'entities': data})
+            )
+            
+            self._checkResponseStatus(response)
+            response.raise_for_status()
 
-        except requests.exceptions.HTTPError as error:
-            raise SystemError(error)
+        except requests.exceptions.HTTPError as e:
+            raise SystemError(e)
+            
     
-    # update_table
-    def update_table(self, entity: str, data: list):
-        """Update Table
+    def importData(self, entity: str, data: list):
+        """Import Data
         
         When importing data into a new table using the client, there is a 1000
         row limit. This method allows you push data without having to worry
@@ -93,14 +100,32 @@ class Molgenis(molgenis.Session):
         url = '{}v2/{}'.format(self._apiUrl, entity)
         # single push
         if len(data) < 1000:
-            self._POST(url = url, entity = entity, data = data)
+            self._POST(url=url, entity=entity, data=data)
             
         # batch push
         if len(data) >= 1000:    
             for d in range(0, len(data), 1000):
-                self._POST(url = url, entity = entity, data = data[d:d+1000])
+                self._POST(url=url, data=data[d:d+1000])
+    
+    
+    def updateData(self, entity: str, data: list):
+        """Update Data
+        
+        @param entity (str) : name of the entity to import data into
+        @param data (list) : data to import
+        
+        @return a status message
+        """
+        url = '{}v2/{}'.format(self._apiUrl, entity)
+        # single push
+        if len(data) < 1000:
+            self._PUT(url=url, entity=entity, data=data)
+            
+        # batch push
+        if len(data) >= 1000:    
+            for d in range(0, len(data), 1000):
+                self._PUT(url=url, data=data[d:d+1000])
                 
-    # batch_update_one_attr
     def batch_update_one_attr(self, entity: str, attr: str, data: list):
         """Batch Update One Attribute
         
@@ -116,24 +141,39 @@ class Molgenis(molgenis.Session):
         """
         url = '{}v2/{}/{}'.format(self._apiUrl, entity, attr)
         for d in range(0, len(data), 1000):
-            self._POST(url = url, data = data[d:d+1000])
+            self._PUT(url=url, data=data[d:d+1000])
 
 # create class of methods used in the mappings
 class cosastools:
     
     @staticmethod
-    def calcAge(earliest: datetime.date=None, recent: datetime.date=None, round: int=4):
+    def calcAge(earliest: datetime.date=None, recent: datetime.date=None):
         """Calculate Years of Age between two dates
         
         @param earliest: the earliest date (datetime: yyyy-mm-dd)
         @param recent: the most recent date (datetime: yyyy-mm-dd)
-        @param round: integer specifying the number of decimals to round to
         @return int
         """
-        if None in [earliest, recent]:
+        if (earliest is None) or (recent is None):
             return None
 
-        return round(int((recent - earliest).days) / 365.25, 4)
+        return round(((recent - earliest).days) / 365.25, 4)
+    
+    @staticmethod
+    def collapseFamilyIDs(value: str=None, valueToRemove: str=None):
+        """Collapse string of Family Member Identifiers
+        Format IDs as a comma separated string. Remove subject ID it exists in
+        the list of IDs as it isn't necessary to reference the subject here.
+        
+        @param value comma separated string containing one or more IDs
+        @param valueToRemove value to remove from the list of IDs
+        
+        @return comma separated string containing one ore more family IDs
+        """
+        if (str(value) in ['nan','-','']) or (value is None): return None
+        pattern = re.compile(f'((,)?({valueToRemove})(,)?)')
+        newString = re.sub(pattern, '', value).strip().replace(' ','')
+        return re.sub(r'([,]$)', '',newString)
     
     @staticmethod
     def collapseHpoCodes(id, column):
@@ -196,8 +236,7 @@ class cosastools:
     
     @staticmethod
     def formatAsDate(date: str, pattern = '%Y-%m-%d %H:%M:%S', asString = False):
-        """Format Date String
-        Format date string to yyyy-mm-dd format
+        """Format Date String as yyyy-mm-dd
         
         @param string : date string
         @param pattern : date format, default: %Y-%m-%d %H:%M:%S
@@ -219,192 +258,193 @@ class cosastools:
         return value
     
     @staticmethod
-    def format_idString(idString: str, idToRemove: str):
-        """Format ID strings
+    def recodeValue(
+        mappings: dict=None,
+        value: str=None,
+        attr: str=None,
+        label:str=None
+    ):
+        """Recode value
+        Recode values using new mappings. It is recommended to define all
+        mappings using lowercase letters and the the input for value should
+        also be lowered.
         
-        @param 
+        @param mappings dict containing where each key corresponds to a new value
+        @param value string containing a value to recode
+        @param attr If defined and your mappings is structured accordingly,
+            you can map a value to a dictionary with nested
+            values. This may be useful in situations you need to recode a value
+            to more than one context.
+        @param label string that indicates the mapping type for error messages
+        
+        @examples
+        ```
+        # Mapping structure options
+        
+        # default
+        mappings = {'old_value': 'new_value'}
+        
+        # nested
+        mappings = {'old_value': {'value_for_a': 'abc', 'value_for_b': 'xyz'}}
+        ```
+        
+        @return string 
         """
-        if (str(idString) in ['nan','-','']) or (idString is None):
-            return None
-        newString=re.sub(re.compile(f'((,)?({idToRemove})(,)?)'), '', idString).strip()
-        return re.sub(r'([,]$)', '',newString)
-    
-    @staticmethod
-    def recode_biospecimenType(value):
-        mappings = {
-            'DNA': 'Blood DNA',
-            'DNA reeds aanwezig': 'DNA Library',
-            'beenmerg': 'Bone Marrow Sample',
-            'bloed': 'Whole Blood',
-            'fibroblastenkweek': 'Bone Marrow-Derived Fibroblasts',
-            'foetus': None,  # not enough information to make a specific mapping
-            'gekweekt foetaal weefsel': 'Human Fetal Tissue',
-            'gekweekt weefsel': 'Tissue Sample',
-            'gekweekte Amnion cellen': 'Amnion',
-            'gekweekte Chorion villi': 'Chorionic Villus', 
-            'gekweekte amnion cellen': 'Amnion',
-            'huidbiopt': 'Skin/Subcutaneous Tissue',
-            'navelstrengbloed': 'Umbilical Cord Blood',
-            'ongekweekt foetaal weefsel': 'Human Fetal Tissue',
-            'ongekweekt weefsel': 'Tissue Sample',
-            'ongekweekte amnion cellen': 'Amnion',
-            'ongekweekte chorion villi': 'Chorionic Villus',
-            'overig': 'Tissue Sample',  # generic term
-            'paraffine normaal': None, # these are storage conditions
-            'paraffine tumor': None, # these are storage conditions
-            'plasmacellen': 'Serum or Plasma',
-            'speeksel': 'Saliva Sample',
-            'suspensie': 'Mixed Adherent Cells in Suspension',
-            'toegestuurd DNA foetaal': None  # mix of 'fetal tissue' and 'DNA'
-        }
         try:
-            return mappings[value]
+            return mappings[value][attr] if bool(attr) else mappings[value]
         except KeyError:
             if bool(value):
-                status_msg('Error in biospecimenType mappings: {} does not exist'.format(value))
+                status_msg('Error in {} recoding: {} not found'.format(label, value))
+            return None
+        except AttributeError:
+            if bool(value):
+                status_msg('Error in {} recoding: {} not found'.format(label, value))
             return None
     
     @staticmethod
-    def recode_cineasToHpo(value: str, refData):
+    def mapCineasToHpo(value: str, refData):
         """Recode Cineas Code to HPO
         Find the HPO term to a corresponding Cineas
         
         @param value : a string containing a cineas code
         @param refData : datatable object containing Cineas to HPO mappings
+        
+        @return string
         """
         if value is None:
             return None
-        refData[f.value == value, f.hpo][0][0]
+        
+        return refData[f.value == value, f.hpo][0][0]
     
     @staticmethod
-    def recode_genomeBuild(value: str):        
+    def recodeGenomeBuild(value: str):        
         if value == 'Feb. 2009 (GRCh37/hg19)':
             return 'GRCh37'
-    
-    @staticmethod
-    def recode_phenotypicSex(value: str = None):
-        """Recode Phenotypic Sex
-        
-        Standarize values to Fair Genomes/Harmonized model values
-        
-        @param value (str) : a value containing a phenotypic sex code (in Dutch)
-        
-        @return string
-        """
-        mappings = {'vrouw': 'female', 'man': 'male'}
-        try:
-            return mappings[value.lower()]
-        except KeyError:
-            if bool(value):
-                status_msg('Error in phenotypicSex mappings: {} does not exist'.format(value))
-            return None
-        except AttributeError:
-            if bool(value):
-                status_msg('Error in phenotypicSex mappings: {} does not exist'.format(value))
-            return None
-    
-    @staticmethod
-    def recode_samplingReason(value: str):
-        mappings = {
-            'Diagnostisch': 'Diagnostic',
-            'Dragerschap': 'Carrier Status',
-            'Hematologische maligniteiten': 'Diagnostic',
-            'Informativiteit': 'Informative',
-            'Presymptomatisch': 'Presymptomatic Testing'
-        }
-        try:
-            return mappings[value]
-        except KeyError:
-            if bool(value):
-                status_msg('Error in samplingReason mapping: {} does not exist'.format(value))
-            return None 
-        except AttributeError:
-            if bool(value):
-                status_msg('Error in samplingReason mapping: {} does not exist'.format(value))
-            return None
-    
-    @staticmethod
-    def recode_sequencingInfo(value: str, type: str):
-        mappings = {
-            'HiSeq' : {
-                'platform': 'Illumina platform',
-                'model': 'Illumina HiSeq Sequencer'
-            },
-            'MiSeq sequencer 1' : {
-                'platform': 'Illumina platform',
-                'model': 'MiSeq'
-            },
-            'MiSeq sequencer 2' : {
-                'platform': 'Illumina platform',
-                'model': 'MiSeq'
-            },
-            # for NextSeq sequencers, I'm using model None. Numbers 1:3 likely
-            # represents machine number not model number.
-            'NextSeq sequencer 1' : {
-                'platform': 'Illumina platform',
-                'model': None #'Illumina NextSeq 1000'
-            },
-            'NextSeq sequencer 2' : {
-                'platform': 'Illumina platform',
-                'model': None # 'Illumina NextSeq 2000'
-            },
-            'NextSeq sequencer 3' : {
-                'platform': 'Illumina platform',
-                'model': None
-            }
-        }
-        if not (type in ['platform','model']):
-            raise ValueError('Error in Sequencing Info recode: type {} unknown'.format(str(type)))
-        try:
-            return mappings[value].get(type)
-        except KeyError:
-            if bool(value):
-                status_msg('Error in sequencingPlatform mappings: {} does not exist'.format(value))
-            return None
-    
-    @staticmethod
-    def recode_subjectStatus(date):
-        """Recode Subject Status
-        Using the values in the column `dateOfDeath`, determine the current
-        status of the subject. The values are either 'deceased' or 'alive'.
-        @param date (str) : a date string
-        @return string
-        """
-        if not bool(date):
-            return 'Presumed Alive'
-        return 'Dead'
     
     @staticmethod
     def timestamp():
         """Return Generic timestamp as yyyy-mm-ddThh:mm:ssZ"""
         return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
     
-    @staticmethod
-    def to_csv(data, path: str):
-        return data.to_pandas().replace({np.nan:None}).to_csv(path,index=False)
-    
 #//////////////////////////////////////////////////////////////////////////////
 
 # Read Portal Data
 # cosas = molgenis(url = 'http://localhost/api/', token = '${molgenisToken}')
 
+db = Molgenis(url='https://david.gcc.rug.nl/api/', token='6e5c3c26a3f74014b60c3b7c410c9b27')
+
+
 status_msg('Loading the latest data exports...')
-raw_subjects = dt.Frame(pd.read_excel('_raw/cosasportal_patients.xlsx',dtype=str))
-raw_clinical = dt.Frame(pd.read_excel('_raw/cosasportal_diagnoses.xlsx',dtype=str))
-raw_bench_cnv = dt.Frame(pd.read_excel('_raw/cosasportal_bench_cnv.xlsx',dtype=str))
-raw_samples = dt.Frame(pd.read_excel('_raw/cosasportal_samples.xlsx',dtype=str))
-raw_array_adlas = dt.Frame(pd.read_excel('_raw/cosasportal_array_adlas.xlsx',dtype=str))
-raw_array_darwin = dt.Frame(pd.read_excel('_raw/cosasportal_array_darwin.xlsx',dtype=str))
-raw_ngs_adlas = dt.Frame(pd.read_excel('_raw/cosasportal_ngs_adlas.xlsx',dtype=str))
-raw_ngs_darwin = dt.Frame(pd.read_excel('_raw/cosasportal_ngs_darwin.xlsx',dtype=str))
-cineasHpoMappings = dt.Frame(pd.read_csv('emx/lookups/cosasrefs_cineasHpoMappings.csv',dtype=str))
+raw_subjects = dt.Frame(db.get('cosasportal_patients',batch_size=10000))
+del raw_subjects['_href']
+
+
+# raw_clinical = dt.Frame(pd.read_excel('_raw/cosasportal_diagnoses.xlsx',dtype=str))
+# raw_bench_cnv = dt.Frame(pd.read_excel('_raw/cosasportal_bench_cnv.xlsx',dtype=str))
+# raw_samples = dt.Frame(pd.read_excel('_raw/cosasportal_samples.xlsx',dtype=str))
+# raw_array_adlas = dt.Frame(pd.read_excel('_raw/cosasportal_array_adlas.xlsx',dtype=str))
+# raw_array_darwin = dt.Frame(pd.read_excel('_raw/cosasportal_array_darwin.xlsx',dtype=str))
+# raw_ngs_adlas = dt.Frame(pd.read_excel('_raw/cosasportal_ngs_adlas.xlsx',dtype=str))
+# raw_ngs_darwin = dt.Frame(pd.read_excel('_raw/cosasportal_ngs_darwin.xlsx',dtype=str))
+# cineasHpoMappings = dt.Frame(pd.read_csv('emx/lookups/cosasrefs_cineasHpoMappings.csv',dtype=str))
 
 # pull list of subjects from COSAS and merge with new subject ID list
 cosasSubjectIdList = list(set(raw_subjects[:, 'UMCG_NUMBER'].to_list()[0]))
-# subjectIdList = dt.Frame(
-#   cosas.get('cosas_subjects',attributes='subjectID',batch_size=10000)
-# )['subjectID'].to_list()[0]
-# cosasSubjectIdList = list(set(cosasSubjectIdList.append(subjectIdList)))
+
+#//////////////////////////////////////////////////////////////////////////////
+
+
+# ~ ~
+# Define Mappings
+#
+# Create mappings to recode raw values to the new unified model. Use the method
+# cosastools.recodeValue to recode values. It is highly recommended to lowercase
+# all values and input values.
+#
+# ```python 
+# genderMappings = {'vrouw': 'female', 'man': 'male'}
+# cosastools.recodeValue(mappings = genderMappings, value='vrouw', label='gender')
+# ```
+#
+# In other situtations, you can nest additional mappings so that you can recode
+# one value for use in multiple contexts. This is useful for attributes such as
+# sequencer.
+#
+
+# define gender mappings
+genderMappings = {
+    'Vrouw': 'female gender identity',
+    'Man': 'male gender identity'
+}
+
+# define biospecimen type mappings
+biospecimenTypeMappings = {
+    'dna': 'Blood DNA',
+    'dna reeds aanwezig': 'DNA Library',
+    'beenmerg': 'Bone Marrow Sample',
+    'bloed': 'Whole Blood',
+    'fibroblastenkweek': 'Bone Marrow-Derived Fibroblasts',
+    'foetus': None,  # not enough information to make a specific mapping
+    'gekweekt foetaal weefsel': 'Human Fetal Tissue',
+    'gekweekt weefsel': 'Tissue Sample',
+    'gekweekte Amnion cellen': 'Amnion',
+    'gekweekte Chorion villi': 'Chorionic Villus', 
+    'gekweekte amnion cellen': 'Amnion',
+    'huidbiopt': 'Skin/Subcutaneous Tissue',
+    'navelstrengbloed': 'Umbilical Cord Blood',
+    'ongekweekt foetaal weefsel': 'Human Fetal Tissue',
+    'ongekweekt weefsel': 'Tissue Sample',
+    'ongekweekte amnion cellen': 'Amnion',
+    'ongekweekte chorion villi': 'Chorionic Villus',
+    'overig': 'Tissue Sample',  # generic term
+    'paraffine normaal': None, # these are storage conditions
+    'paraffine tumor': None, # these are storage conditions
+    'plasmacellen': 'Serum or Plasma',
+    'speeksel': 'Saliva Sample',
+    'suspensie': 'Mixed Adherent Cells in Suspension',
+    'toegestuurd DNA foetaal': None  # mix of 'fetal tissue' and 'DNA'
+}
+
+
+# sampling reason mappings
+sampleReasonMappings = {
+    'diagnostisch': 'Diagnostic',
+    'dragerschap': 'Carrier Status',
+    'hematologische maligniteiten': 'Diagnostic',
+    'informativiteit': 'Informative',
+    'presymptomatisch': 'Presymptomatic Testing'
+}
+
+
+# define sequencing info mappings
+sequencingInfoMappings = {
+    'HiSeq' : {
+        'platform': 'Illumina platform',
+        'model': 'Illumina HiSeq Sequencer'
+    },
+    'MiSeq sequencer 1' : {
+        'platform': 'Illumina platform',
+        'model': 'MiSeq'
+    },
+    'MiSeq sequencer 2' : {
+        'platform': 'Illumina platform',
+        'model': 'MiSeq'
+    },
+    # for NextSeq sequencers, I'm using model None. Numbers 1:3 likely
+    # represents machine number not model number.
+    'NextSeq sequencer 1' : {
+        'platform': 'Illumina platform',
+        'model': None #'Illumina NextSeq 1000'
+    },
+    'NextSeq sequencer 2' : {
+        'platform': 'Illumina platform',
+        'model': None # 'Illumina NextSeq 2000'
+    },
+    'NextSeq sequencer 3' : {
+        'platform': 'Illumina platform',
+        'model': None
+    }
+}
 
 #//////////////////////////////////////////////////////////////////////////////
 
@@ -435,7 +475,7 @@ subjects = raw_subjects[
         'dateOfDeath': f.OVERLIJDENSDATUM,
         'yearOfDeath': None,
         'ageAtDeath': None,
-        'phenotypicSex': f.GESLACHT,
+        'genderIdentity': f.GESLACHT,
         'ageAtDeath': None,
         'primaryOrganization': 'UMCG'
     }
@@ -459,9 +499,10 @@ status_msg('Identifying unregistered subjects...')
 
 maternalIDs = subjects['belongsToMother'].to_list()[0]
 paternalIDs = subjects['belongsToFather'].to_list()[0]
+familyData = subjects[:, (f.belongsWithFamilyMembers, f.belongsToFamily,f.subjectID)].to_tuples()
 
 belongsWithFamilyMembers = dt.Frame()
-for entity in subjects[:, (f.belongsWithFamilyMembers, f.belongsToFamily,f.subjectID)].to_tuples():
+for entity in familyData:
     if not (entity[0] is None):
         ids = [d.strip() for d in entity[0].split(',') if not (d is None) or (d != '')]
         for el in ids:
@@ -510,7 +551,7 @@ subjectsToRegister = dt.rbind(
         {
             'subjectID': d[0],
             'belongsToFamily': d[1],
-            'phenotypicSex': 'Vrouw',
+            'genderIdentity': 'Vrouw',
             'comments': 'manually registered in COSAS'
         } for d in subjects[:, (f.belongsToMother, f.belongsToFamily)].to_tuples()
         if not (d[0] is None) and not (d[0] in cosasSubjectIdList)
@@ -521,7 +562,7 @@ subjectsToRegister = dt.rbind(
         {
             'subjectID': d[0],
             'belongsToFamily': d[1],
-            'phenotypicSex': 'Man',
+            'genderIdentity': 'Man',
             'comments': 'manually registered in COSAS'
         } for d in subjects[:, (f.belongsToFather, f.belongsToFamily)].to_tuples()
         if not (d[0] is None) and not (d[0] in cosasSubjectIdList)
@@ -529,7 +570,6 @@ subjectsToRegister = dt.rbind(
     
     # bind family members
     belongsWithFamilyMembers,
-
     force = True
 )
 
@@ -546,65 +586,69 @@ status_msg('Registering {} new subjects'.format(subjectsToRegister.nrows))
 # to be recoded or formated for MOLGENIS.
 #
 
-# format belongsWithFamilyMembers in base subjects object before joining new subjects
-status_msg('Formating linked Family IDs...')
-subjects['belongsWithFamilyMembers'] = dt.Frame([
-    cosastools.format_idString(d[0],d[1])
-    for d in subjects[:, (f.belongsWithFamilyMembers, f.subjectID)].to_tuples()
-])
-
-
-#
 # Bind `subjectsToRegister` with subjects so that all columns can be formated
 # at once. Make sure distinct cases are selected and the dataset is sorted by
 # ID.
-#
 status_msg('Binding subjects with new subjects...')
-subjects = dt.rbind(subjects, subjectsToRegister, force = True)[
+subjects = dt.rbind(subjectsToRegister,subjects, force = True)[
     :, first(f[:]), dt.by(f.subjectID)
 ][:, :, dt.sort(as_type(f.subjectID, int))]
 
 
-# recode phenotypicSex
-status_msg('Recoding phenotypicSex...')
+# Format `belongsWithFamilyMembers`: trimws, remove subject ID
+status_msg('Formating linked Family IDs...')
+subjects['belongsWithFamilyMembers'] = dt.Frame([
+    cosastools.collapseFamilyIDs(d[0],d[1])
+    for d in subjects[:, (f.belongsWithFamilyMembers, f.subjectID)].to_tuples()
+])
 
-subjects['phenotypicSex'] = dt.Frame([
-    cosastools.recode_phenotypicSex(d) for d in subjects['phenotypicSex'].to_list()[0]
+
+# map gender values to `umdm_lookups_genderIdentity`
+status_msg('Recoding gender...')
+subjects['genderIdentity'] = dt.Frame([
+    cosastools.recodeValue(mappings=genderMappings, value=d)
+    for d in subjects['genderIdentity'].to_list()[0]
 ])
 
 
 # format date columns to the correct format (yyyy-mm-dd)
 status_msg('Transforming and calculating date variables...')
 
+# format `dateOfBirth` as yyyy-mm-dd
 subjects['dateOfBirth'] = dt.Frame([
-    cosastools.formatAsDate(
-        date = d
-    ) for d in subjects['dateOfBirth'].to_list()[0]
+    cosastools.formatAsDate(date = d, pattern = '%d-%m-%Y')
+    for d in subjects['dateOfBirth'].to_list()[0]
 ])
 
 
+# format `yearOfBirth` as yyyy
 subjects['yearOfBirth'] = dt.Frame([
-    cosastools.formatAsYear(d) for d in subjects['dateOfBirth'].to_list()[0]
+    cosastools.formatAsYear(d)
+    for d in subjects['dateOfBirth'].to_list()[0]
 ])
 
 
+# format `dateOfDeath` as yyyy-mm-dd
 subjects['dateOfDeath'] = dt.Frame([
-    cosastools.formatAsDate(d) for d in subjects['dateOfDeath'].to_list()[0]
+    cosastools.formatAsDate(date = d, pattern = '%d-%m-%Y')
+    for d in subjects['dateOfDeath'].to_list()[0]
 ])
 
 
+# format `yearOfDeath` as yyyy
 subjects['yearOfDeath'] = dt.Frame([
     cosastools.formatAsYear(d) for d in subjects['dateOfDeath'].to_list()[0]
 ])
 
-
+# using `dateOfDeath` set `subjectStatus`
 subjects['subjectStatus'] = dt.Frame([
-    cosastools.recode_subjectStatus(d) for d in subjects['dateOfDeath'].to_list()[0]
+    'Dead' if bool(d) else 'Alive'
+    for d in subjects['dateOfDeath'].to_list()[0]
 ])
 
-
+# calcuate `ageAtDeath` if `dateOfDeath` is defined
 subjects['ageAtDeath'] = dt.Frame([
-    cosastools.calculate_age(
+    cosastools.calcAge(
         earliest = d[0],
         recent = d[1]
     ) for d in subjects[:, (f.dateOfBirth, f.dateOfDeath)].to_tuples()
@@ -622,7 +666,7 @@ subjects['dateOfDeath'] = dt.Frame([
 ])
 
 status_msg('Mapped {} new records'.format(subjects.nrows))
-del maternalIDs, paternalIDs, belongsWithFamilyMembers, subjectsToRegister
+del maternalIDs, paternalIDs, belongsWithFamilyMembers, subjectsToRegister, familyData
 
 #//////////////////////////////////////////////////////////////////////////////
 
@@ -630,79 +674,79 @@ status_msg('')
 status_msg('==== Building COSAS Clinical ====')
 
 
-maternalIDs = subjects[
-    f.belongsToMother != None, f.belongsToMother
-][
-    :, first(f[:]), dt.by(f.belongsToMother)
-].to_list()[0]
+# maternalIDs = subjects[
+#     f.belongsToMother != None, f.belongsToMother
+# ][
+#     :, first(f[:]), dt.by(f.belongsToMother)
+# ].to_list()[0]
 
-familyIDs = subjects[
-    f.belongsToFamily != None, f.belongsToFamily
-][
-    :, first(f[:1]), dt.by(f.belongsToFamily)
-].to_list()[0]
+# familyIDs = subjects[
+#     f.belongsToFamily != None, f.belongsToFamily
+# ][
+#     :, first(f[:1]), dt.by(f.belongsToFamily)
+# ].to_list()[0]
 
 
-clinicalDF = raw_bench_cnv[:, {
-    'id': f.primid,
-    'belongsToFamily': f.secid,
-    'observedPhenotype': f.Phenotype
-}]
+# clinicalDF = raw_bench_cnv[:, {
+#     'id': f.primid,
+#     'belongsToFamily': f.secid,
+#     'observedPhenotype': f.Phenotype
+# }]
 
-clinicalDF['observedPhenotype'] = dt.Frame([
-    ','.join(list(set(d.strip().split())))
-    for d in clinicalDF['observedPhenotype'].to_list()[0]
-])
+# clinicalDF['observedPhenotype'] = dt.Frame([
+#     ','.join(list(set(d.strip().split())))
+#     for d in clinicalDF['observedPhenotype'].to_list()[0]
+# ])
 
-clinicalDF['isFetus'] = dt.Frame([
-    'f' in d.lower()
-    for d in clinicalDF['id'].to_list()[0]
-])
+# clinicalDF['isFetus'] = dt.Frame([
+#     'f' in d.lower()
+#     for d in clinicalDF['id'].to_list()[0]
+# ])
 
-fetusData = clinicalDF[f.isFetus == True, :].to_pandas().to_dict('records')
-for index,row in enumerate(fetusData):
-    value = row.get('id').strip().replace(' ', '')
+# fetusData = clinicalDF[f.isFetus == True, :].to_pandas().to_dict('records')
+# for index,row in enumerate(fetusData):
+#     value = row.get('id').strip().replace(' ', '')
     
-    if row['isFetus']:
+#     if row['isFetus']:
 
-        # Pattern 1: 99999F, 99999F1, 99999F1.2
-        pattern1 = re.search(r'((F)|(F[-_])|(F[0-9]{,2})|(F[0-9]{1,2}.[0-9]{1,2}))$', value)
+#         # Pattern 1: 99999F, 99999F1, 99999F1.2
+#         pattern1 = re.search(r'((F)|(F[-_])|(F[0-9]{,2})|(F[0-9]{1,2}.[0-9]{1,2}))$', value)
         
-        # Patern 2: 99999F-88888, 99999_88888
-        pattern2 = re.search(r'^([0-9]{1,}(F)?([0-9]{1,2})?[-_=][0-9]{1,})$', value)
+#         # Patern 2: 99999F-88888, 99999_88888
+#         pattern2 = re.search(r'^([0-9]{1,}(F)?([0-9]{1,2})?[-_=][0-9]{1,})$', value)
 
-        if pattern1:
-            row['belongsToMother'] = pattern1.string.replace(pattern1.group(0),'')
-            row['validMaternalID'] = row['belongsToMother'] in maternalIDs
-            row['validFamilyID'] = row['belongsToFamily'] in familyIDs
-            row['subjectID'] = pattern1.string
-        elif pattern2:
-            ids = re.split(r'[-_=]', pattern2.string)
-            row['belongsToMother'] = ids[0].replace('F', '')
-            row['validMaternalID'] = row['belongsToMother'] in maternalIDs
-            row['validFamilyID'] = row['belongsToFamily'] in familyIDs
-            row['subjectID'] = ids[0] #.replace('F', '')
-            row['alternativeIdentifiers'] = ids[1]
-        else:
-            status_msg('{}. F detected in {}, but pattern is unexpected'.format(index, value))
+#         if pattern1:
+#             row['belongsToMother'] = pattern1.string.replace(pattern1.group(0),'')
+#             row['validMaternalID'] = row['belongsToMother'] in maternalIDs
+#             row['validFamilyID'] = row['belongsToFamily'] in familyIDs
+#             row['subjectID'] = pattern1.string
+#         elif pattern2:
+#             ids = re.split(r'[-_=]', pattern2.string)
+#             row['belongsToMother'] = ids[0].replace('F', '')
+#             row['validMaternalID'] = row['belongsToMother'] in maternalIDs
+#             row['validFamilyID'] = row['belongsToFamily'] in familyIDs
+#             row['subjectID'] = ids[0] #.replace('F', '')
+#             row['alternativeIdentifiers'] = ids[1]
+#         else:
+#             status_msg('{}. F detected in {}, but pattern is unexpected'.format(index, value))
 
 
-fetusData = pd.DataFrame(fetusData).replace({np.nan:None})
-fetusData = fetusData[[
-    'id',
-    'subjectID',
-    'belongsToFamily',
-    'belongsToMother',
-    'alternativeIdentifiers',
-    'isFetus',
-    'validMaternalID',
-    'validFamilyID'
-]]
+# fetusData = pd.DataFrame(fetusData).replace({np.nan:None})
+# fetusData = fetusData[[
+#     'id',
+#     'subjectID',
+#     'belongsToFamily',
+#     'belongsToMother',
+#     'alternativeIdentifiers',
+#     'isFetus',
+#     'validMaternalID',
+#     'validFamilyID'
+# ]]
 
-fetusData['belongsToMother'] = fetusData['belongsToMother'].astype('str')
-fetusData['subjectID'] = fetusData['subjectID'].astype('str')
-fetusData['alternativeIdentifiers'] = fetusData['alternativeIdentifiers'].astype('str')
-fetusData.sort_values(by=['validMaternalID','subjectID']).to_excel('~/Desktop/fetus_data_review.xlsx',index=False)
+# fetusData['belongsToMother'] = fetusData['belongsToMother'].astype('str')
+# fetusData['subjectID'] = fetusData['subjectID'].astype('str')
+# fetusData['alternativeIdentifiers'] = fetusData['alternativeIdentifiers'].astype('str')
+# fetusData.sort_values(by=['validMaternalID','subjectID']).to_excel('~/Desktop/fetus_data_review.xlsx',index=False)
 
 # ~ 2 ~
 # Build Phenotypic Data from workbench export
@@ -1120,7 +1164,7 @@ sampleSequencingData['sequencingInstrumentModel'] = dt.Frame([
 
 # recode `genomeBuild`
 sampleSequencingData['referenceGenomeUsed'] = dt.Frame([
-    cosastools.recode_genomeBuild(d) for d in sampleSequencingData['referenceGenomeUsed'].to_list()[0]
+    cosastools.recodeGenomeBuild(d) for d in sampleSequencingData['referenceGenomeUsed'].to_list()[0]
 ])
 
 #//////////////////////////////////////
@@ -1184,8 +1228,6 @@ status_msg('Processed {} new records for the sequencing table'.format(sequencing
 status_msg('')
 status_msg('Updating row-level metadata...')
 
-createdBy = environ['COSAS_CREATED_BY']
-
 # set record-level metadata
 subjects[:, dt.update(
     dateRecordCreated=cosastools.timestamp(),
@@ -1213,13 +1255,15 @@ sequencing[:, dt.update(
 )]
 
 # convert to list of dictionaries (make sure all nan's are recoded!), and save
-status_msg('Writing data to file...')
-# to_csv(subjects,'data/cosas/subjects.csv')
-# to_csv(clinical,'data/cosas/clinical.csv')
-# to_csv(samples,'data/cosas/samples.csv')
-# to_csv(samplePreparation,'data/cosas/samplePreparation.csv')
-# to_csv(sequencing,'data/cosas/sequencing.csv')
+status_msg('Importing data to...')
 
-endtime = datetime.now()
-totaltime = endtime - starttime
-status_msg('Completed job in {} seconds'.format(totaltime.total_seconds()))
+# db.delete(entity='umdm_subjects')
+# db.delete(entity='cosasportal_patients')
+
+umdm_subjects = subjects.to_pandas().replace({np.nan: None}).to_dict('records')
+umdm_subject_ids = subjects[
+    :,(f.subjectID, f.dateRecordCreated,f.recordCreatedBy)
+].to_pandas().replace({np.nan: None}).to_dict('records')
+
+db.importData(entity='umdm_subjects', data=umdm_subject_ids)
+db.updateData(entity='umdm_subjects', data=umdm_subjects)
