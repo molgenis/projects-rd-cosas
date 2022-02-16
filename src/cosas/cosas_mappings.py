@@ -329,24 +329,23 @@ class cosastools:
 #//////////////////////////////////////////////////////////////////////////////
 
 # Read Portal Data
-# cosas = molgenis(url = 'http://localhost/api/', token = '${molgenisToken}')
-
-db = Molgenis(url='https://david.gcc.rug.nl/api/', token='6e5c3c26a3f74014b60c3b7c410c9b27')
-
-
 status_msg('Loading the latest data exports...')
+
+db = molgenis(url = 'http://localhost/api/', token = '${molgenisToken}')
+
+
 raw_subjects = dt.Frame(db.get('cosasportal_patients',batch_size=10000))
 del raw_subjects['_href']
 
-
-# raw_clinical = dt.Frame(pd.read_excel('_raw/cosasportal_diagnoses.xlsx',dtype=str))
-# raw_bench_cnv = dt.Frame(pd.read_excel('_raw/cosasportal_bench_cnv.xlsx',dtype=str))
-# raw_samples = dt.Frame(pd.read_excel('_raw/cosasportal_samples.xlsx',dtype=str))
-# raw_array_adlas = dt.Frame(pd.read_excel('_raw/cosasportal_array_adlas.xlsx',dtype=str))
-# raw_array_darwin = dt.Frame(pd.read_excel('_raw/cosasportal_array_darwin.xlsx',dtype=str))
-# raw_ngs_adlas = dt.Frame(pd.read_excel('_raw/cosasportal_ngs_adlas.xlsx',dtype=str))
-# raw_ngs_darwin = dt.Frame(pd.read_excel('_raw/cosasportal_ngs_darwin.xlsx',dtype=str))
-# cineasHpoMappings = dt.Frame(pd.read_csv('emx/lookups/cosasrefs_cineasHpoMappings.csv',dtype=str))
+# objects to create
+# raw_clinical = dt.Frame(db.get('cosasportal_',batch_size=10000))
+# raw_bench_cnv = dt.Frame(db.get('cosasportal_',batch_size=10000))
+# raw_samples = dt.Frame(db.get('cosasportal_',batch_size=10000))
+# raw_array_adlas = dt.Frame(db.get('cosasportal_',batch_size=10000))
+# raw_array_darwin = dt.Frame(db.get('cosasportal_',batch_size=10000))
+# raw_ngs_adlas = dt.Frame(db.get('cosasportal_',batch_size=10000))
+# raw_ngs_darwin = dt.Frame(db.get('cosasportal_',batch_size=10000))
+# cineasHpoMappings = dt.Frame(db.get('cosasportal_',batch_size=10000))
 
 # pull list of subjects from COSAS and merge with new subject ID list
 cosasSubjectIdList = list(set(raw_subjects[:, 'UMCG_NUMBER'].to_list()[0]))
