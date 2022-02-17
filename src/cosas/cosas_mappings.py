@@ -2,7 +2,7 @@
 #' FILE: mappings_cosas.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-10-05
-#' MODIFIED: 2022-02-15
+#' MODIFIED: 2022-02-17
 #' PURPOSE: primary mapping script for COSAS
 #' STATUS: stable
 #' PACKAGES: **see below**
@@ -17,10 +17,21 @@ import requests
 import json
 import re
 
+# only for local dev
+from dotenv import load_dotenv
+from os import environ
+load_dotenv()
+host = environ['MOLGENIS_HOST_ACC']
+token = environ['MOLGENIS_TOKEN_ACC'] 
+
+# uncomment when deployed
+# host = 'http://localhost/api/'
+# token = '${molgenisToken}'
+
 starttime = datetime.now()
-createdBy='cosasbot'
+createdBy = 'cosasbot'
 
-
+# generic status message with timestamp
 def status_msg(*args):
     """Status Message
     Print a log-style message, e.g., "[16:50:12.245] Hello world!"
@@ -29,34 +40,32 @@ def status_msg(*args):
     
     @return string
     """
-    msg = ' '.join(map(str, args))
     t = datetime.utcnow().strftime('%H:%M:%S.%f')[:-3]
-    print('\033[94m[' + t + '] \033[0m' + msg)
+    print('\033[94m[' + t + '] \033[0m' + ' '.join(map(str, args)))
 
-# extension of molgenis.client
+
+# extend molgenis.client
 class Molgenis(molgenis.Session):
     def __init__(self, *args, **kwargs):
         super(Molgenis, self).__init__(*args, **kwargs)
         self.__getApiUrl__()
     
     def __getApiUrl__(self):
-        """Get endpoint for api version"""
+        """Find API endpoint regardless of version"""
         props = list(self.__dict__.keys())
         if '_url' in props:
             self._apiUrl = self._url
         if '_api_url' in props:
             self._apiUrl = self._api_url
     
-    def _checkResponseStatus(self, response):
-        """Check Response Status Code"""
-        print(response)
+    def _checkResponseStatus(self, response, label):
         if (response.status_code // 100) != 2:
             err = response.json().get('errors')[0].get('message')
-            status_msg(f'Error: unable to import data ({response.status_code}): {err}')
+            status_msg(f'Failed to import data into {label} ({response.status_code}): {err}')
         else:
-            status_msg(f'Imported data')
+            status_msg(f'Imported data into {label}')
     
-    def _POST(self, url: str = None, data: list = None):
+    def _POST(self, url: str = None, data: list = None, label: str=None):
         try:
             response = self._session.post(
                 url = url,
@@ -64,13 +73,13 @@ class Molgenis(molgenis.Session):
                 data = json.dumps({'entities': data})
             )
             
-            self._checkResponseStatus(response)
+            self._checkResponseStatus(response, label)
             response.raise_for_status()
             
         except requests.exceptions.HTTPError as e:
             raise SystemError(e)
             
-    def _PUT(self, url: str=None, data: list=None):
+    def _PUT(self, url: str=None, data: list=None, label: str=None):
         try:
             response = self._session.put(
                 url = url,
@@ -78,7 +87,7 @@ class Molgenis(molgenis.Session):
                 data = json.dumps({'entities': data})
             )
             
-            self._checkResponseStatus(response)
+            self._checkResponseStatus(response, label)
             response.raise_for_status()
 
         except requests.exceptions.HTTPError as e:
@@ -87,61 +96,54 @@ class Molgenis(molgenis.Session):
     
     def importData(self, entity: str, data: list):
         """Import Data
-        
-        When importing data into a new table using the client, there is a 1000
-        row limit. This method allows you push data without having to worry
-        about the limits.
+        Import data into a table. The data must be a list of dictionaries that
+        contains the 'idAttribute' and one or more attributes that you wish
+        to import.
         
         @param entity (str) : name of the entity to import data into
-        @param data (list) : data to import
+        @param data (list) : data to import (a list of dictionaries)
         
         @return a status message
         """
         url = '{}v2/{}'.format(self._apiUrl, entity)
         # single push
         if len(data) < 1000:
-            self._POST(url=url, entity=entity, data=data)
+            self._POST(url=url, entity=entity, data=data, label=str(entity))
             
         # batch push
         if len(data) >= 1000:    
             for d in range(0, len(data), 1000):
-                self._POST(url=url, data=data[d:d+1000])
+                self._POST(
+                    url = url,
+                    data = data[d:d+1000],
+                    label = '{} (batch {})'.format(str(entity), str(d))
+                )
     
     
     def updateData(self, entity: str, data: list):
         """Update Data
+        Update rows in a table. The data must be a list of dictionaries that
+        contains the 'idAttribute' and one or more attributes that you wish
+        to update. 
         
         @param entity (str) : name of the entity to import data into
-        @param data (list) : data to import
+        @param data (list) : data to import (list of dictionaries)
         
         @return a status message
         """
         url = '{}v2/{}'.format(self._apiUrl, entity)
         # single push
         if len(data) < 1000:
-            self._PUT(url=url, entity=entity, data=data)
+            self._PUT(url=url, data=data, label=str(entity))
             
         # batch push
         if len(data) >= 1000:    
             for d in range(0, len(data), 1000):
-                self._PUT(url=url, data=data[d:d+1000])
-                
-    def batch_update_one_attr(self, entity: str, attr: str, data: list):
-        """Batch Update One Attribute
-        
-        Import data for an attribute in batches (i.e., into groups of 1000 entities).
-        Data should be a list of dictionaries with two keys: `id` and <attr> where
-        attr is the name of the attribute that you would like to update
-        
-        @param data (list) : data to import
-        @param attr (str) : name of the attribute to update
-        @param entity (str) : name of the entity to import data into
-        
-        @return a response code
-        """
-        url = '{}v2/{}/{}'.format(self._apiUrl, entity, attr)
-        for d in range(0, len(data), 1000):
-            self._PUT(url=url, data=data[d:d+1000])
+                self._PUT(
+                    url = url,
+                    data = data[d:d+1000],
+                    label = '{} (batch {})'.format(str(entity), str(d))
+                )
 
 # create class of methods used in the mappings
 class cosastools:
@@ -235,7 +237,7 @@ class cosastools:
         return date.strftime('%Y')
     
     @staticmethod
-    def formatAsDate(date: str, pattern = '%Y-%m-%d %H:%M:%S', asString = False):
+    def formatAsDate(date=None, pattern='%Y-%m-%d %H:%M:%S', asString = False):
         """Format Date String as yyyy-mm-dd
         
         @param string : date string
@@ -251,10 +253,10 @@ class cosastools:
         if re.search(r'(T00:00)$', x):
             x = re.sub(r'(T00:00)$', ' 00:00:00', x)
         value = datetime.strptime(x, pattern).date()
-        
+
         if asString:
             value = str(value)
-        
+
         return value
     
     @staticmethod
@@ -278,27 +280,24 @@ class cosastools:
         @param label string that indicates the mapping type for error messages
         
         @examples
-        ```
-        # Mapping structure options
-        
-        # default
-        mappings = {'old_value': 'new_value'}
-        
-        # nested
-        mappings = {'old_value': {'value_for_a': 'abc', 'value_for_b': 'xyz'}}
-        ```
-        
+            ```
+            # default mapping structure
+            mappings = {'old_value': 'new_value'}
+            
+            # nested mapping structure
+            mappings = {'old_value': {'value_for_a': 'abc', 'value_for_b': 'xyz'}}
+            ```
         @return string 
         """
         try:
             return mappings[value][attr] if bool(attr) else mappings[value]
         except KeyError:
             if bool(value):
-                status_msg('Error in {} recoding: {} not found'.format(label, value))
+                status_msg('Error in {} recoding: "{}" not found'.format(label, value))
             return None
         except AttributeError:
             if bool(value):
-                status_msg('Error in {} recoding: {} not found'.format(label, value))
+                status_msg('Error in {} recoding: "{}" not found'.format(label, value))
             return None
     
     @staticmethod
@@ -317,43 +316,13 @@ class cosastools:
         return refData[f.value == value, f.hpo][0][0]
     
     @staticmethod
-    def recodeGenomeBuild(value: str):        
-        if value == 'Feb. 2009 (GRCh37/hg19)':
-            return 'GRCh37'
-    
-    @staticmethod
     def timestamp():
         """Return Generic timestamp as yyyy-mm-ddThh:mm:ssZ"""
         return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-    
-#//////////////////////////////////////////////////////////////////////////////
-
-# Read Portal Data
-status_msg('Loading the latest data exports...')
-
-db = molgenis(url = 'http://localhost/api/', token = '${molgenisToken}')
-
-
-raw_subjects = dt.Frame(db.get('cosasportal_patients',batch_size=10000))
-del raw_subjects['_href']
-
-# objects to create
-# raw_clinical = dt.Frame(db.get('cosasportal_',batch_size=10000))
-# raw_bench_cnv = dt.Frame(db.get('cosasportal_',batch_size=10000))
-# raw_samples = dt.Frame(db.get('cosasportal_',batch_size=10000))
-# raw_array_adlas = dt.Frame(db.get('cosasportal_',batch_size=10000))
-# raw_array_darwin = dt.Frame(db.get('cosasportal_',batch_size=10000))
-# raw_ngs_adlas = dt.Frame(db.get('cosasportal_',batch_size=10000))
-# raw_ngs_darwin = dt.Frame(db.get('cosasportal_',batch_size=10000))
-# cineasHpoMappings = dt.Frame(db.get('cosasportal_',batch_size=10000))
-
-# pull list of subjects from COSAS and merge with new subject ID list
-cosasSubjectIdList = list(set(raw_subjects[:, 'UMCG_NUMBER'].to_list()[0]))
 
 #//////////////////////////////////////////////////////////////////////////////
 
-
-# ~ ~
+# ~  ~
 # Define Mappings
 #
 # Create mappings to recode raw values to the new unified model. Use the method
@@ -367,7 +336,17 @@ cosasSubjectIdList = list(set(raw_subjects[:, 'UMCG_NUMBER'].to_list()[0]))
 #
 # In other situtations, you can nest additional mappings so that you can recode
 # one value for use in multiple contexts. This is useful for attributes such as
-# sequencer.
+# sequencer where one value 'HiSeq' can indicate the sequencer platform
+# and model.
+#
+# ```python
+# sequencingMappings = {
+#   'HiSeq' : {
+#       'platform': 'Illumina platform',
+#       'model': 'Illumina HiSeq Sequencer'
+#    },
+#    ...
+# ```
 #
 
 # define gender mappings
@@ -386,8 +365,8 @@ biospecimenTypeMappings = {
     'foetus': None,  # not enough information to make a specific mapping
     'gekweekt foetaal weefsel': 'Human Fetal Tissue',
     'gekweekt weefsel': 'Tissue Sample',
-    'gekweekte Amnion cellen': 'Amnion',
-    'gekweekte Chorion villi': 'Chorionic Villus', 
+    'gekweekte amnion cellen': 'Amnion',
+    'gekweekte chorion villi': 'Chorionic Villus', 
     'gekweekte amnion cellen': 'Amnion',
     'huidbiopt': 'Skin/Subcutaneous Tissue',
     'navelstrengbloed': 'Umbilical Cord Blood',
@@ -401,7 +380,7 @@ biospecimenTypeMappings = {
     'plasmacellen': 'Serum or Plasma',
     'speeksel': 'Saliva Sample',
     'suspensie': 'Mixed Adherent Cells in Suspension',
-    'toegestuurd DNA foetaal': None  # mix of 'fetal tissue' and 'DNA'
+    'toegestuurd dna foetaal': None  # mix of 'fetal tissue' and 'DNA'
 }
 
 
@@ -445,9 +424,104 @@ sequencingInfoMappings = {
     }
 }
 
+# define genome build mappings
+genomeBuildMappings = {
+    'Feb. 2009 (GRCh37/hg19)': 'GRCh37'
+}
+
+#//////////////////////////////////////////////////////////////////////////////
+
+# ~ 0 ~
+# Fetch data
+status_msg('Loading the latest data exports...')
+
+# connect to db (token is generated on run)
+db = Molgenis(url=host, token=token)
+
+# get patients
+raw_subjects = dt.Frame(
+    db.get(
+        entity = 'cosasportal_patients',
+        batch_size = 10000
+    )
+)
+
+# get clinical and phenotying data (BenchCNV)
+raw_clinical = dt.Frame(
+    db.get(
+        entity = 'cosasportal_diagnoses',
+        batch_size = 10000
+    )
+)
+
+raw_bench_cnv = dt.Frame(
+    db.get(
+        entity = 'cosasportal_benchcnv_prepped',
+        batch_size = 10000
+    )
+)
+
+cineasHpoMappings = dt.Frame(
+    db.get(
+        entity = 'cosasportal_cineasmappings',
+        batch_size = 10000
+    )
+)
+
+# get samples data from the portal
+raw_samples = dt.Frame(
+    db.get(
+        entity = 'cosasportal_samples',
+        batch_size = 10000
+    )
+)
+
+# get array data from the portal (x2)
+raw_array_adlas = dt.Frame(
+    db.get(
+        entity = 'cosasportal_labs_array_adlas',
+        batch_size = 10000
+    )
+)
+
+raw_array_darwin = dt.Frame(
+    db.get(
+        entity = 'cosasportal_labs_array_darwin',
+        batch_size = 10000
+    )
+)
+
+# get ngs data from the portal (x2)
+raw_ngs_adlas = dt.Frame(
+    db.get(
+        entity = 'cosasportal_labs_ngs_adlas',
+        batch_size = 10000
+    )
+)
+
+raw_ngs_darwin = dt.Frame(
+    db.get(
+        entity = 'cosasportal_labs_ngs_darwin',
+        batch_size = 10000
+    )
+)
+
+
+del raw_subjects['_href']
+del raw_samples['_href']
+del raw_array_adlas['_href']
+del raw_array_darwin['_href']
+del raw_ngs_adlas['_href']
+del raw_ngs_darwin['_href']
+
+
+# pull list of subjects from COSAS and merge with new subject ID list
+cosasSubjectIdList = list(set(raw_subjects[:, 'UMCG_NUMBER'].to_list()[0]))
+
 #//////////////////////////////////////////////////////////////////////////////
 
 status_msg('')
+
 # ~ 1 ~
 # Build Subjects Table
 #
@@ -530,6 +604,7 @@ belongsWithFamilyMembers = belongsWithFamilyMembers[
     :, first(f[:]), dt.by('subjectID')
 ][:, :, dt.sort(as_type(f.subjectID, int))]
 
+#//////////////////////////////////////
 
 #
 # ~ 1b ~
@@ -577,7 +652,7 @@ status_msg('Registering {} new subjects'.format(subjectsToRegister.nrows))
 #//////////////////////////////////////
 
 #
-# ~ 1b ~
+# ~ 1c ~
 # Merge and format subject data
 #
 # In this step, we will create the table `umdm_subjects` using the objects
@@ -619,7 +694,6 @@ subjects['dateOfBirth'] = dt.Frame([
     for d in subjects['dateOfBirth'].to_list()[0]
 ])
 
-
 # format `yearOfBirth` as yyyy
 subjects['yearOfBirth'] = dt.Frame([
     cosastools.formatAsYear(d)
@@ -641,7 +715,7 @@ subjects['yearOfDeath'] = dt.Frame([
 
 # using `dateOfDeath` set `subjectStatus`
 subjects['subjectStatus'] = dt.Frame([
-    'Dead' if bool(d) else 'Alive'
+    'Dead' if bool(d) else None
     for d in subjects['dateOfDeath'].to_list()[0]
 ])
 
@@ -664,112 +738,40 @@ subjects['dateOfDeath'] = dt.Frame([
     str(d) if bool(d) else None for d in subjects['dateOfDeath'].to_list()[0]
 ])
 
+
+# track records and cleanup
 status_msg('Mapped {} new records'.format(subjects.nrows))
-del maternalIDs, paternalIDs, belongsWithFamilyMembers, subjectsToRegister, familyData
+del maternalIDs, paternalIDs,
+del belongsWithFamilyMembers
+del subjectsToRegister
+del familyData
 
 #//////////////////////////////////////////////////////////////////////////////
 
-status_msg('')
-status_msg('==== Building COSAS Clinical ====')
-
-
-# maternalIDs = subjects[
-#     f.belongsToMother != None, f.belongsToMother
-# ][
-#     :, first(f[:]), dt.by(f.belongsToMother)
-# ].to_list()[0]
-
-# familyIDs = subjects[
-#     f.belongsToFamily != None, f.belongsToFamily
-# ][
-#     :, first(f[:1]), dt.by(f.belongsToFamily)
-# ].to_list()[0]
-
-
-# clinicalDF = raw_bench_cnv[:, {
-#     'id': f.primid,
-#     'belongsToFamily': f.secid,
-#     'observedPhenotype': f.Phenotype
-# }]
-
-# clinicalDF['observedPhenotype'] = dt.Frame([
-#     ','.join(list(set(d.strip().split())))
-#     for d in clinicalDF['observedPhenotype'].to_list()[0]
-# ])
-
-# clinicalDF['isFetus'] = dt.Frame([
-#     'f' in d.lower()
-#     for d in clinicalDF['id'].to_list()[0]
-# ])
-
-# fetusData = clinicalDF[f.isFetus == True, :].to_pandas().to_dict('records')
-# for index,row in enumerate(fetusData):
-#     value = row.get('id').strip().replace(' ', '')
-    
-#     if row['isFetus']:
-
-#         # Pattern 1: 99999F, 99999F1, 99999F1.2
-#         pattern1 = re.search(r'((F)|(F[-_])|(F[0-9]{,2})|(F[0-9]{1,2}.[0-9]{1,2}))$', value)
-        
-#         # Patern 2: 99999F-88888, 99999_88888
-#         pattern2 = re.search(r'^([0-9]{1,}(F)?([0-9]{1,2})?[-_=][0-9]{1,})$', value)
-
-#         if pattern1:
-#             row['belongsToMother'] = pattern1.string.replace(pattern1.group(0),'')
-#             row['validMaternalID'] = row['belongsToMother'] in maternalIDs
-#             row['validFamilyID'] = row['belongsToFamily'] in familyIDs
-#             row['subjectID'] = pattern1.string
-#         elif pattern2:
-#             ids = re.split(r'[-_=]', pattern2.string)
-#             row['belongsToMother'] = ids[0].replace('F', '')
-#             row['validMaternalID'] = row['belongsToMother'] in maternalIDs
-#             row['validFamilyID'] = row['belongsToFamily'] in familyIDs
-#             row['subjectID'] = ids[0] #.replace('F', '')
-#             row['alternativeIdentifiers'] = ids[1]
-#         else:
-#             status_msg('{}. F detected in {}, but pattern is unexpected'.format(index, value))
-
-
-# fetusData = pd.DataFrame(fetusData).replace({np.nan:None})
-# fetusData = fetusData[[
-#     'id',
-#     'subjectID',
-#     'belongsToFamily',
-#     'belongsToMother',
-#     'alternativeIdentifiers',
-#     'isFetus',
-#     'validMaternalID',
-#     'validFamilyID'
-# ]]
-
-# fetusData['belongsToMother'] = fetusData['belongsToMother'].astype('str')
-# fetusData['subjectID'] = fetusData['subjectID'].astype('str')
-# fetusData['alternativeIdentifiers'] = fetusData['alternativeIdentifiers'].astype('str')
-# fetusData.sort_values(by=['validMaternalID','subjectID']).to_excel('~/Desktop/fetus_data_review.xlsx',index=False)
+# status_msg('')
+# status_msg('==== Building COSAS Clinical ====')
 
 # ~ 2 ~
 # Build Phenotypic Data from workbench export
 #
 # This dataset provides historical records on observedPhenotypes for older cases.
 # This allows us to populate the COSAS Clinical table with extra information. 
-status_msg('Mapping historical phenotypic data...')
+# status_msg('Mapping historical phenotypic data...')
 
 # Process data from external provider
-confirmedHpoDF = raw_bench_cnv[:, {'clinicalID': f.primid, 'observedPhenotype': f.Phenotype}]
-confirmedHpoDF['flag'] = dt.Frame([
-    True if d in cosasSubjectIdList else False for d in confirmedHpoDF['clinicalID'].to_list()[0]
-])
-confirmedHpoDF = confirmedHpoDF[f.flag == True, :]
-confirmedHpoDF['observedPhenotype'] = dt.Frame([
-    ','.join(list(set(d.strip().split()))) for d in confirmedHpoDF['observedPhenotype'].to_list()[0]
-])
-confirmedHpoDF.key = 'clinicalID'
-del confirmedHpoDF['flag']
+# confirmedHpoDF = raw_bench_cnv[:, {'clinicalID': f.primid, 'observedPhenotype': f.Phenotype}]
+# confirmedHpoDF['flag'] = dt.Frame([
+#     True if d in cosasSubjectIdList else False for d in confirmedHpoDF['clinicalID'].to_list()[0]
+# ])
+# confirmedHpoDF = confirmedHpoDF[f.flag == True, :]
+# confirmedHpoDF['observedPhenotype'] = dt.Frame([
+#     ','.join(list(set(d.strip().split()))) for d in confirmedHpoDF['observedPhenotype'].to_list()[0]
+# ])
+# confirmedHpoDF.key = 'clinicalID'
+# del confirmedHpoDF['flag']
 
 
-#//////////////////////////////////////////////////////////////////////////////
-
-# ~ 3 ~
+# ~ 2a ~
 # Build COSAS Clinical Table
 #
 # Map data from the portal into the preferred structure of the harmonized
@@ -787,121 +789,118 @@ del confirmedHpoDF['flag']
 # be used instead.
 #
 
-status_msg('Processing new clinical data...')
+# status_msg('Processing new clinical data...')
 
-# restructure dataset: rowbind all diagnoses and certainty ratings
-clinical = dt.rbind(
-    raw_clinical[:,{
-        'clinicalID': f.UMCG_NUMBER,
-        'belongsToSubject': f.UMCG_NUMBER,
-        'code': f.HOOFDDIAGNOSE,
-        'certainty': f.HOOFDDIAGNOSE_ZEKERHEID
-    }],
-    raw_clinical[:, {
-        'clinicalID': f.UMCG_NUMBER,
-        'belongsToSubject': f.UMCG_NUMBER,
-        'code': f.EXTRA_DIAGNOSE,
-        'certainty': f.EXTRA_DIAGNOSE_ZEKERHEID
-    }]
-)[f.code != '-', :]
+# # restructure dataset: rowbind all diagnoses and certainty ratings
+# clinical = dt.rbind(
+#     raw_clinical[:,{
+#         'clinicalID': f.UMCG_NUMBER,
+#         'belongsToSubject': f.UMCG_NUMBER,
+#         'code': f.HOOFDDIAGNOSE,
+#         'certainty': f.HOOFDDIAGNOSE_ZEKERHEID
+#     }],
+#     raw_clinical[:, {
+#         'clinicalID': f.UMCG_NUMBER,
+#         'belongsToSubject': f.UMCG_NUMBER,
+#         'code': f.EXTRA_DIAGNOSE,
+#         'certainty': f.EXTRA_DIAGNOSE_ZEKERHEID
+#     }]
+# )[f.code != '-', :]
 
-status_msg('Transforming variables...')
+# status_msg('Transforming variables...')
 
-# extract CINEAS code for string
-clinical['code'] = dt.Frame([
-    d.split(':')[0] if d else None for d in clinical['code'].to_list()[0]
-])
+# # extract CINEAS code for string
+# clinical['code'] = dt.Frame([
+#     d.split(':')[0] if d else None for d in clinical['code'].to_list()[0]
+# ])
 
-# map cineas codes to HPO
-clinical['hpo'] = dt.Frame([
-    cineasHpoMappings[
-        f.value == d, f.hpo
-    ].to_list()[0][0] for d in clinical['code'].to_list()[0]
-])
+# # map cineas codes to HPO
+# clinical['hpo'] = dt.Frame([
+#     cineasHpoMappings[
+#         f.value == d, f.hpo
+#     ].to_list()[0][0] for d in clinical['code'].to_list()[0]
+# ])
 
-# format certainty
-clinical['certainty'] = dt.Frame([
-    d.lower().replace(' ', '-') if (d != '-') and (d) else None for d in clinical['certainty'].to_list()[0]
-])
+# # format certainty
+# clinical['certainty'] = dt.Frame([
+#     d.lower().replace(' ', '-') if (d != '-') and (d) else None for d in clinical['certainty'].to_list()[0]
+# ])
 
-# create `provisionalPhenotype`: uncertain, missing, or certain
-clinical['provisionalPhenotype'] = dt.Frame([
-    d[0] if d[1] in [
-        'zeker',
-        'niet-zeker',
-        'onzeker',
-        None
-    ] and (d[0]) else None for d in clinical[
-        :, (f.hpo, f.certainty)
-    ].to_tuples()
-])
+# # create `provisionalPhenotype`: uncertain, missing, or certain
+# clinical['provisionalPhenotype'] = dt.Frame([
+#     d[0] if d[1] in [
+#         'zeker',
+#         'niet-zeker',
+#         'onzeker',
+#         None
+#     ] and (d[0]) else None for d in clinical[
+#         :, (f.hpo, f.certainty)
+#     ].to_tuples()
+# ])
 
-# create `excludedPhenotype`: zeker-niet
-clinical['unobservedPhenotype'] = dt.Frame([
-    d[0] if d[1] in ['zeker-niet'] else None for d in clinical[
-        :, (f.hpo, f.certainty)
-    ].to_tuples()
-])
+# # create `excludedPhenotype`: zeker-niet
+# clinical['unobservedPhenotype'] = dt.Frame([
+#     d[0] if d[1] in ['zeker-niet'] else None for d in clinical[
+#         :, (f.hpo, f.certainty)
+#     ].to_tuples()
+# ])
 
     
-# collapse all provisionalPhenotype codes by ID
-clinical['provisionalPhenotype'] = dt.Frame([
-    cosastools.collapseHpoCodes(
-        id = d,
-        column = f.provisionalPhenotype
-    ) for d in clinical['belongsToSubject'].to_list()[0]
-])
+# # collapse all provisionalPhenotype codes by ID
+# clinical['provisionalPhenotype'] = dt.Frame([
+#     cosastools.collapseHpoCodes(
+#         id = d,
+#         column = f.provisionalPhenotype
+#     ) for d in clinical['belongsToSubject'].to_list()[0]
+# ])
 
-# collapse all excludedPhenotype codes by ID
-clinical['unobservedPhenotype'] = dt.Frame([
-    cosastools.collapseHpoCodes(
-        id = d,
-        column = f.unobservedPhenotype
-    ) for d in clinical['belongsToSubject'].to_list()[0]
-])
+# # collapse all excludedPhenotype codes by ID
+# clinical['unobservedPhenotype'] = dt.Frame([
+#     cosastools.collapseHpoCodes(
+#         id = d,
+#         column = f.unobservedPhenotype
+#     ) for d in clinical['belongsToSubject'].to_list()[0]
+# ])
 
-# drop cols
-del clinical[:, ['certainty','code','hpo']]
+# # drop cols
+# del clinical[:, ['certainty','code','hpo']]
 
-# pull unique rows only since codes were duplicated
-clinical = clinical[:, first(f[1:]), dt.by(f.clinicalID)]
-clinical.key = 'clinicalID'
-clinical = clinical[:, :, dt.join(confirmedHpoDF)][:, :, dt.sort(as_type(f.clinicalID, int))]
+# # pull unique rows only since codes were duplicated
+# clinical = clinical[:, first(f[1:]), dt.by(f.clinicalID)]
+# clinical.key = 'clinicalID'
+# clinical = clinical[:, :, dt.join(confirmedHpoDF)][:, :, dt.sort(as_type(f.clinicalID, int))]
 
-# add ID check
-clinical['flag'] = dt.Frame([
-    d in cosasSubjectIdList for d in clinical['belongsToSubject'].to_list()[0]
-])
+# # add ID check
+# clinical['flag'] = dt.Frame([
+#     d in cosasSubjectIdList for d in clinical['belongsToSubject'].to_list()[0]
+# ])
 
-if clinical[f.flag == False,:].nrows > 0:
-    raise ValueError(
-        'Error in clinical mappings: Excepted 0 flagged cases, but found {}.'
-        .format(clinical[f.flag == False,:].nrows)
-    )
-else:
-    del clinical['flag']
+# if clinical[f.flag == False,:].nrows > 0:
+#     raise ValueError(
+#         'Error in clinical mappings: Excepted 0 flagged cases, but found {}.'
+#         .format(clinical[f.flag == False,:].nrows)
+#     )
+# else:
+#     del clinical['flag']
     
-status_msg('Processing {} new records for the clinical table'.format(clinical.nrows))
-del confirmedHpoDF
+# status_msg('Processing {} new records for the clinical table'.format(clinical.nrows))
+# del confirmedHpoDF
 
 #//////////////////////////////////////////////////////////////////////////////
 
 status_msg('')
 status_msg('==== Building COSAS Samples ====')
 
-# Build Sample Table
+# ~ 3 ~
+# Build umdm_samples
 #
 # Pull data from `cosasportal_samples` and map to the new samples table.
 # Information about the laboratory procedures will be mapped to the 
-# samplePreparation, sequencing, and laboratoryProcedures tables. The
+# samplePreparation and the sequencing tables. The reasonse for 
 # reason for the sampling will be populated from the laboratory data
 # exports (ADLAS and Darwin). Row level metadata will be added before import
 # into Molgenis.
 #
-# It is possible to add the test codes in this table. I've included a short
-# mapping that collapses testCodes into the `alternativeIdentifers` columns,
-# but I am not using it at the moment as it takes a little while. If it is
-# decided at a later timepoint that it is necessary, we can add it in.
 #
 status_msg('Processing new sample data...')
 
@@ -911,17 +910,17 @@ samples = raw_samples[:,
         'sampleID': f.DNA_NUMMER,
         'belongsToSubject': f.UMCG_NUMMER,
         'belongsToRequest': f.ADVVRG_ID,
-        # 'dateOfRequest': f.ADVIESVRAAG_DATUM,
+        # 'dateOfRequest': f.ADVIESVRAAG_DATUM,  # not really needed
         'biospecimenType': f.MATERIAAL,
-        # 'alternativeIdentifiers': f.TEST_CODE
+        # 'alternativeIdentifiers': f.TEST_CODE  # not really needed
     }
 ]
 
-status_msg('Transforming variables...')
 
 # collapse request by sampleID into a comma seperated string
+status_msg('Formatting request identifiers...')
 samples['belongsToRequest'] = dt.Frame([
-    ', '.join(
+    ','.join(
         list(
             set(
                 samples[
@@ -932,27 +931,6 @@ samples['belongsToRequest'] = dt.Frame([
     ) for d in samples[:, (f.sampleID, f.belongsToRequest)].to_tuples()
 ])
 
-# format `dateOfRequest` as yyyy-mm-dd
-# samples['dateOfRequest'] = dt.Frame([
-#     cosastools.formatAsDate(d, asString = True) for d in samples['dateOfRequest'].to_list()[0]
-# ])
-
-# Get list of unique test codes by sample, subject, and request
-# samples['alternativeIdentifiers'] = dt.Frame([  
-#     ','.join(
-#         list(
-#             set(
-#                 samples[
-#                     (f.sampleID == d[0]) & (f.belongsToSubject == d[1]) & (f.belongsToRequest == d[2]),
-#                     'alternativeIdentifiers'
-#                 ].to_list()[0]
-#             )
-#         )
-#     ) for d in samples[
-#         :,(f.sampleID, f.belongsToSubject, f.belongsToRequest, f.alternativeIdentifiers)
-#     ].to_tuples()
-# ])
-
 # pull unique rows only since codes were duplicated
 samples = samples[
     :, first(f[:]), dt.by(f.sampleID)
@@ -962,9 +940,16 @@ samples = samples[
 
 # recode biospecimenType
 samples['biospecimenType'] = dt.Frame([
-    cosastools.recode_biospecimenType(d) for d in samples['biospecimenType'].to_list()[0]
+    cosastools.recodeValue(
+        mappings = biospecimenTypeMappings,
+        value = d.lower(),
+        label = 'biospecimenType'
+    ) if d else None
+    for d in samples['biospecimenType'].to_list()[0]
 ])
 
+
+dt.unique(samples['biospecimenType'])
 
 # add ID check
 samples['flag'] = dt.Frame([
@@ -1114,9 +1099,9 @@ sampleSequencingData['flag'] = dt.Frame([
     d in registeredSamples for d in sampleSequencingData['belongsToSample'].to_list()[0]
 ])
 
-unregisteredSamples = sampleSequencingData[f.flag == False, :]
-unregisteredSamples.to_csv('data/cosas/unregistered_samples.csv')
-status_msg('Found {} unregistered samples'.format(unregisteredSamples.nrows))
+# unregisteredSamples = sampleSequencingData[f.flag == False, :]
+# unregisteredSamples.to_csv('data/cosas/unregistered_samples.csv')
+# status_msg('Found {} unregistered samples'.format(unregisteredSamples.nrows))
 
 sampleSequencingData = sampleSequencingData[f.flag == True, :]
 
@@ -1258,7 +1243,10 @@ status_msg('Importing data to...')
 
 # db.delete(entity='umdm_subjects')
 # db.delete(entity='cosasportal_patients')
+db.delete(entity='cosasportal_samples')
+db.delete(entity='umdm_samples')
 
+# Prepare import for umdm_subjects
 umdm_subjects = subjects.to_pandas().replace({np.nan: None}).to_dict('records')
 umdm_subject_ids = subjects[
     :,(f.subjectID, f.dateRecordCreated,f.recordCreatedBy)
@@ -1266,3 +1254,7 @@ umdm_subject_ids = subjects[
 
 db.importData(entity='umdm_subjects', data=umdm_subject_ids)
 db.updateData(entity='umdm_subjects', data=umdm_subjects)
+
+# prepare import for umdm_samples
+umdm_samples = samples.to_pandas().replace({np.nan: None}).to_dict('records')
+db.importData(entity='umdm_samples', data = umdm_samples)
