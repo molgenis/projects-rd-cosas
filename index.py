@@ -2,7 +2,7 @@
 #' FILE: emx.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-10-05
-#' MODIFIED: 2022-02-11
+#' MODIFIED: 2022-02-17
 #' PURPOSE: generate emx files for COSAS
 #' STATUS: working
 #' PACKAGES: emxconvert

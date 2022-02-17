@@ -4,7 +4,7 @@
 
 | Name | Description | Parent |
 |:---- |:-----------|:------|
-| cosasportal | Staging tables for raw data exports (v1.2.0, 2022-02-10) | - |
+| cosasportal | Staging tables for raw data exports (v1.3.0, 2022-02-17) | - |
 
 ## Entities
 
@@ -19,6 +19,7 @@
 | labs_ngs_adlas | Raw NGS data from ADLAS | cosasportal |
 | labs_ngs_darwin | Raw NSG metadata from Darwin | cosasportal |
 | benchcnv | Staging table for CNV exports | cosasportal |
+| cineasmappings | Cineas to HPO mappings | cosasportal |
 
 ## Attributes
 
@@ -193,6 +194,18 @@ Staging table for CNV exports
 | comment | - | - | text |
 | Phenotype | - | - | text |
 | created | - | - | string |
+
+### Entity: cosasportal_cineasmappings
+
+Cineas to HPO mappings
+
+| Name | Label | Description | Data Type |
+|:---- |:-----|:-----------|:---------|
+| value&#8251; | - | - | string |
+| description | - | - | string |
+| codesystem | - | - | string |
+| code | - | - | string |
+| hpo | - | - | string |
 
 Note: The symbol &#8251; denotes attributes that are primary keys
 
