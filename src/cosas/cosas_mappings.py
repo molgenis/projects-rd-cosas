@@ -948,9 +948,6 @@ samples['biospecimenType'] = dt.Frame([
     for d in samples['biospecimenType'].to_list()[0]
 ])
 
-
-dt.unique(samples['biospecimenType'])
-
 # add ID check
 samples['flag'] = dt.Frame([
     d in cosasSubjectIdList for d in samples['belongsToSubject'].to_list()[0]
@@ -971,6 +968,7 @@ status_msg('Processing {} new records for the samples table'.format(samples.nrow
 status_msg('')
 status_msg('==== Building COSAS SamplePreparation and Sequencing ====')
 
+# ~ 4 ~
 # Build Sample Prepation and Sequencing Tables
 #
 # Using the Adlas and Darwin files, map the data into the structure of the
@@ -980,10 +978,18 @@ status_msg('==== Building COSAS SamplePreparation and Sequencing ====')
 # In this section, combine the ADLAS and Darwin exports for each test type
 # indepently, and then bind them into one object.
 #
+
+
+# ~ 4a ~ 
+# Build Array Adlas dataset
+# Pull the required columns from the array-adlas dataset. The following
+# will further reduce the dataset by distinct rows only. This object will
+# be joined with the object defined in the next step.
 status_msg('Building Array dataset...')
 
-# map array adlas data: select vars, pull distinct entries, and sort 
-status_msg('Processing ADLAS data...')
+# ~ 4a.i ~
+# Build array-aldas data
+status_msg('Processing array-aldas data...')
 array_adlas = raw_array_adlas[
     :, {
         'belongsToSubject': f.UMCG_NUMBER,
@@ -994,7 +1000,7 @@ array_adlas = raw_array_adlas[
     }
 ][
     :,
-    first(f[:]),
+    first(f[:]),  # returns distinct records
     dt.by(
         f.belongsToSubject,
         f.belongsToRequest,
@@ -1003,13 +1009,18 @@ array_adlas = raw_array_adlas[
     )
 ][
     :,
-    (f.belongsToSubject, f.belongsToRequest, f.sampleID, f.belongsToLabProcedure),
+    (
+        f.belongsToSubject,
+        f.belongsToRequest,
+        f.sampleID,
+        f.belongsToLabProcedure
+    ),
     dt.sort(as_type(f.belongsToSubject, int))
 ]
 
-
-# map array darwin data: select vars, pull distinct entries, and sort
-status_msg('Processing Darwin data...')
+# ~ 4a.ii ~
+# Build array-darwin data
+status_msg('Processing array-darwin data...')
 array_darwin = raw_array_darwin[
     :, {
         'belongsToSubject': f.UmcgNr,
@@ -1019,22 +1030,39 @@ array_darwin = raw_array_darwin[
         'sequencingMethod': None,
     }
 ][
+    # get distinct rows only
     :, first(f[:]), dt.by(f.belongsToSubject, f.belongsToLabProcedure)
 ][
-    :, (f.belongsToSubject, f.belongsToLabProcedure, f.sequencingDate, f.reasonForSequencing),
+    :, (
+        f.belongsToSubject,
+        f.belongsToLabProcedure,
+        f.sequencingDate,
+        f.reasonForSequencing
+    ),
     dt.sort(as_type(f.belongsToSubject, int))
 ]
 
-# join tables
+# ~ 4a.iii ~
+# Create full arrayData object
+status_msg('Creating object "arrayData"')
 array_darwin.key = ['belongsToSubject','belongsToLabProcedure']
 arrayData = array_adlas[:, :, dt.join(array_darwin)]
 
-#//////////////////////////////////////
+del array_darwin, array_adlas
 
-# reshape: NGS data from ADLAS
+
+# ~ 4b ~
+# Build NGS Dataset
+#
+# Like the Array dataset, the NGS dataset consists of data from ADLAS and
+# Darwin. Each dataset will be processed independently, and the merged.
+# The NGS and Adlas dataset will be merged to create the main dataset that
+# will be used create teh sampleprep and sequencing tables.
 status_msg('Building NGS dataset...')
 
-status_msg('Processing ADLAS data...')
+# ~ 4b.i ~
+# Process ngs-aldas data
+status_msg('Processing ngs-adlas data...')
 ngs_adlas = raw_ngs_adlas[
     :, {
         'belongsToSubject': f.UMCG_NUMBER,
@@ -1045,15 +1073,26 @@ ngs_adlas = raw_ngs_adlas[
     }
 ][
     :, first(f[:]),
-    dt.by(f.belongsToSubject,f.belongsToRequest, f.sampleID, f.belongsToLabProcedure)
+    dt.by(
+        f.belongsToSubject,
+        f.belongsToRequest,
+        f.sampleID,
+        f.belongsToLabProcedure
+    )
 ][
     :,
-    (f.belongsToSubject,f.belongsToRequest,f.sampleID,f.belongsToLabProcedure),
+    (
+        f.belongsToSubject,
+        f.belongsToRequest,
+        f.sampleID,
+        f.belongsToLabProcedure
+    ),
     dt.sort(as_type(f.belongsToSubject, int))
 ]
 
+# ~ 4b.ii ~
 # reshape: NGS data from Darwin
-status_msg('Processing Darwin data...')
+status_msg('Processing ngs-darwin data...')
 ngs_darwin = raw_ngs_darwin[
     :, {
         'belongsToSubject': f.UmcgNr,
@@ -1072,16 +1111,28 @@ ngs_darwin = raw_ngs_darwin[
     :, :, dt.sort(as_type(f.belongsToSubject, int))
 ]
 
-
-# join tables
+# ~ 4b.iii ~
+# Create ngsData
+status_msg('Creating object "ngsData"')
 ngs_darwin.key = ['belongsToSubject', 'belongsToLabProcedure']
 ngsData = ngs_adlas[:, :, dt.join(ngs_darwin)]
 
-#//////////////////////////////////////
 
-status_msg('Combining array and ngs dataset...')
+# ~ 4c ~
+# Create main sample-labs dataset
+#
+# Using the arrayData and ngsData objects created in the previous steps,
+# create the main sample+labs dataset that will be used to create the
+# sampleprep and sequencing tables.
+# 
+# NOTES:
+#   - Some of the column `sampleID` is repeated for ease of mapping. It is
+#       easier to process these values in this step rather than independently.
+#   - This step also removes unknown samples, i.e. samples that aren't
+#       listed in the `samples` table.
+#
+status_msg('Merging array and ngs dataset to create sample+lab tables...')
 
-# bind array and ngs datasets; create additional attributes
 sampleSequencingData = dt.rbind(arrayData, ngsData, force=True)
 sampleSequencingData[
     :, dt.update(
@@ -1090,24 +1141,38 @@ sampleSequencingData[
     )
 ]
 
-# removing entries that aren't registered in samples table
-# This can happen for a number of reasons!
-status_msg('Identifying unregistered samples...')
+# ~ 4c.ii ~
+# Filter dataset for known samples
+#
+# Remove entries that aren't registered in samples table. It isn't clear why a
+# sample appears in the darwin data and not the adlas dataset. It is possible
+# that some of the samples aren't authorized, or were never authorized, by the
+# lab.
+#
+status_msg('Filtering sample+lab data for known samples...')
+
 registeredSamples = samples['sampleID'].to_list()[0]
 
 sampleSequencingData['flag'] = dt.Frame([
-    d in registeredSamples for d in sampleSequencingData['belongsToSample'].to_list()[0]
+    d in registeredSamples
+    for d in sampleSequencingData['belongsToSample'].to_list()[0]
 ])
-
-# unregisteredSamples = sampleSequencingData[f.flag == False, :]
-# unregisteredSamples.to_csv('data/cosas/unregistered_samples.csv')
-# status_msg('Found {} unregistered samples'.format(unregisteredSamples.nrows))
 
 sampleSequencingData = sampleSequencingData[f.flag == True, :]
 
-status_msg('Transforming variables...')
 
-# create sequencingID a combination of sampleID + belongsToLabProcedure
+# ~ 4c.iii ~
+# Prepare data
+#
+# Apply additional transformations and any recoding. In order to make
+# each sample 'unique' the row identifier is a concatenation of multiple IDs.
+# These are: sampleID + requestID + labProcedure. At some point, we may want
+# to change this format
+#
+
+# create unique identifier: sampleID + request + belongsToLabProcedure
+status_msg('Setting unqiue identifiers (primary key)...')
+
 sampleSequencingData['belongsToSamplePreparation'] = dt.Frame([
     f'{d[0]}_{d[1]}_{d[2]}' for d in sampleSequencingData[
         :, (f.belongsToSample,f.belongsToRequest, f.belongsToLabProcedure)
@@ -1122,23 +1187,43 @@ sampleSequencingData['sequencingID'] = dt.Frame([
 
 
 # format `sequencingDate` as yyyy-mm-dd
+status_msg('Formatting sequencing date...')
 sampleSequencingData['sequencingDate'] = dt.Frame([
-    cosastools.formatAsDate(d, asString = True) for d in sampleSequencingData['sequencingDate'].to_list()[0]
+    cosastools.formatAsDate(
+        date = d,
+        pattern = '%d-%m-%Y %H:%M:%S',
+        asString = True
+    )
+    for d in sampleSequencingData['sequencingDate'].to_list()[0]
 ])
+
 
 # format `labIndication`: use urdm_lookups_samplingReason
+status_msg('Mapping reasons for sequencing...')
 sampleSequencingData['reasonForSequencing'] = dt.Frame([
-    cosastools.recode_samplingReason(d) for d in sampleSequencingData['reasonForSequencing'].to_list()[0]
+    cosastools.recodeValue(
+        mappings = sampleReasonMappings,
+        value = d.lower(),
+        label = 'reasonForSequencing'
+    ) if bool(d) else None
+    for d in sampleSequencingData['reasonForSequencing'].to_list()[0]
 ])
 
+
 # recode `sequencingPlatform`
+status_msg('Recoding sequencingPlatform...')
 sampleSequencingData['sequencingPlatform'] = dt.Frame([
-    cosastools.recode_sequencingInfo(
-        value = d, type = 'platform'
-    ) for d in sampleSequencingData['sequencingPlatform'].to_list()[0]
+    cosastools.recodeValue(
+        mappings = sequencingInfoMappings,
+        value = d,
+        attr = 'platform',
+        label = 'sequencingPlatform'
+    ) if bool(d) else None
+    for d in sampleSequencingData['sequencingPlatform'].to_list()[0]
 ])
 
 # recode `sequencingInstrumentModel`
+status_msg('Recoding sequencing instrument model...')
 sampleSequencingData['sequencingInstrumentModel'] = dt.Frame([
     cosastools.recode_sequencingInfo(
         value = d,
@@ -1241,10 +1326,14 @@ sequencing[:, dt.update(
 # convert to list of dictionaries (make sure all nan's are recoded!), and save
 status_msg('Importing data to...')
 
-# db.delete(entity='umdm_subjects')
 # db.delete(entity='cosasportal_patients')
-db.delete(entity='cosasportal_samples')
-db.delete(entity='umdm_samples')
+# db.delete(entity='cosasportal_samples')
+# db.delete(entity='cosasportal_labs_array_adlas')
+# db.delete(entity='cosasportal_labs_array_darwin')
+# db.delete(entity='cosasportal_labs_ngs_adlas')
+# db.delete(entity='cosasportal_labs_ngs_darwin')
+# db.delete(entity='umdm_subjects')
+# db.delete(entity='umdm_samples')
 
 # Prepare import for umdm_subjects
 umdm_subjects = subjects.to_pandas().replace({np.nan: None}).to_dict('records')
