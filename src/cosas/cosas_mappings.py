@@ -11,7 +11,7 @@
 
 from datatable import dt, f, as_type, first
 import molgenis.client as molgenis
-from datetime import datetime
+from datetime import datetime, tzinfo
 import numpy as np
 import requests
 import json
@@ -37,7 +37,6 @@ def status_msg(*args):
     Print a log-style message, e.g., "[16:50:12.245] Hello world!"
 
     @param *args one or more strings containing a message to print
-    
     @return string
     """
     t = datetime.utcnow().strftime('%H:%M:%S.%f')[:-3]
@@ -144,6 +143,75 @@ class Molgenis(molgenis.Session):
                     data = data[d:d+1000],
                     label = '{} (batch {})'.format(str(entity), str(d))
                 )
+
+
+class cosasLogger:
+    def __init__(self):
+        """Cosas Logger
+        Keep records of all processing steps and summarize the daily imports
+        
+        cosaslogs = CosasLogger()
+        
+        """
+        self.currentStep = None
+        self.log = self.startLog()
+        self.processingStepLogs = []
+        
+    def __stoptime__(self, name):
+        timeFormat = '%Y-%m-%d %H:%M:%S'
+        self[str(name)]['endTime'] = datetime.now().strftime(timeFormat)
+        self[str(name)]['elapsedTime'] = (
+            self[str(name)]['endTime'] - self[str(name)]['startTime']
+        ).total_seconds()
+        self[str(name)]['endTime'] = self[str(name)]['endTime'].strftime(timeFormat)
+        self[str(name)]['startTime'] = self[str(name)]['startTime'].strftime(timeFormat)
+        
+
+    def startProcessingStepLog(self, tablename):
+        self.currentStep = {
+            'identifier': '{}_{}'.format(
+                datetime.now().strftime('%Y-%m-%d'),
+                len(self.processingStepLogs) + 1
+            ),
+            'name': None,
+            'step': None,
+            'databaseTable': tablename,
+            'startTime': datetime.now(),
+            'endTime': None,
+            'elapsedTime': None,
+            'status': None,
+            'comment': None
+        }
+        
+    def stopProcessingStepLog(self):
+        self.__stoptime__(name='currentStep')
+        self.log['steps'].append(self.currentStep['identifier'])
+        self.processingStepLogs.append(self.currentStep)
+        self.currentStep = None
+        
+        
+    def startLog(self):
+        self.log = {
+            'identifier': datetime.now().strftime('%Y-%m-%d'),
+            'name': 'cosas-daily-import',
+            'databaseName': 'cosas',
+            'startTime': datetime.now(),
+            'endTime': None,
+            'elapsedTime': None,
+            'steps': [],
+            'comments': None
+        }
+        
+    def stopLog(self):
+        self.__stoptime__(name='log')
+        self.log['endTime'] = datetime.now()
+        self.log['elapsedTime'] = (self.log['endTime'] - self.log['startTime']).total_seconds()
+        self.log['steps'] = ','.join(self.log['steps'])
+
+
+cosaslogs = cosasLogger()
+cosaslogs.startLog()
+
 
 # create class of methods used in the mappings
 class cosastools:
