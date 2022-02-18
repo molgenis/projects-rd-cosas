@@ -31,7 +31,7 @@ Historical records of daily COSAS imports
 | date | - | The particular day, month and year an event has happened or will happen. | date |
 | startTime | - | The time at which something is to start or did start. | datetime |
 | endTime | - | The time when an event has ceased. | datetime |
-| elapsedTime | - | The interval between two reference points in time. (in milliseconds) | string |
+| elapsedTime | - | The interval between two reference points in time. (in seconds) | string |
 | numberOfRowsAdded | - | Number of rows added to a database table | compound |
 | subjects | - | Number of rows added to umdm_subjects | int |
 | clinical | - | Number of rows added to umdm_clinical | int |

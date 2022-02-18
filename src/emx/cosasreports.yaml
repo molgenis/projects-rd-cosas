@@ -65,7 +65,7 @@ entities:
         dataType: datetime
         
       - name: elapsedTime
-        description: The interval between two reference points in time. (in milliseconds)
+        description: The interval between two reference points in time. (in seconds)
         tags: http://purl.obolibrary.org/obo/NCIT_C82572
         datetime: decimal
         
