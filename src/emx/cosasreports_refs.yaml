@@ -1,0 +1,241 @@
+#'////////////////////////////////////////////////////////////////////////////
+#' FILE: cosasreports_lookups.yaml
+#' AUTHOR: David Ruvolo
+#' CREATED: 2022-02-14
+#' MODIFIED: 2022-02-14
+#' PURPOSE: EMX for logging COSAS jobs
+#' STATUS: stable
+#' PACKAGES: NA
+#' COMMENTS: NA
+#'////////////////////////////////////////////////////////////////////////////
+
+
+# define package
+name: cosasreports_refs
+label: Reference Tables
+description: Reference tables for COSAS Reports
+parent: cosasreports
+
+# set defaults
+defaults:
+  dataType: string
+  idAttribute: false
+  lookupAttribute: false
+  labelAttribute: false
+  nillable: true
+
+entities:
+
+  # @name cosasreports_lookups_template
+  - name: template
+    tags: http://purl.obolibrary.org/obo/NCIT_C45677
+    abstract: true
+    attributes:
+    
+      - name: value
+        idAttribute: true
+        nillable: false
+        lookupAttribute: true
+        labelAttribute: true
+        tags: http://purl.obolibrary.org/obo/NCIT_C49100
+        description: The information contained in a data field. It may represent a numeric quantity, a textual characterization, a date or time measurement, or some other state, depending on the nature of the attribute.
+        
+      - name: description
+        dataType: text
+        tags: http://purl.obolibrary.org/obo/NCIT_C25365
+        description: A written or verbal account, representation, statement, or explanation of something
+      
+      - name: codesystem
+        tags: http://purl.obolibrary.org/obo/NCIT_C70895
+        description: A systematized collection of concepts that define corresponding codes.
+      
+      - name: code
+        tags: http://purl.obolibrary.org/obo/NCIT_C25162
+        description: A symbol or combination of symbols which is assigned to the members of a collection.
+      
+      - name: iri
+        dataType: hyperlink
+        tags: http://purl.obolibrary.org/obo/NCIT_C165071
+        description: A unique symbol that establishes identity of the resource.
+        
+  # @name cosasreports_lookups_datahandling
+  - name: datahandling
+    description: Basic (non-analytical) operations of some data, either a file or equivalent entity in memory, such that the same basic type of data is consumed as input and generated as output.
+    tags: http://edamontology.org/operation_2409
+    extends: cosasreports_refs_template
+    data:
+
+      - value: Aggregation
+        description: Combine multiple files or data items into a single file or object.
+        codesystem: EDAM
+        code: 3436
+        iri: http://edamontology.org/operation_3436
+        
+      - value: Anonymisation
+        description: Process data in such a way that makes it hard to trace to the person which the data concerns.
+        codesystem: EDAM
+        code: 3283
+        iri: http://edamontology.org/operation_3283
+        
+      - value: Data Processing
+        description: A series of operations on data by a computer in order to retrieve or transform or classify information.
+        codesystem: NCIT
+        code: C47925
+        iri: http://purl.obolibrary.org/obo/NCIT_C47925
+        
+      - value: Data Compression
+        description: The coding of data to save storage space or transmission time.
+        codesystem: NCIT
+        code: C64347
+        iri: http://purl.obolibrary.org/obo/NCIT_C64347
+
+      - value: Data retrieval
+        description: Retrieve an entry (or part of an entry) from a data resource that matches a supplied query. This might include some primary data and annotation. The query is a data identifier or other indexed term. For example, retrieve a sequence record with the specified accession number, or matching supplied keywords.
+        codesystem: EDAM
+        code: 2422
+        iri: http://edamontology.org/operation_2422
+        
+      - value: Database search
+        description: Search a database (or other data resource) with a supplied query and retrieve entries (or parts of entries) that are similar to the query.
+        codesystem: EDAM
+        code: 2421
+        iri: http://edamontology.org/operation_2421
+        
+      - value: Deposition
+        description: Deposit some data in a database or some other type of repository or software system.
+        cdesystem: EDAM
+        code: 3431
+        iri: http://edamontology.org/operation_3431
+        
+      - value: Editing
+        description: Edit a data entity, either randomly or specifically.
+        codesystem: EDAM
+        code: 3096
+        iri: http://edamontology.org/operation_3096
+
+      - value: Export
+        description: To transfer from a local area to an external or distant area; to move data out of one file or system with the purpose of importing it into another file or system.
+        codeystem: NCIT
+        code: C71586
+        iri: http://purl.obolibrary.org/obo/NCIT_C71586
+
+      - value: Filtering
+        description: Filter a set of files or data items according to some property.
+        codesystem: EDAM
+        code: 3695
+        iri: http://edamontology.org/operation_3695
+        
+      - value: Format detection
+        descrition: Recognition of which format the given data is in.
+        codesystem: EDAM
+        code: 3357
+        iri: http://edamontology.org/operation_3357
+        
+      - value: Formatting
+        description: Reformat a file of data (or equivalent entity in memory).
+        codesystem: EDAM
+        code: 0335
+        iri: http://edamontology.org/operation_0335
+        
+      - value: Import
+        description: An activity concerned with bringing any good, commodity, or service from a foreign source.
+        codesystem: NCIT
+        code: C73599
+        iri: http://purl.obolibrary.org/obo/NCIT_C73599
+        
+      - value: Parsing
+        description: Parse, prepare or load a user-specified data file so that it is available for use.
+        codesystem: EDAM
+        code: 1812
+        iri: http://edamontology.org/operation_1812
+        
+      - value: Phylogenetic tree editing
+        description: Edit a phylogenetic tree.
+        codesystem: EDAM
+        code: 0326
+        iri: http://edamontology.org/operation_0326
+        
+      - value: Query and retrieval
+        description: Search or query a data resource and retrieve entries and / or annotation.
+        codesystem: EDAM
+        code: 0224
+        iri: http://edamontology.org/operation_0224
+        
+      - value: Sequence alignment editing
+        description: Edit, convert or otherwise change a molecular sequence alignment, either randomly or specifically.
+        codesystem: EDAM
+        code: 3081
+        iri: http://edamontology.org/operation_3081
+        
+      - value: Sequence editing
+        description: Edit or change a molecular sequence, either randomly or specifically.
+        codesystem: EDAM
+        code: 0231
+        iri: http://edamontology.org/operation_0231
+        
+      - value: Sorting
+        description: Sort a set of files or data items according to some property.
+        codesystem: EDAM
+        code: 3802
+        iri: http://edamontology.org/operation_3802
+        
+      - value: Splitting
+        description: Split a file containing multiple data items into many files, each containing one item
+        codesystem: EDAM
+        code: 3359
+        iri: http://edamontology.org/operation_3359
+        
+      - value: Structure editing
+        description: Edit, convert or otherwise change a  molecular tertiary structure, either randomly or specifically.
+        codesystem: EDAM
+        code: 3080
+        iri: http://edamontology.org/operation_3080
+      
+  # @name cosasreports_lookups_status
+  - name: status
+    description: A condition or state at a particular time.
+    tags: http://purl.obolibrary.org/obo/NCIT_C25688
+    extends: cosasreports_refs_template
+    data:
+    
+      - value: Data Storage or Loss of Data
+        description: Storage of data was uncessessful in total or in part.
+        codesystem: NCIT
+        code: C139514
+        iri: http://purl.obolibrary.org/obo/NCIT_C139514
+    
+      - value: Error
+        description: A discrepancy between a computed, observed, or measured value or condition and the true, specified, or theoretically correct value or condition.
+        codesystem: NCIT
+        code: C43369
+        iri: http://purl.obolibrary.org/obo/NCIT_C43369
+        
+      - value: File in Error
+        description: An indication that an error occurred during the submission of a file to a data repository. 
+        codesystem: NCIT
+        code: C172866
+        iri: http://purl.obolibrary.org/obo/NCIT_C172866
+      
+      - value: Pass
+        description: One of two possible results of a pass/fail assessment; when the result satisfies a condition.
+        codesystem: NCIT
+        code: C81275
+        iri: http://purl.obolibrary.org/obo/NCIT_C81275
+        
+      - value: Success
+        description: An event that accomplishes its intended purpose.
+        codesystem: NCIT
+        code: C25362
+        iri: http://purl.obolibrary.org/obo/NCIT_C25362
+        
+      - value: Source Data Not Available
+        description: Data from an original source is not present, accessible or ready for use or service.
+        codesystem: NCIT
+        code: C67329
+        iri: http://purl.obolibrary.org/obo/NCIT_C67329
+        
+      - value: Warning
+        description: Cautionary advice about something.
+        codesystem: NCIT
+        code: C47896
+        iri: http://purl.obolibrary.org/obo/NCIT_C47896

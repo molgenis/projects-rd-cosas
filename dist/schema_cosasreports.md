@@ -5,22 +5,23 @@
 | Name | Description | Parent |
 |:---- |:-----------|:------|
 | cosasreports | Reports on COSAS jobs, imports, and processing (v1.0.0, 2022-02-11) | - |
+| cosasreports_refs | Reference tables for COSAS Reports | cosasreports |
 
 ## Entities
 
 | Name | Description | Package |
 |:---- |:-----------|:-------|
-| imports | Historical records of all new data imported into COSAS | cosasreports |
-| logs | Historical records of all COSAS data processing jobs | cosasreports |
-| template | - | cosasreports |
-| datahandling | Basic (non-analytical) operations of some data, either a file or equivalent entity in memory, such that the same basic type of data is consumed as input and generated as output. | cosasreports |
-| status | A condition or state at a particular time. | cosasreports |
+| imports | Historical records of daily COSAS imports | cosasreports |
+| processingsteps | Historical records of steps involved in the processing of daily cosas jobs | cosasreports |
+| template | - | cosasreports_refs |
+| datahandling | Basic (non-analytical) operations of some data, either a file or equivalent entity in memory, such that the same basic type of data is consumed as input and generated as output. | cosasreports_refs |
+| status | A condition or state at a particular time. | cosasreports_refs |
 
 ## Attributes
 
 ### Entity: cosasreports_imports
 
-Historical records of all new data imported into COSAS
+Historical records of daily COSAS imports
 
 | Name | Label | Description | Data Type |
 |:---- |:-----|:-----------|:---------|
@@ -41,9 +42,9 @@ Historical records of all new data imported into COSAS
 | steps | - | A specific stage of progression through a sequential process. | mref |
 | comment | - | A written explanation, observation or criticism added to textual material. | text |
 
-### Entity: cosasreports_logs
+### Entity: cosasreports_processingsteps
 
-Historical records of all COSAS data processing jobs
+Historical records of steps involved in the processing of daily cosas jobs
 
 | Name | Label | Description | Data Type |
 |:---- |:-----|:-----------|:---------|
@@ -55,10 +56,10 @@ Historical records of all COSAS data processing jobs
 | startTime | - | The time at which something is to start or did start. | datetime |
 | endTime | - | The time when an event has ceased. | datetime |
 | elapsedTime | - | The interval between two reference points in time. (in milliseconds) | string |
-| status | - | A condition or state at a particular time. | string |
+| status | - | A condition or state at a particular time. | xref |
 | comment | - | A written explanation, observation or criticism added to textual material. | text |
 
-### Entity: cosasreports_template
+### Entity: cosasreports_refs_template
 
 | Name | Label | Description | Data Type |
 |:---- |:-----|:-----------|:---------|

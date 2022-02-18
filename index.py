@@ -20,7 +20,7 @@ cosas.write_schema(path = 'dist/schema_cosasportal.md')
 
 
 # render reports emx
-reports = Convert(files = ['src/emx/cosasreports.yaml'])
+reports = Convert(files = ['src/emx/cosasreports.yaml', 'src/emx/cosasreports_refs.yaml'])
 reports.convert()
 
 # build tags
