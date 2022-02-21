@@ -4,7 +4,7 @@
 
 | Name | Description | Parent |
 |:---- |:-----------|:------|
-| cosasportal | Staging tables for raw data exports (v1.3.0, 2022-02-17) | - |
+| cosasportal | Staging tables for raw data exports (v1.4.0, 2022-02-21) | - |
 
 ## Entities
 
@@ -192,7 +192,7 @@ Staging table for CNV exports
 | externalid | - | - | string |
 | gender | - | - | string |
 | comment | - | - | text |
-| Phenotype | - | - | text |
+| phenotype | - | - | text |
 | created | - | - | string |
 
 ### Entity: cosasportal_cineasmappings
