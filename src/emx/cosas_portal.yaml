@@ -1,8 +1,8 @@
 name: cosasportal
 label: COSAS Portal
 description: Staging tables for raw data exports
-version: 1.3.0
-date: 2022-02-17
+version: 1.5.0
+date: 2022-02-21
 
 # define entity level defaults
 defaults:
@@ -206,20 +206,41 @@ entities:
 
   # @name cosasportal_benchcnv
   - name: benchcnv
-    description: Staging table for CNV exports
+    description: Staging table for Raw CNV exports
     extends: cosasportal_template
     attributes:
       - name: primid
         description: UMCG Number
+        
       - name: secid
         description: Family Number
+        
       - name: externalid
+      
       - name: gender
+      
       - name: comment
         dataType: text
-      - name: Phenotype
+        
+      - name: phenotype
         dataType: text
+        
       - name: created
+      
+  # @name cosasporatl_benchcnv_prepped
+  - name: benchcnv_prepped
+    description: Processed CNV bench data
+    extends: cosasportal_template
+    attributes:
+      - name: primid
+      - name: subjectID
+      - name: belongsToMother
+      - name: belongsToFamily
+      - name: isFetus
+        dataType: bool
+      - name: alternativeIdentifiers
+      - name: observedPhenotype
+        dataType: text
 
   # @name: cosasportal_cineasmappings
   - name: cineasmappings
@@ -237,3 +258,4 @@ entities:
       - name: code
       
       - name: hpo
+      

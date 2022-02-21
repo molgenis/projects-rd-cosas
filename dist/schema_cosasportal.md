@@ -4,7 +4,7 @@
 
 | Name | Description | Parent |
 |:---- |:-----------|:------|
-| cosasportal | Staging tables for raw data exports (v1.4.0, 2022-02-21) | - |
+| cosasportal | Staging tables for raw data exports (v1.5.0, 2022-02-21) | - |
 
 ## Entities
 
@@ -18,7 +18,8 @@
 | labs_array_darwin | Raw array metadata from Darwin | cosasportal |
 | labs_ngs_adlas | Raw NGS data from ADLAS | cosasportal |
 | labs_ngs_darwin | Raw NSG metadata from Darwin | cosasportal |
-| benchcnv | Staging table for CNV exports | cosasportal |
+| benchcnv | Staging table for Raw CNV exports | cosasportal |
+| benchcnv_prepped | Processed CNV bench data | cosasportal |
 | cineasmappings | Cineas to HPO mappings | cosasportal |
 
 ## Attributes
@@ -183,7 +184,7 @@ Raw NSG metadata from Darwin
 
 ### Entity: cosasportal_benchcnv
 
-Staging table for CNV exports
+Staging table for Raw CNV exports
 
 | Name | Label | Description | Data Type |
 |:---- |:-----|:-----------|:---------|
@@ -194,6 +195,27 @@ Staging table for CNV exports
 | comment | - | - | text |
 | phenotype | - | - | text |
 | created | - | - | string |
+
+### Entity: cosasportal_benchcnv_prepped
+
+Processed CNV bench data
+
+| Name | Label | Description | Data Type |
+|:---- |:-----|:-----------|:---------|
+| primid | - | UMCG Number | string |
+| secid | - | Family Number | string |
+| externalid | - | - | string |
+| gender | - | - | string |
+| comment | - | - | text |
+| phenotype | - | - | text |
+| created | - | - | string |
+| primid | - | - | string |
+| subjectID | - | - | string |
+| belongsToMother | - | - | string |
+| belongsToFamily | - | - | string |
+| isFetus | - | - | bool |
+| alternativeIdentifiers | - | - | string |
+| observedPhenotype | - | - | text |
 
 ### Entity: cosasportal_cineasmappings
 
