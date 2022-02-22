@@ -1,0 +1,106 @@
+#'////////////////////////////////////////////////////////////////////////////
+#' FILE: cosasportal.yaml
+#' AUTHOR: David Ruvolo
+#' CREATED: 2021-12-10
+#' MODIFIED: 2022-02-14
+#' PURPOSE: EMX for COSAS staging tables
+#' STATUS: stable
+#' PACKAGES: NA
+#' COMMENTS: NA
+#'////////////////////////////////////////////////////////////////////////////
+
+name: cosasportal_mappings
+label: COSAS mappings
+description: Mapping tables for processing raw data into UMDM terminology
+parent: cosasportal
+
+# define entity level defaults
+defaults:
+  auto: false
+  idAttribute: false
+  dataType: string
+  nillable: true
+  lookupAttribute: false
+
+# define tables
+entities:
+
+  # @name cosasportal_mappings_template
+  - name: template
+    description: attribute template for mapping tables
+    abstract: true
+    attributes:
+
+      - name: sourceValue
+        description: Value as listed in the data export
+        idAttribute: true
+        nillable: false
+        lookupAttribute: true
+        unique: true
+        
+      - name: newValue
+        description: New value to assign
+        
+      - name: newValueSecondary
+        description: A secondary value that corresponds to the source value
+        
+      - name: recordMetadata
+        dataType: compound
+        description: metadata is data that provides information about data.
+        tags: http://semanticscience.org/resource/SIO_001330
+
+      - name: comments
+        dataType: text
+        description: A written explanation, observation or criticism added to textual material.
+        partOfAttribute: recordMetadata
+        tags: http://purl.obolibrary.org/obo/NCIT_C25393
+      
+      - name: dateRecordCreated
+        dataType: datetime
+        description: The date on which the activity or entity is created.
+        partOfAttribute: recordMetadata
+        tags: http://purl.obolibrary.org/obo/NCIT_C164483
+
+      - name: recordCreatedBy
+        nillable: false
+        description: Indicates the person or authoritative body who brought the item into existence.
+        partOfAttribute: recordMetadata
+        tags: http://purl.obolibrary.org/obo/NCIT_C42628
+
+      - name: dateRecordUpdated
+        dataType: datetime
+        description: The date (and time) on which report was updated after it had been submitted.
+        partOfAttribute: recordMetadata
+        tags: http://purl.obolibrary.org/obo/NCIT_C93629
+
+      - name: wasUpdatedBy
+        description: An entity which is updated by another entity or an agent.
+        partOfAttribute: recordMetadata
+        tags: https://w3id.org/reproduceme#wasUpdatedBy
+        
+  # @name cosasportal_mappings_genderidentity
+  - name: genderidentity
+    description: mappings for genderidentity
+    extends: cosasportal_mappings_template
+    
+  # @name cosasportal biospecimen type mappings
+  - name: biospecimentype
+    description: mappings for biospecimen type
+    extends: cosasportal_mappings_template
+    
+  # @name samplereason
+  - name: samplereason
+    description: mappings for reason for sampling
+    extends: cosasportal_mappings_template
+    
+  # @name sequencerinfo
+  - name: sequencerinfo
+    description: mappings for sequencer information
+    extends: cosasportal_mappings_template
+    
+  - name: genomebuild
+    description: mappings for genome build
+    extends: cosasportal_mappings_template
+    
+    
+      

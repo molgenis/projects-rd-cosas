@@ -5,6 +5,7 @@
 | Name | Description | Parent |
 |:---- |:-----------|:------|
 | cosasportal | Staging tables for raw data exports (v1.5.0, 2022-02-21) | - |
+| cosasportal_mappings | Mapping tables for processing raw data into UMDM terminology | cosasportal |
 
 ## Entities
 
@@ -21,6 +22,12 @@
 | benchcnv | Staging table for Raw CNV exports | cosasportal |
 | benchcnv_prepped | Processed CNV bench data | cosasportal |
 | cineasmappings | Cineas to HPO mappings | cosasportal |
+| template | attribute template for mapping tables | cosasportal_mappings |
+| genderidentity | mappings for genderidentity | cosasportal_mappings |
+| biospecimentype | mappings for biospecimen type | cosasportal_mappings |
+| samplereason | mappings for reason for sampling | cosasportal_mappings |
+| sequencerinfo | mappings for sequencer information | cosasportal_mappings |
+| genomebuild | mappings for genome build | cosasportal_mappings |
 
 ## Attributes
 
@@ -228,6 +235,22 @@ Cineas to HPO mappings
 | codesystem | - | - | string |
 | code | - | - | string |
 | hpo | - | - | string |
+
+### Entity: cosasportal_mappings_template
+
+attribute template for mapping tables
+
+| Name | Label | Description | Data Type |
+|:---- |:-----|:-----------|:---------|
+| sourceValue&#8251; | - | Value as listed in the data export | string |
+| newValue | - | New value to assign | string |
+| newValueSecondary | - | A secondary value that corresponds to the source value | string |
+| recordMetadata | - | metadata is data that provides information about data. | compound |
+| comments | - | A written explanation, observation or criticism added to textual material. | text |
+| dateRecordCreated | - | The date on which the activity or entity is created. | datetime |
+| recordCreatedBy | - | Indicates the person or authoritative body who brought the item into existence. | string |
+| dateRecordUpdated | - | The date (and time) on which report was updated after it had been submitted. | datetime |
+| wasUpdatedBy | - | An entity which is updated by another entity or an agent. | string |
 
 Note: The symbol &#8251; denotes attributes that are primary keys
 

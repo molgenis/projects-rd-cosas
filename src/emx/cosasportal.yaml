@@ -1,3 +1,14 @@
+#'////////////////////////////////////////////////////////////////////////////
+#' FILE: cosasportal.yaml
+#' AUTHOR: David Ruvolo
+#' CREATED: 2021-12-10
+#' MODIFIED: 2022-02-14
+#' PURPOSE: EMX for COSAS staging tables
+#' STATUS: stable
+#' PACKAGES: NA
+#' COMMENTS: NA
+#'////////////////////////////////////////////////////////////////////////////
+
 name: cosasportal
 label: COSAS Portal
 description: Staging tables for raw data exports

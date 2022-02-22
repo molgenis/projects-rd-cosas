@@ -13,7 +13,7 @@ from yamlemxconvert import Convert
 from src.python.utils_emx import buildEmxTags
 
 # render umdm portal
-cosas = Convert(files = ['src/emx/cosas_portal.yaml'])
+cosas = Convert(files = ['src/emx/cosasportal.yaml', 'src/emx/cosasportal_mappings.yaml'])
 cosas.convert()
 cosas.write('cosasportal', format='xlsx', outDir='dist')
 cosas.write_schema(path = 'dist/schema_cosasportal.md')

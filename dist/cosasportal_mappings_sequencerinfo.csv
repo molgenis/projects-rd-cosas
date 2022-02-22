@@ -1,0 +1,7 @@
+sourceValue,newValue,newValueSecondary,recordCreatedBy
+HiSeq,Illumina platform,Illumina HiSeq Sequencer,dcruvolo
+MiSeq sequencer 1,Illumina platform,MiSeq,dcruvolo
+MiSeq sequencer 2,Illumina platform,MiSeq,dcruvolo
+NextSeq sequencer 1,Illumina platform,,dcruvolo
+NextSeq sequencer 2,Illumina platform,,dcruvolo
+NextSeq sequencer 3,Illumina platform,,dcruvolo
