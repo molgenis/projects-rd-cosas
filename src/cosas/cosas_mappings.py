@@ -9,6 +9,7 @@
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
+
 from datatable import dt, f, as_type, first
 import molgenis.client as molgenis
 from datetime import datetime
@@ -359,9 +360,9 @@ class cosastools:
     
     @staticmethod
     def recodeValue(
-        mappings: dict=None,
+        mappings: None,
         value: str=None,
-        attr: str=None,
+        attr: str='newValue',
         label:str=None
     ):
         """Recode value
@@ -369,7 +370,8 @@ class cosastools:
         mappings using lowercase letters and the the input for value should
         also be lowered.
         
-        @param mappings dict containing where each key corresponds to a new value
+        @param mappings a datatable object containing where each key
+            corresponds to a new value
         @param value string containing a value to recode
         @param attr If defined and your mappings is structured accordingly,
             you can map a value to a dictionary with nested
@@ -377,25 +379,19 @@ class cosastools:
             to more than one context.
         @param label string that indicates the mapping type for error messages
         
-        @examples
-            ```
-            # default mapping structure
-            mappings = {'old_value': 'new_value'}
-            
-            # nested mapping structure
-            mappings = {'old_value': {'value_for_a': 'abc', 'value_for_b': 'xyz'}}
-            ```
         @return string 
         """
-        try:
-            return mappings[value][attr] if bool(attr) else mappings[value]
-        except KeyError:
-            if bool(value):
-                status_msg('Error in {} recoding: "{}" not found'.format(label, value))
-            return None
-        except AttributeError:
-            if bool(value):
-                status_msg('Error in {} recoding: "{}" not found'.format(label, value))
+        if bool(value):
+            result = mappings[f.sourceValue == value, [attr]].to_list()[0]
+        
+            if not bool(result):
+                status_msg(
+                    'Error in {} recoding: "{}" not found'
+                    .format(label, value)
+                )
+                return None
+            return result
+        else:
             return None
     
     @staticmethod
@@ -418,114 +414,6 @@ class cosastools:
         """Return Generic timestamp as yyyy-mm-ddThh:mm:ssZ"""
         return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
 
-#//////////////////////////////////////////////////////////////////////////////
-
-# ~  ~
-# Define Mappings
-#
-# Create mappings to recode raw values to the new unified model. Use the method
-# cosastools.recodeValue to recode values. It is highly recommended to lowercase
-# all values and input values.
-#
-# ```python 
-# genderMappings = {'vrouw': 'female', 'man': 'male'}
-# cosastools.recodeValue(mappings = genderMappings, value='vrouw', label='gender')
-# ```
-#
-# In other situtations, you can nest additional mappings so that you can recode
-# one value for use in multiple contexts. This is useful for attributes such as
-# sequencer where one value 'HiSeq' can indicate the sequencer platform
-# and model.
-#
-# ```python
-# sequencingMappings = {
-#   'HiSeq' : {
-#       'platform': 'Illumina platform',
-#       'model': 'Illumina HiSeq Sequencer'
-#    },
-#    ...
-# ```
-#
-
-# define gender mappings
-genderMappings = {
-    'Vrouw': 'female gender identity',
-    'Man': 'male gender identity'
-}
-
-# define biospecimen type mappings
-biospecimenTypeMappings = {
-    'dna': 'Blood DNA',
-    'dna reeds aanwezig': 'DNA Library',
-    'beenmerg': 'Bone Marrow Sample',
-    'bloed': 'Whole Blood',
-    'fibroblastenkweek': 'Bone Marrow-Derived Fibroblasts',
-    'foetus': None,  # not enough information to make a specific mapping
-    'gekweekt foetaal weefsel': 'Human Fetal Tissue',
-    'gekweekt weefsel': 'Tissue Sample',
-    'gekweekte amnion cellen': 'Amnion',
-    'gekweekte chorion villi': 'Chorionic Villus', 
-    'gekweekte amnion cellen': 'Amnion',
-    'huidbiopt': 'Skin/Subcutaneous Tissue',
-    'navelstrengbloed': 'Umbilical Cord Blood',
-    'ongekweekt foetaal weefsel': 'Human Fetal Tissue',
-    'ongekweekt weefsel': 'Tissue Sample',
-    'ongekweekte amnion cellen': 'Amnion',
-    'ongekweekte chorion villi': 'Chorionic Villus',
-    'overig': 'Tissue Sample',  # generic term
-    'paraffine normaal': None, # these are storage conditions
-    'paraffine tumor': None, # these are storage conditions
-    'plasmacellen': 'Serum or Plasma',
-    'speeksel': 'Saliva Sample',
-    'suspensie': 'Mixed Adherent Cells in Suspension',
-    'toegestuurd dna foetaal': None  # mix of 'fetal tissue' and 'DNA'
-}
-
-
-# sampling reason mappings
-sampleReasonMappings = {
-    'diagnostisch': 'Diagnostic',
-    'dragerschap': 'Carrier Status',
-    'hematologische maligniteiten': 'Diagnostic',
-    'informativiteit': 'Informative',
-    'presymptomatisch': 'Presymptomatic Testing'
-}
-
-
-# define sequencing info mappings
-sequencingInfoMappings = {
-    'HiSeq' : {
-        'platform': 'Illumina platform',
-        'model': 'Illumina HiSeq Sequencer'
-    },
-    'MiSeq sequencer 1' : {
-        'platform': 'Illumina platform',
-        'model': 'MiSeq'
-    },
-    'MiSeq sequencer 2' : {
-        'platform': 'Illumina platform',
-        'model': 'MiSeq'
-    },
-    # for NextSeq sequencers, I'm using model None. Numbers 1:3 likely
-    # represents machine number not model number.
-    'NextSeq sequencer 1' : {
-        'platform': 'Illumina platform',
-        'model': None #'Illumina NextSeq 1000'
-    },
-    'NextSeq sequencer 2' : {
-        'platform': 'Illumina platform',
-        'model': None # 'Illumina NextSeq 2000'
-    },
-    'NextSeq sequencer 3' : {
-        'platform': 'Illumina platform',
-        'model': None
-    }
-}
-
-# define genome build mappings
-genomeBuildMappings = {
-    'Feb. 2009 (GRCh37/hg19)': 'GRCh37'
-}
 
 #//////////////////////////////////////////////////////////////////////////////
 
@@ -604,7 +492,7 @@ raw_ngs_darwin = dt.Frame(
     )
 )
 
-
+# delete _href column (not necessary, but helpful for local dev)
 del raw_subjects['_href']
 del raw_clinical['_href']
 del raw_benchcnv['_href']
@@ -614,6 +502,58 @@ del raw_array_adlas['_href']
 del raw_array_darwin['_href']
 del raw_ngs_adlas['_href']
 del raw_ngs_darwin['_href']
+
+# ~ 0a ~
+# Pull COSAS Portal Mappings
+#
+# The following objects allow internal data to be mapped to the unified model
+# terminology. If you receive a message in this script stating "mapping value
+# not found". Add a new record in the corresponding table. Some tables may only
+# have a single mapping, but this may change in the future.
+#
+status_msg('Pulling umcg to UMDM mapping tables...')
+
+genderMappings = dt.Frame(
+    db.get(
+        entity='cosasportal_mappings_genderidentity',
+        attributes='sourceValue,newValue'
+    )
+)
+
+biospecimenTypeMappings = dt.Frame(
+    db.get(
+        entity='cosasportal_mappings_biospecimentype',
+        attributes='sourceValue,newValue'
+    )
+)
+
+sampleReasonMappings = dt.Frame(
+    db.get(
+        entity='cosasportal_mappings_samplereason',
+        attributes='sourceValue,newValue'
+    )
+)
+
+sequencingInfoMappings = dt.Frame(
+    db.get(
+        entity='cosasportal_mappings_sequencerinfo',
+        attributes='sourceValue,newValue'
+    )
+)
+
+genomeBuildMappings = dt.Frame(
+    db.get(
+        entity='cosasportal_mappings_genomebuild',
+        attributes='sourceValue,newValue'
+    )
+)
+
+# delete _href column (not necessary, but helpful for local dev)
+del genderMappings['_href']
+del biospecimenTypeMappings['_href']
+del sampleReasonMappings['_href']
+del sequencingInfoMappings['_href']
+del genomeBuildMappings['_href']
 
 
 # pull list of subjects from COSAS and merge with new subject ID list
@@ -669,7 +609,7 @@ subjects = raw_subjects[
 # The following code identifies missing IDs, creates a new COSAS record, and
 # appends them to the main subject dataset.
 #
-status_msg('Identifying unregistered subjects...')
+status_msg('Identifying unregistered family member identifiers...')
 
 maternalIDs = subjects['belongsToMother'].to_list()[0]
 paternalIDs = subjects['belongsToFather'].to_list()[0]
@@ -699,17 +639,70 @@ for entity in familyData:
                         }
                     ])
                 )
+                
+del entity, ids, el
 
 # select unique subjects only
 belongsWithFamilyMembers = belongsWithFamilyMembers[
     :, first(f[:]), dt.by('subjectID')
 ][:, :, dt.sort(as_type(f.subjectID, int))]
 
-#//////////////////////////////////////
+status_msg(
+    "Identified {} family members that aren't in the export..."
+    .format(belongsWithFamilyMembers.nrows)
+)
+
+
+# ~ 1b ~
+# Identify new material identifiers
+#
+# In the subjects dataset, check all values in the the column `belongsToMother`
+# to make sure the ID exists in the `subjectID` column. Rather than removing 
+# values from COSAS, unknown identifiers will be registered as new subjects.
+#
+status_msg('Identifying new maternal identifiers...')
+
+belongsToMother = dt.Frame([
+    {
+        'subjectID': d[0],
+        'belongsToFamily': d[1],
+        'genderIdentity': 'Vrouw',
+        'comments': 'manually registered in COSAS'
+    } for d in subjects[:, (f.belongsToMother, f.belongsToFamily)].to_tuples()
+    if not (d[0] is None) and not (d[0] in cosasSubjectIdList)
+])
+
+status_msg(
+    "Identified {} new maternal identifiers that aren't in the export..."
+    .format(belongsToMother.nrows)
+)
+
+
+# ~ 1c ~
+# Identify new paternal identifiers
+#
+# Check all values in the column `belongsToFather` to make sure the ID
+# exists in the `subjectID` column.
+#
+status_msg('Identifying new paternal identifiers...')
+belongsToFather = dt.Frame([
+    {
+        'subjectID': d[0],
+        'belongsToFamily': d[1],
+        'genderIdentity': 'Man',
+        'comments': 'manually registered in COSAS'
+    } for d in subjects[:, (f.belongsToFather, f.belongsToFamily)].to_tuples()
+    if not (d[0] is None) and not (d[0] in cosasSubjectIdList)
+])
+
+status_msg(
+    "Identified {} new maternal identifiers that aren't in the export..."
+    .format(belongsToFather.nrows)
+)
 
 #
-# ~ 1b ~
-# Identify New Maternal- and Paternal IDs
+# ~ 1d ~
+# Combine all new subject identifiers
 #
 # Like the column `belongsWithFamilyMembers`, we will also check the columns
 # `belongsToMother` and `belongsToFather` to make sure all subjects are properly
@@ -717,55 +710,36 @@ belongsWithFamilyMembers = belongsWithFamilyMembers[
 # that we can bind the data in one step.
 #
 
-# bind new subject objects
 status_msg('Creating new subjects to register dataset...')
 subjectsToRegister = dt.rbind(
-    
-    # register new IDs identified in `belongsToMother`
-    dt.Frame([
-        {
-            'subjectID': d[0],
-            'belongsToFamily': d[1],
-            'genderIdentity': 'Vrouw',
-            'comments': 'manually registered in COSAS'
-        } for d in subjects[:, (f.belongsToMother, f.belongsToFamily)].to_tuples()
-        if not (d[0] is None) and not (d[0] in cosasSubjectIdList)
-    ]),
-    
-    # register new IDs identified in `belongsToFather`
-    dt.Frame([
-        {
-            'subjectID': d[0],
-            'belongsToFamily': d[1],
-            'genderIdentity': 'Man',
-            'comments': 'manually registered in COSAS'
-        } for d in subjects[:, (f.belongsToFather, f.belongsToFamily)].to_tuples()
-        if not (d[0] is None) and not (d[0] in cosasSubjectIdList)
-    ]),
-    
-    # bind family members
+    belongsToMother,
+    belongsToFather,
     belongsWithFamilyMembers,
     force = True
 )
 
 status_msg('Registering {} new subjects'.format(subjectsToRegister.nrows))
+del belongsWithFamilyMembers
+del belongsToMother
+del belongsToFather
 
-#//////////////////////////////////////
 
 #
-# ~ 1c ~
+# ~ 1e ~
 # Merge and format subject data
 #
 # In this step, we will create the table `umdm_subjects` using the objects
 # `subjects` and `subjectsToRegister`. Afterwards, several columns will need
 # to be recoded or formated for MOLGENIS.
 #
-
+#
 # Bind `subjectsToRegister` with subjects so that all columns can be formated
 # at once. Make sure distinct cases are selected and the dataset is sorted by
 # ID.
+#
 status_msg('Binding subjects with new subjects...')
-subjects = dt.rbind(subjectsToRegister,subjects, force = True)[
+
+subjects = dt.rbind(subjects, subjectsToRegister, force = True)[
     :, first(f[:]), dt.by(f.subjectID)
 ][:, :, dt.sort(as_type(f.subjectID, int))]
 
@@ -779,9 +753,16 @@ subjects['belongsWithFamilyMembers'] = dt.Frame([
 
 
 # map gender values to `umdm_lookups_genderIdentity`
-status_msg('Recoding gender...')
-subjects['genderIdentity'] = dt.Frame([
-    cosastools.recodeValue(mappings=genderMappings, value=d)
+status_msg('Recoding gender identity...')
+subjects['genderIdentity'] = dt.rbind([
+    dt.Frame([
+        cosastools.recodeValue(
+        mappings = genderMappings,
+        value = d,
+        attr = 'newValue',
+        label = 'genderIdentity'
+        )
+    ])
     for d in subjects['genderIdentity'].to_list()[0]
 ])
 
@@ -842,34 +823,32 @@ subjects['dateOfDeath'] = dt.Frame([
 
 # track records and cleanup
 status_msg('Mapped {} new records'.format(subjects.nrows))
-del maternalIDs, paternalIDs,
-del belongsWithFamilyMembers
+del maternalIDs, paternalIDs
 del subjectsToRegister
 del familyData
 
 #//////////////////////////////////////////////////////////////////////////////
 
-# status_msg('')
-# status_msg('==== Building COSAS Clinical ====')
+status_msg('')
+status_msg('==== Building COSAS Clinical ====')
 
 # ~ 2 ~
 # Build Phenotypic Data from workbench export
 #
 # This dataset provides historical records on observedPhenotypes for older cases.
 # This allows us to populate the COSAS Clinical table with extra information. 
-# status_msg('Mapping historical phenotypic data...')
+status_msg('Mapping historical phenotypic data...')
 
 # Process data from external provider
-# confirmedHpoDF = raw_benchcnv[:, {'clinicalID': f.primid, 'observedPhenotype': f.Phenotype}]
-# confirmedHpoDF['flag'] = dt.Frame([
-#     True if d in cosasSubjectIdList else False for d in confirmedHpoDF['clinicalID'].to_list()[0]
-# ])
-# confirmedHpoDF = confirmedHpoDF[f.flag == True, :]
-# confirmedHpoDF['observedPhenotype'] = dt.Frame([
-#     ','.join(list(set(d.strip().split()))) for d in confirmedHpoDF['observedPhenotype'].to_list()[0]
-# ])
-# confirmedHpoDF.key = 'clinicalID'
-# del confirmedHpoDF['flag']
+confirmedHpoDF = raw_benchcnv[:, (f.subjectID, f.observedPhenotype)]
+confirmedHpoDF['keep'] = dt.Frame([
+    d in cosasSubjectIdList
+    for d in confirmedHpoDF['subjectID'].to_list()[0]
+])
+
+confirmedHpoDF = confirmedHpoDF[f.keep == True, :]
+confirmedHpoDF.key = 'subjectID'
+del confirmedHpoDF['keep']
 
 
 # ~ 2a ~
@@ -881,7 +860,7 @@ del familyData
 # allowed in this table (at the moment). Use the reference table,
 # columns (observed, unobserved, or provisional).
 # 
-# Only HPO codes are `cosasrefs_cineaseHpoMappings` to map CINEAS codes to HPO.
+# Only HPO codes are `cosasportal_cineasmappings` to map CINEAS codes to HPO.
 # This is was done to clean historical data to new clinical data management
 # practices (i.e., HPO integration) whereas data from other -- newer systems --
 # has HPO codes built in.
@@ -890,37 +869,42 @@ del familyData
 # be used instead.
 #
 
-# status_msg('Processing new clinical data...')
+status_msg('Processing new clinical data...')
 
 # # restructure dataset: rowbind all diagnoses and certainty ratings
-# clinical = dt.rbind(
-#     raw_clinical[:,{
-#         'clinicalID': f.UMCG_NUMBER,
-#         'belongsToSubject': f.UMCG_NUMBER,
-#         'code': f.HOOFDDIAGNOSE,
-#         'certainty': f.HOOFDDIAGNOSE_ZEKERHEID
-#     }],
-#     raw_clinical[:, {
-#         'clinicalID': f.UMCG_NUMBER,
-#         'belongsToSubject': f.UMCG_NUMBER,
-#         'code': f.EXTRA_DIAGNOSE,
-#         'certainty': f.EXTRA_DIAGNOSE_ZEKERHEID
-#     }]
-# )[f.code != '-', :]
+clinical = dt.rbind(
+    raw_clinical[:,{
+        'clinicalID': f.UMCG_NUMBER,
+        'belongsToSubject': f.UMCG_NUMBER,
+        'code': f.HOOFDDIAGNOSE,
+        'certainty': f.HOOFDDIAGNOSE_ZEKERHEID
+    }],
+    raw_clinical[:, {
+        'clinicalID': f.UMCG_NUMBER,
+        'belongsToSubject': f.UMCG_NUMBER,
+        'code': f.EXTRA_DIAGNOSE,
+        'certainty': f.EXTRA_DIAGNOSE_ZEKERHEID
+    }]
+)[f.code != '-', :]
 
 # status_msg('Transforming variables...')
 
 # # extract CINEAS code for string
-# clinical['code'] = dt.Frame([
-#     d.split(':')[0] if d else None for d in clinical['code'].to_list()[0]
-# ])
+clinical['code'] = dt.Frame([
+    d.split(':')[0] if d else None
+    for d in clinical['code'].to_list()[0]
+])
 
-# # map cineas codes to HPO
+# map cineas codes to HPO
 # clinical['hpo'] = dt.Frame([
-#     cineasmappings[
-#         f.value == d, f.hpo
-#     ].to_list()[0][0] for d in clinical['code'].to_list()[0]
-# ])
+x = dt.rbind([dt.Frame([
+    cosastools.mapCineasToHpo(
+            value = d,
+            refData = cineasmappings
+        )
+    ])
+    for d in clinical['code'].to_list()[0]
+])
 
 # # format certainty
 # clinical['certainty'] = dt.Frame([
@@ -1428,7 +1412,10 @@ sequencing[:, dt.update(
 status_msg('Importing data to...')
 
 # db.delete(entity='cosasportal_patients')
+# db.delete(entity='cosasportal_diagnoses')
 # db.delete(entity='cosasportal_samples')
+# db.delete(entity='cosasportal_benchcnv')
+# db.delete(entity='cosasportal_benchcnv_prepped')
 # db.delete(entity='cosasportal_labs_array_adlas')
 # db.delete(entity='cosasportal_labs_array_darwin')
 # db.delete(entity='cosasportal_labs_ngs_adlas')
