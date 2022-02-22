@@ -157,7 +157,7 @@ class Molgenis(molgenis.Session):
         
         @retrun status message
         """
-        url = '{}/v2/{}/{}'.format(self._apiUrl, str(entity), str(attr))
+        url = '{}v2/{}/{}'.format(self._apiUrl, str(entity), str(attr))
         
         # single push
         if len(data) < 1000:
@@ -176,72 +176,71 @@ class Molgenis(molgenis.Session):
                     )
                 )
 
-class cosasLogger:
-    def __init__(self):
-        """Cosas Logger
-        Keep records of all processing steps and summarize the daily imports
-        
-        cosaslogs = CosasLogger()
-        
-        """
-        self.currentStep = None
-        self.log = self.startLog()
-        self.processingStepLogs = []
-        
-    def __stoptime__(self, name):
-        timeFormat = '%Y-%m-%d %H:%M:%S'
-        self[str(name)]['endTime'] = datetime.now().strftime(timeFormat)
-        self[str(name)]['elapsedTime'] = (
-            self[str(name)]['endTime'] - self[str(name)]['startTime']
-        ).total_seconds()
-        self[str(name)]['endTime'] = self[str(name)]['endTime'].strftime(timeFormat)
-        self[str(name)]['startTime'] = self[str(name)]['startTime'].strftime(timeFormat)
-        
-
-    def startProcessingStepLog(self, tablename):
-        self.currentStep = {
-            'identifier': '{}_{}'.format(
-                datetime.now().strftime('%Y-%m-%d'),
-                len(self.processingStepLogs) + 1
-            ),
-            'name': None,
-            'step': None,
-            'databaseTable': tablename,
-            'startTime': datetime.now(),
-            'endTime': None,
-            'elapsedTime': None,
-            'status': None,
-            'comment': None
-        }
-        
-    def stopProcessingStepLog(self):
-        self.__stoptime__(name='currentStep')
-        self.log['steps'].append(self.currentStep['identifier'])
-        self.processingStepLogs.append(self.currentStep)
-        self.currentStep = None
-        
-        
-    def startLog(self):
-        self.log = {
-            'identifier': datetime.now().strftime('%Y-%m-%d'),
-            'name': 'cosas-daily-import',
-            'databaseName': 'cosas',
-            'startTime': datetime.now(),
-            'endTime': None,
-            'elapsedTime': None,
-            'steps': [],
-            'comments': None
-        }
-        
-    def stopLog(self):
-        self.__stoptime__(name='log')
-        self.log['endTime'] = datetime.now()
-        self.log['elapsedTime'] = (self.log['endTime'] - self.log['startTime']).total_seconds()
-        self.log['steps'] = ','.join(self.log['steps'])
-
-
-cosaslogs = cosasLogger()
-cosaslogs.startLog()
+# class cosasLogger:
+#     def __init__(self):
+#         """Cosas Logger
+#         Keep records of all processing steps and summarize the daily imports
+#        
+#         cosaslogs = CosasLogger()
+#        
+#         """
+#         self.currentStep = None
+#         self.log = self.startLog()
+#         self.processingStepLogs = []
+#        
+#     def __stoptime__(self, name):
+#         timeFormat = '%Y-%m-%d %H:%M:%S'
+#         self[str(name)]['endTime'] = datetime.now().strftime(timeFormat)
+#         self[str(name)]['elapsedTime'] = (
+#             self[str(name)]['endTime'] - self[str(name)]['startTime']
+#         ).total_seconds()
+#         self[str(name)]['endTime'] = self[str(name)]['endTime'].strftime(timeFormat)
+#         self[str(name)]['startTime'] = self[str(name)]['startTime'].strftime(timeFormat)
+#        
+#
+#     def startProcessingStepLog(self, tablename):
+#         self.currentStep = {
+#             'identifier': '{}_{}'.format(
+#                 datetime.now().strftime('%Y-%m-%d'),
+#                 len(self.processingStepLogs) + 1
+#             ),
+#             'name': None,
+#             'step': None,
+#             'databaseTable': tablename,
+#             'startTime': datetime.now(),
+#             'endTime': None,
+#             'elapsedTime': None,
+#             'status': None,
+#             'comment': None
+#         }
+#        
+#     def stopProcessingStepLog(self):
+#         self.__stoptime__(name='currentStep')
+#         self.log['steps'].append(self.currentStep['identifier'])
+#         self.processingStepLogs.append(self.currentStep)
+#         self.currentStep = None
+#        
+#        
+#     def startLog(self):
+#         self.log = {
+#             'identifier': datetime.now().strftime('%Y-%m-%d'),
+#             'name': 'cosas-daily-import',
+#             'databaseName': 'cosas',
+#             'startTime': datetime.now(),
+#             'endTime': None,
+#             'elapsedTime': None,
+#             'steps': [],
+#             'comments': None
+#         }
+#        
+#     def stopLog(self):
+#         self.__stoptime__(name='log')
+#         self.log['endTime'] = datetime.now()
+#         self.log['elapsedTime'] = (self.log['endTime'] - self.log['startTime']).total_seconds()
+#         self.log['steps'] = ','.join(self.log['steps'])
+#
+# cosaslogs = cosasLogger()
+# cosaslogs.startLog()
 
 
 # create class of methods used in the mappings
@@ -553,14 +552,14 @@ raw_clinical = dt.Frame(
     )
 )
 
-raw_bench_cnv = dt.Frame(
+raw_benchcnv = dt.Frame(
     db.get(
         entity = 'cosasportal_benchcnv_prepped',
         batch_size = 10000
     )
 )
 
-cineasHpoMappings = dt.Frame(
+cineasmappings = dt.Frame(
     db.get(
         entity = 'cosasportal_cineasmappings',
         batch_size = 10000
@@ -607,6 +606,9 @@ raw_ngs_darwin = dt.Frame(
 
 
 del raw_subjects['_href']
+del raw_clinical['_href']
+del raw_benchcnv['_href']
+del cineasmappings['_href']
 del raw_samples['_href']
 del raw_array_adlas['_href']
 del raw_array_darwin['_href']
@@ -858,7 +860,7 @@ del familyData
 # status_msg('Mapping historical phenotypic data...')
 
 # Process data from external provider
-# confirmedHpoDF = raw_bench_cnv[:, {'clinicalID': f.primid, 'observedPhenotype': f.Phenotype}]
+# confirmedHpoDF = raw_benchcnv[:, {'clinicalID': f.primid, 'observedPhenotype': f.Phenotype}]
 # confirmedHpoDF['flag'] = dt.Frame([
 #     True if d in cosasSubjectIdList else False for d in confirmedHpoDF['clinicalID'].to_list()[0]
 # ])
@@ -915,7 +917,7 @@ del familyData
 
 # # map cineas codes to HPO
 # clinical['hpo'] = dt.Frame([
-#     cineasHpoMappings[
+#     cineasmappings[
 #         f.value == d, f.hpo
 #     ].to_list()[0][0] for d in clinical['code'].to_list()[0]
 # ])

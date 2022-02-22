@@ -142,7 +142,7 @@ class Molgenis(molgenis.Session):
         
         @retrun status message
         """
-        url = '{}/v2/{}/{}'.format(self._apiUrl, str(entity), str(attr))
+        url = '{}v2/{}/{}'.format(self._apiUrl, str(entity), str(attr))
         
         # single push
         if len(data) < 1000:
