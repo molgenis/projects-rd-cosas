@@ -362,7 +362,6 @@ class cosastools:
     def recodeValue(
         mappings: None,
         value: str=None,
-        attr: str='newValue',
         label:str=None
     ):
         """Recode value
@@ -373,25 +372,19 @@ class cosastools:
         @param mappings a datatable object containing where each key
             corresponds to a new value
         @param value string containing a value to recode
-        @param attr If defined and your mappings is structured accordingly,
-            you can map a value to a dictionary with nested
-            values. This may be useful in situations you need to recode a value
-            to more than one context.
         @param label string that indicates the mapping type for error messages
         
-        @return string 
+        @return string or NoneType
         """
-        if bool(value):
-            result = mappings[f.sourceValue == value, [attr]].to_list()[0]
-        
-            if not bool(result):
-                status_msg(
-                    'Error in {} recoding: "{}" not found'
-                    .format(label, value)
-                )
-                return None
-            return result
-        else:
+        try:
+            return mappings[value]
+        except KeyError:
+            if bool(value):
+                status_msg('Error in {} recoding: "{}" not found'.format(label, value))
+            return None
+        except AttributeError:
+            if bool(value):
+                status_msg('Error in {} recoding: "{}" not found'.format(label, value))
             return None
     
     @staticmethod
@@ -413,6 +406,20 @@ class cosastools:
     def timestamp():
         """Return Generic timestamp as yyyy-mm-ddThh:mm:ssZ"""
         return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+        
+    @staticmethod
+    def to_keypairs(data, keyAttr='sourceValue', valueAttr='newValue'):
+        """To Key pairs
+        Convert a list of dictionaries into a key-value dictionary. This method
+        is useful for creating objects for mapping tables.
+        
+        @param data list of dictionaries that you wish to convert
+        @param keyAttr attribute that will be key
+        @param valueAttr attribute that contains the value
+        
+        @return a dictionary
+        """
+        return [{d[keyAttr]: d.get(valueAttr)} for d in data]
 
 
 #//////////////////////////////////////////////////////////////////////////////
@@ -503,6 +510,10 @@ del raw_array_darwin['_href']
 del raw_ngs_adlas['_href']
 del raw_ngs_darwin['_href']
 
+
+# create a list of unique subject identifiers
+cosasSubjectIdList = list(set(raw_subjects[:, 'UMCG_NUMBER'].to_list()[0]))
+
 # ~ 0a ~
 # Pull COSAS Portal Mappings
 #
@@ -513,51 +524,51 @@ del raw_ngs_darwin['_href']
 #
 status_msg('Pulling umcg to UMDM mapping tables...')
 
-genderMappings = dt.Frame(
-    db.get(
+genderMappings = cosastools.to_keypairs(
+    data = db.get(
         entity='cosasportal_mappings_genderidentity',
         attributes='sourceValue,newValue'
     )
 )
 
-biospecimenTypeMappings = dt.Frame(
-    db.get(
+biospecimenTypeMappings = cosastools.to_keypairs(
+    data = db.get(
         entity='cosasportal_mappings_biospecimentype',
         attributes='sourceValue,newValue'
     )
 )
 
-sampleReasonMappings = dt.Frame(
-    db.get(
+sampleReasonMappings = cosastools.to_keypairs(
+    data = db.get(
         entity='cosasportal_mappings_samplereason',
-        attributes='sourceValue,newValue'
+        attributes='sourceValue,newValue,newValueSecondary'
     )
 )
 
-sequencingInfoMappings = dt.Frame(
-    db.get(
+
+sequencerPlatformMappings = cosastools.to_keypairs(
+    data = db.get(
         entity='cosasportal_mappings_sequencerinfo',
         attributes='sourceValue,newValue'
-    )
+    ),
+    keyAttr = 'sourceValue',
+    valueAttr = 'newValue'
 )
 
-genomeBuildMappings = dt.Frame(
-    db.get(
-        entity='cosasportal_mappings_genomebuild',
-        attributes='sourceValue,newValue'
-    )
+sequencerInstrumentMappings = cosastools.to_keypairs(
+    data = db.get(
+        entity='cosasportal_mappings_sequencerinfo',
+        attributes='sourceValue,newValueSecondary'
+    ),
+    keyAttr = 'sourceValue',
+    valueAttr = 'newValueSecondary'
 )
 
-# delete _href column (not necessary, but helpful for local dev)
-del genderMappings['_href']
-del biospecimenTypeMappings['_href']
-del sampleReasonMappings['_href']
-del sequencingInfoMappings['_href']
-del genomeBuildMappings['_href']
+genomeBuildMappings = db.get(
+    entity='cosasportal_mappings_genomebuild',
+    attributes='sourceValue,newValue,newValueSecondary'
+)
 
-
-# pull list of subjects from COSAS and merge with new subject ID list
-cosasSubjectIdList = list(set(raw_subjects[:, 'UMCG_NUMBER'].to_list()[0]))
 
 #//////////////////////////////////////////////////////////////////////////////
 
