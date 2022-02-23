@@ -2,7 +2,7 @@
 #' FILE: emx.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-10-05
-#' MODIFIED: 2022-02-17
+#' MODIFIED: 2022-02-23
 #' PURPOSE: generate emx files for COSAS
 #' STATUS: working
 #' PACKAGES: emxconvert
@@ -10,17 +10,17 @@
 #'////////////////////////////////////////////////////////////////////////////
 
 from yamlemxconvert import Convert
-from src.python.utils_emx import buildEmxTags
+from python.utils_emx import buildEmxTags
 
 # render umdm portal
-cosas = Convert(files = ['src/emx/cosasportal.yaml', 'src/emx/cosasportal_mappings.yaml'])
+cosas = Convert(files = ['model/cosasportal.yaml', 'model/cosasportal_mappings.yaml'])
 cosas.convert()
 cosas.write('cosasportal', format='xlsx', outDir='dist')
 cosas.write_schema(path = 'dist/schema_cosasportal.md')
 
 
 # render reports emx
-reports = Convert(files = ['src/emx/cosasreports.yaml', 'src/emx/cosasreports_refs.yaml'])
+reports = Convert(files = ['model/cosasreports.yaml', 'model/cosasreports_refs.yaml'])
 reports.convert()
 
 # build tags
@@ -48,7 +48,7 @@ reports.write_schema(path='dist/schema_cosasreports.md')
 # ~ 1 ~ 
 # Tests
 
-# from src.python.emx2_client import Molgenis
+# from python.emx2_client import Molgenis
 # from dotenv import load_dotenv
 # from os import environ
 

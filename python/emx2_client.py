@@ -2,16 +2,13 @@
 #' FILE: emx2_client.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-02-09
-#' MODIFIED: 2022-02-09
+#' MODIFIED: 2022-02-23
 #' PURPOSE: EMX2 API py client
 #' STATUS: in.progress
 #' PACKAGES: requests
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
-
-from asyncio import exceptions
-from urllib.error import HTTPError
 from urllib.parse import urlparse, urlunparse
 from os import path
 import requests
