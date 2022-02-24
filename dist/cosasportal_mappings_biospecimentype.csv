@@ -1,24 +1,28 @@
-sourceValue,newValue,recordCreatedBy
-dna,Blood DNA,dcruvolo
-dna reeds aanwezig,DNA Library,dcruvolo
-beenmerg,Bone Marrow Sample,dcruvolo
-bloed,Whole Blood,dcruvolo
-fibroblastenkweek,Bone Marrow-Derived Fibroblasts,dcruvolo
-foetus,,dcruvolo
-gekweekt foetaal weefsel,Human Fetal Tissue,dcruvolo
-gekweekt weefsel,Tissue Sample,dcruvolo
-gekweekte amnion cellen,Amnion,dcruvolo
-gekweekte chorion villi,Chorionic Villus,dcruvolo
-huidbiopt,Skin/Subcutaneous Tissue,dcruvolo
-navelstrengbloed,Umbilical Cord Blood,dcruvolo
-ongekweekt foetaal weefsel,Human Fetal Tissue,dcruvolo
-ongekweekt weefsel,Tissue Sample,dcruvolo
-ongekweekte amnion cellen,Amnion,dcruvolo
-ongekweekte chorion villi,Chorionic Villus,dcruvolo
-overig,Tissue Sample,dcruvolo
-paraffine normaal,,dcruvolo
-paraffine tumor,,dcruvolo
-plasmacellen,Serum or Plasma,dcruvolo
-speeksel,Saliva Sample,dcruvolo
-suspensie,Mixed Adherent Cells in Suspension,dcruvolo
-toegestuurd dna foetaal,,dcruvolo
+sourceValue,newValue
+dna,Blood DNA
+dna reeds aanwezig,DNA Library
+"ebv, dna",Blood DNA
+abortusmateriaal,Human Fetal Tissue
+beenmerg,Bone Marrow Sample
+bloed,Whole Blood
+fibroblastenkweek,Bone Marrow-Derived Fibroblasts
+foetus,Human Fetal Tissue
+gekweekt foetaal weefsel,Human Fetal Tissue
+gekweekt weefsel,Tissue Sample
+gekweekte amnion cellen,Amnion
+gekweekte chorion villi,Chorionic Villus
+huidbiopt,Skin/Subcutaneous Tissue
+navelstreng ongekweekt,Umbilical Cord Blood
+navelstrengbloed,Umbilical Cord Blood
+ongekweekt foetaal weefsel,Human Fetal Tissue
+ongekweekt weefsel,Tissue Sample
+ongekweekte amnion cellen,Amnion
+ongekweekte chorion villi,Chorionic Villus
+overig,Tissue Sample
+paraffine normaal,
+paraffine tumor,
+paraffineblokjes,
+plasmacellen,Serum or Plasma
+speeksel,Saliva Sample
+suspensie,Mixed Adherent Cells in Suspension
+toegestuurd dna foetaal,
