@@ -469,6 +469,7 @@ cineasmappings = dt.Frame(
 raw_samples = dt.Frame(
     db.get(
         entity = 'cosasportal_samples',
+        attributes = 'DNA_NUMMER,UMCG_NUMMER,ADVVRG_ID,MATERIAAL',
         batch_size = 10000
     )
 )
@@ -568,9 +569,11 @@ sequencerInstrumentMappings = cosastools.to_keypairs(
     valueAttr = 'newValueSecondary'
 )
 
-genomeBuildMappings = db.get(
-    entity='cosasportal_mappings_genomebuild',
-    attributes='sourceValue,newValue,newValueSecondary'
+genomeBuildMappings = cosastools.to_keypairs(
+    data = db.get(
+        entity='cosasportal_mappings_genomebuild',
+        attributes='sourceValue,newValue,newValueSecondary'
+    )
 )
 
 cineasHpoMappings = cosastools.to_keypairs(
@@ -643,9 +646,8 @@ belongsWithFamilyMembers = dt.Frame()
 for entity in familyData:
     if not (entity[0] is None):
         ids = [d.strip() for d in entity[0].split(',') if not (d is None) or (d != '')]
-        for el in ids:
-            
-            # value must not be blank, not equal to subject ID, and isn't a known ID
+        for el in ids:            
+            # value must: not be blank, not equal to subjectID, and does not exist
             if (
                 (el != '') and
                 (el != entity[2]) and
@@ -1027,27 +1029,25 @@ samples = raw_samples[:,
     {
         'sampleID': f.DNA_NUMMER,
         'belongsToSubject': f.UMCG_NUMMER,
-        'belongsToRequest': f.ADVVRG_ID,
-        # 'dateOfRequest': f.ADVIESVRAAG_DATUM,  # not really needed
-        'biospecimenType': f.MATERIAAL,
-        # 'alternativeIdentifiers': f.TEST_CODE  # not really needed
+        # 'belongsToRequest': f.ADVVRG_ID,
+        'biospecimenType': f.MATERIAAL
     }
 ]
 
 
 # collapse request by sampleID into a comma seperated string
-status_msg('Formatting request identifiers...')
-samples['belongsToRequest'] = dt.Frame([
-    ','.join(
-        list(
-            set(
-                samples[
-                    f.sampleID == d[0], 'belongsToRequest'
-                ].to_list()[0]
-            )
-        )
-    ) for d in samples[:, (f.sampleID, f.belongsToRequest)].to_tuples()
-])
+# status_msg('Formatting request identifiers...')
+# samples['belongsToRequest'] = dt.Frame([
+#     ','.join(
+#         list(
+#             set(
+#                 samples[
+#                     f.sampleID == d[0], 'belongsToRequest'
+#                 ].to_list()[0]
+#             )
+#         )
+#     ) for d in samples[:, (f.sampleID, f.belongsToRequest)].to_tuples()
+# ])
 
 # pull unique rows only since codes were duplicated
 samples = samples[
@@ -1067,17 +1067,20 @@ samples['biospecimenType'] = dt.Frame([
 ])
 
 # add ID check
-samples['flag'] = dt.Frame([
-    d in cosasSubjectIdList for d in samples['belongsToSubject'].to_list()[0]
+status_msg('Validating subject IDs in the samples dataset...')
+samples['idExists'] = dt.Frame([
+    d in cosasSubjectIdList
+    for d in samples['belongsToSubject'].to_list()[0]
 ])
 
-if samples[f.flag == False,:].nrows > 0:
-    raise ValueError(
+if samples[f.idExists == False,:].nrows > 0:
+    status_msg(
         'Error in clinical mappings: Excepted 0 flagged cases, but found {}.'
         .format(samples[f.flag == False,:].nrows)
     )
-else:
-    del samples['flag']
+    samples = samples[f.idExists, :]
+
+del samples['idExists']
 
 status_msg('Processing {} new records for the samples table'.format(samples.nrows))
 
@@ -1271,12 +1274,18 @@ status_msg('Filtering sample+lab data for known samples...')
 
 registeredSamples = samples['sampleID'].to_list()[0]
 
-sampleSequencingData['flag'] = dt.Frame([
+sampleSequencingData['keep'] = dt.Frame([
     d in registeredSamples
     for d in sampleSequencingData['belongsToSample'].to_list()[0]
 ])
 
-sampleSequencingData = sampleSequencingData[f.flag == True, :]
+if sampleSequencingData[f.keep==False,:].nrows > 0:
+    status_msg(
+        "Warning: Found {} cases that aren't listed in 'cosasportal_samples'"
+        .format(sampleSequencingData[f.keep==False,:].nrows)
+    )
+
+sampleSequencingData = sampleSequencingData[f.keep, :]
 
 
 # ~ 4c.iii ~
@@ -1334,29 +1343,34 @@ sampleSequencingData['sequencingPlatform'] = dt.Frame([
     cosastools.recodeValue(
         mappings = sequencerPlatformMappings,
         value = d,
-        attr = 'platform',
         label = 'sequencingPlatform'
-    ) if bool(d) else None
+    )
     for d in sampleSequencingData['sequencingPlatform'].to_list()[0]
 ])
 
 # recode `sequencingInstrumentModel`
 status_msg('Recoding sequencing instrument model...')
 sampleSequencingData['sequencingInstrumentModel'] = dt.Frame([
-    cosastools.recodeValues(
-        data = sequencerInstrumentMappings,
+    cosastools.recodeValue(
+        mappings = sequencerInstrumentMappings,
         value = d,
-        type = 'model'
+        label = 'sequencing instrument'
     ) for d in sampleSequencingData['sequencingInstrumentModel'].to_list()[0]
 ])
 
 # recode `genomeBuild`
 sampleSequencingData['referenceGenomeUsed'] = dt.Frame([
-    cosastools.recodeGenomeBuild(d) for d in sampleSequencingData['referenceGenomeUsed'].to_list()[0]
+    cosastools.recodeValue(
+        mappings = genomeBuildMappings,
+        value = d,
+        label = 'genome build'
+    )
+    for d in sampleSequencingData['referenceGenomeUsed'].to_list()[0]
 ])
 
 #//////////////////////////////////////
 
+# ~ 4d ~
 # Create SamplePreparation and Sequencing tables
 #
 # Using the main dataset `sampleSequencingData` that we have created above,
@@ -1407,16 +1421,23 @@ status_msg('Processed {} new records for the sequencing table'.format(sequencing
 
 #//////////////////////////////////////////////////////////////////////////////
 
-# Prep data for import
+status_msg('')
+
+
+# ~ 5 ~
+# Prep data and import
 #
 # All primary data tables will be written to csv, and then import via a
 # secondary script. Before writing to files, we will need to set a few
 # of the row-level metadata attributes.
 # 
-status_msg('')
+status_msg('Preparing to import data...')
+
+# ~ 5a ~
+# Set row-level metadata attributes
+# For all objects, add date of processing and author (i.e., cosasbot)
 status_msg('Updating row-level metadata...')
 
-# set record-level metadata
 subjects[:, dt.update(
     dateRecordCreated=cosastools.timestamp(),
     recordCreatedBy=createdBy
@@ -1442,8 +1463,39 @@ sequencing[:, dt.update(
     recordCreatedBy=createdBy
 )]
 
+
+# ~ 5b ~
+# Import data
+# For objects that have intra-table references, you must run a two step import.
+# The first import the reference columns, and then import everything else.
 # convert to list of dictionaries (make sure all nan's are recoded!), and save
-status_msg('Importing data to...')
+status_msg('Importing data...')
+
+
+# Import data into `umdm_subjects`
+# Run in two steps: 1) subject identifiers, 2) the rest of the data
+umdm_subjects = subjects.to_pandas().replace({np.nan: None}).to_dict('records')
+umdm_subject_ids = subjects[
+    :,(f.subjectID, f.dateRecordCreated,f.recordCreatedBy)
+].to_pandas().replace({np.nan: None}).to_dict('records')
+
+db.importData(entity='umdm_subjects', data=umdm_subject_ids)
+db.updateRows(entity='umdm_subjects', data=umdm_subjects)
+
+
+# Import data into 'umdm_samples'
+umdm_samples = samples.to_pandas().replace({np.nan: None}).to_dict('records')
+db.importData(entity='umdm_samples', data = umdm_samples)
+
+
+# Import data into umdm_samplePreparation
+umdm_samplePreparation = samplePreparation.to_pandas().replace({np.nan: None}).to_dict('records')
+db.importData(entity = 'umdm_samplePreparation', data=umdm_samplePreparation)
+
+
+# Import data into 'umdm_sequencing'
+umdm_sequencing = sequencing.to_pandas().replace({np.nan: None}).to_dict('records')
+db.importData(entity='umdm_sequencing', data=umdm_sequencing)
 
 # db.delete(entity='cosasportal_patients')
 # db.delete(entity='cosasportal_diagnoses')
@@ -1456,16 +1508,3 @@ status_msg('Importing data to...')
 # db.delete(entity='cosasportal_labs_ngs_darwin')
 # db.delete(entity='umdm_subjects')
 # db.delete(entity='umdm_samples')
-
-# Prepare import for umdm_subjects
-umdm_subjects = subjects.to_pandas().replace({np.nan: None}).to_dict('records')
-umdm_subject_ids = subjects[
-    :,(f.subjectID, f.dateRecordCreated,f.recordCreatedBy)
-].to_pandas().replace({np.nan: None}).to_dict('records')
-
-db.importData(entity='umdm_subjects', data=umdm_subject_ids)
-db.updateData(entity='umdm_subjects', data=umdm_subjects)
-
-# prepare import for umdm_samples
-umdm_samples = samples.to_pandas().replace({np.nan: None}).to_dict('records')
-db.importData(entity='umdm_samples', data = umdm_samples)
