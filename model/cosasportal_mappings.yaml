@@ -44,40 +44,6 @@ entities:
       - name: newValueSecondary
         description: A secondary value that corresponds to the source value
         
-      - name: recordMetadata
-        dataType: compound
-        description: metadata is data that provides information about data.
-        tags: http://semanticscience.org/resource/SIO_001330
-
-      - name: comments
-        dataType: text
-        description: A written explanation, observation or criticism added to textual material.
-        partOfAttribute: recordMetadata
-        tags: http://purl.obolibrary.org/obo/NCIT_C25393
-      
-      - name: dateRecordCreated
-        dataType: datetime
-        description: The date on which the activity or entity is created.
-        partOfAttribute: recordMetadata
-        tags: http://purl.obolibrary.org/obo/NCIT_C164483
-
-      - name: recordCreatedBy
-        nillable: false
-        description: Indicates the person or authoritative body who brought the item into existence.
-        partOfAttribute: recordMetadata
-        tags: http://purl.obolibrary.org/obo/NCIT_C42628
-
-      - name: dateRecordUpdated
-        dataType: datetime
-        description: The date (and time) on which report was updated after it had been submitted.
-        partOfAttribute: recordMetadata
-        tags: http://purl.obolibrary.org/obo/NCIT_C93629
-
-      - name: wasUpdatedBy
-        description: An entity which is updated by another entity or an agent.
-        partOfAttribute: recordMetadata
-        tags: https://w3id.org/reproduceme#wasUpdatedBy
-        
   # @name cosasportal_mappings_genderidentity
   - name: genderidentity
     description: mappings for genderidentity
