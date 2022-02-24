@@ -2,7 +2,7 @@
 #' FILE: mappings_cosas.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-10-05
-#' MODIFIED: 2022-02-22
+#' MODIFIED: 2022-02-24
 #' PURPOSE: primary mapping script for COSAS
 #' STATUS: stable
 #' PACKAGES: **see below**
@@ -40,8 +40,9 @@ def status_msg(*args):
     @param *args one or more strings containing a message to print
     @return string
     """
-    t = datetime.utcnow().strftime('%H:%M:%S.%f')[:-3]
-    print('\033[94m[' + t + '] \033[0m' + ' '.join(map(str, args)))
+    print('[{}] {}'.format(
+        datetime.utcnow().strftime('%H:%M:%S.%f')[:-3], ' '.join(map(str, args))
+    ))
 
 
 class Molgenis(molgenis.Session):
@@ -287,14 +288,11 @@ class cosastools:
         
         @return comma separated string containing one or more value
         """
-        values = list(
-            filter(
-                None,
-                clinical[f.belongsToSubject == id, column].to_list()[0]
-            )
-        )
-        unique = list(set(values))
-        return ','.join(unique)
+        results = clinical[f.belongsToSubject == id, column]
+        if results.nrows == 0:
+            return None
+        return ','.join(list(set(filter(None, results.to_list()[0]))))
+        
     
     @staticmethod
     def collapseTestCodes(subjectID, sampleID, requestID, column):
@@ -362,7 +360,8 @@ class cosastools:
     def recodeValue(
         mappings: None,
         value: str=None,
-        label:str=None
+        label:str=None,
+        warn=True
     ):
         """Recode value
         Recode values using new mappings. It is recommended to define all
@@ -373,16 +372,18 @@ class cosastools:
             corresponds to a new value
         @param value string containing a value to recode
         @param label string that indicates the mapping type for error messages
+        @param warn If True (default), a message will be displayed when a value
+            cannot be mapped
         
         @return string or NoneType
         """
         try:
             return mappings[value]
         except KeyError:
-            if bool(value):
+            if bool(value) and warn:
                 status_msg('Error in {} recoding: "{}" not found'.format(label, value))
             return None
-        except AttributeError:
+        except AttributeError and warn:
             if bool(value):
                 status_msg('Error in {} recoding: "{}" not found'.format(label, value))
             return None
@@ -419,7 +420,10 @@ class cosastools:
         
         @return a dictionary
         """
-        return [{d[keyAttr]: d.get(valueAttr)} for d in data]
+        maps = {}
+        for d in data:
+            maps[d[keyAttr]] = d.get(valueAttr)
+        return maps
 
 
 #//////////////////////////////////////////////////////////////////////////////
@@ -567,6 +571,15 @@ sequencerInstrumentMappings = cosastools.to_keypairs(
 genomeBuildMappings = db.get(
     entity='cosasportal_mappings_genomebuild',
     attributes='sourceValue,newValue,newValueSecondary'
+)
+
+cineasHpoMappings = cosastools.to_keypairs(
+    data = db.get(
+        entity='cosasportal_cineasmappings',
+        attributes='code,hpo'
+    ),
+    keyAttr = 'code',
+    valueAttr = 'hpo'
 )
 
 
@@ -765,15 +778,12 @@ subjects['belongsWithFamilyMembers'] = dt.Frame([
 
 # map gender values to `umdm_lookups_genderIdentity`
 status_msg('Recoding gender identity...')
-subjects['genderIdentity'] = dt.rbind([
-    dt.Frame([
-        cosastools.recodeValue(
+subjects['genderIdentity'] = dt.Frame([
+    cosastools.recodeValue(
         mappings = genderMappings,
         value = d,
-        attr = 'newValue',
         label = 'genderIdentity'
-        )
-    ])
+    )
     for d in subjects['genderIdentity'].to_list()[0]
 ])
 
@@ -851,14 +861,14 @@ status_msg('==== Building COSAS Clinical ====')
 status_msg('Mapping historical phenotypic data...')
 
 # Process data from external provider
-confirmedHpoDF = raw_benchcnv[:, (f.subjectID, f.observedPhenotype)]
+confirmedHpoDF = raw_benchcnv[:, {'clinicalID':f.subjectID, 'observedPhenotype': f.observedPhenotype}]
 confirmedHpoDF['keep'] = dt.Frame([
     d in cosasSubjectIdList
-    for d in confirmedHpoDF['subjectID'].to_list()[0]
+    for d in confirmedHpoDF['clinicalID'].to_list()[0]
 ])
 
 confirmedHpoDF = confirmedHpoDF[f.keep == True, :]
-confirmedHpoDF.key = 'subjectID'
+confirmedHpoDF.key = 'clinicalID'
 del confirmedHpoDF['keep']
 
 
@@ -882,7 +892,7 @@ del confirmedHpoDF['keep']
 
 status_msg('Processing new clinical data...')
 
-# # restructure dataset: rowbind all diagnoses and certainty ratings
+# restructure dataset: rowbind all diagnoses and certainty ratings
 clinical = dt.rbind(
     raw_clinical[:,{
         'clinicalID': f.UMCG_NUMBER,
@@ -898,89 +908,101 @@ clinical = dt.rbind(
     }]
 )[f.code != '-', :]
 
-# status_msg('Transforming variables...')
 
-# # extract CINEAS code for string
+# extract CINEAS code for string
+status_msg('Formatting CINEAS codes and mapping to HPO...')
+
 clinical['code'] = dt.Frame([
     d.split(':')[0] if d else None
     for d in clinical['code'].to_list()[0]
 ])
 
 # map cineas codes to HPO
-# clinical['hpo'] = dt.Frame([
-x = dt.rbind([dt.Frame([
-    cosastools.mapCineasToHpo(
-            value = d,
-            refData = cineasmappings
-        )
-    ])
+clinical['hpo'] = dt.Frame([
+    cosastools.recodeValue(
+        mappings = cineasHpoMappings,
+        value = d,
+        label = 'Cineas-HPO',
+        warn = False
+    )
     for d in clinical['code'].to_list()[0]
 ])
 
-# # format certainty
-# clinical['certainty'] = dt.Frame([
-#     d.lower().replace(' ', '-') if (d != '-') and (d) else None for d in clinical['certainty'].to_list()[0]
-# ])
 
-# # create `provisionalPhenotype`: uncertain, missing, or certain
-# clinical['provisionalPhenotype'] = dt.Frame([
-#     d[0] if d[1] in [
-#         'zeker',
-#         'niet-zeker',
-#         'onzeker',
-#         None
-#     ] and (d[0]) else None for d in clinical[
-#         :, (f.hpo, f.certainty)
-#     ].to_tuples()
-# ])
+# format certainty rating
+# Certainty is used to determine which code is a provisional or an unobserved
+# phenotype code. Confirmed phenotype is only available in the
+# Cartagenia export. 
+status_msg('Formating certainty ratings and triaging HPO codes...')
+clinical['certainty'] = dt.Frame([
+    d.lower().replace(' ', '-') if (d != '-') and (d) else None
+    for d in clinical['certainty'].to_list()[0]
+])
 
-# # create `excludedPhenotype`: zeker-niet
-# clinical['unobservedPhenotype'] = dt.Frame([
-#     d[0] if d[1] in ['zeker-niet'] else None for d in clinical[
-#         :, (f.hpo, f.certainty)
-#     ].to_tuples()
-# ])
+# create `provisionalPhenotype`: uncertain, missing, or certain
+provisionalCertaintyRatings = ['zeker','niet-zeker','onzeker',None]
+clinical['provisionalPhenotype'] = dt.Frame([
+    d[0] if (d[1] in provisionalCertaintyRatings) and (d[0]) else None
+    for d in clinical[:, (f.hpo, f.certainty)].to_tuples()
+])
 
+# create `excludedPhenotype`: zeker-niet
+clinical['unobservedPhenotype'] = dt.Frame([
+    d[0] if d[1] in ['zeker-niet'] else None
+    for d in clinical[:, (f.hpo, f.certainty)].to_tuples()
+])
+
+
+# Collapse all phenotypic codes by subject
+# Now that all codes have been identified and mapped to HPO, we can prepare
+# the dataset. The shape of the clinical dataset is: one row per subject
+# and all HPO codes collapsed into the correct phenotype column. Since we
+# aren't capturing phenotype by date (it isn't necessary for COSAS), all codes
+# need to be collapsed into a single string. The following function filters
+# the dataset for by subject, pulls all HPO codes, and collapses the values
+# into a string.
+status_msg('Collapsing provisional- and unobserved HPO columns...')   
+
+# collapse all provisionalPhenotype codes by ID
+clinical['provisionalPhenotype'] = dt.Frame([
+    cosastools.collapseHpoCodes(id = d, column = 'provisionalPhenotype')
+    for d in clinical['belongsToSubject'].to_list()[0]
+])
+
+# collapse all excludedPhenotype codes by ID
+clinical['unobservedPhenotype'] = dt.Frame([
+    cosastools.collapseHpoCodes(id = d, column = 'unobservedPhenotype')
+    for d in clinical['belongsToSubject'].to_list()[0]
+])
+
+
+del clinical[:, ['certainty','code','hpo']]
+
+# pull unique rows only since codes were duplicated
+status_msg('Selecting distinct rows only and merging confirmed HPO data...')
+
+clinical = clinical[:, first(f[1:]), dt.by(f.clinicalID)]
+clinical.key = 'clinicalID'
+clinical = clinical[:, :, dt.join(confirmedHpoDF)][:, :, dt.sort(as_type(f.clinicalID, int))]
+
+# Check IDs
+# Make sure all identifiers in the clinical dataset exist in COSAS
+clinical['idExists'] = dt.Frame([
+    d in cosasSubjectIdList
+    for d in clinical['belongsToSubject'].to_list()[0]
+])
+
+if clinical[f.idExists == False,:].nrows > 0:
+    status_msg(
+        'Error in clinical mappings: Excepted 0 flagged cases, but found {}.'
+        .format(clinical[f.idExists == False,:].nrows)
+    )
+    clinical = clinical[f.idExists, :]
+
+del clinical['idExists']
     
-# # collapse all provisionalPhenotype codes by ID
-# clinical['provisionalPhenotype'] = dt.Frame([
-#     cosastools.collapseHpoCodes(
-#         id = d,
-#         column = f.provisionalPhenotype
-#     ) for d in clinical['belongsToSubject'].to_list()[0]
-# ])
-
-# # collapse all excludedPhenotype codes by ID
-# clinical['unobservedPhenotype'] = dt.Frame([
-#     cosastools.collapseHpoCodes(
-#         id = d,
-#         column = f.unobservedPhenotype
-#     ) for d in clinical['belongsToSubject'].to_list()[0]
-# ])
-
-# # drop cols
-# del clinical[:, ['certainty','code','hpo']]
-
-# # pull unique rows only since codes were duplicated
-# clinical = clinical[:, first(f[1:]), dt.by(f.clinicalID)]
-# clinical.key = 'clinicalID'
-# clinical = clinical[:, :, dt.join(confirmedHpoDF)][:, :, dt.sort(as_type(f.clinicalID, int))]
-
-# # add ID check
-# clinical['flag'] = dt.Frame([
-#     d in cosasSubjectIdList for d in clinical['belongsToSubject'].to_list()[0]
-# ])
-
-# if clinical[f.flag == False,:].nrows > 0:
-#     raise ValueError(
-#         'Error in clinical mappings: Excepted 0 flagged cases, but found {}.'
-#         .format(clinical[f.flag == False,:].nrows)
-#     )
-# else:
-#     del clinical['flag']
-    
-# status_msg('Processing {} new records for the clinical table'.format(clinical.nrows))
-# del confirmedHpoDF
+status_msg('Processing {} new records for the clinical table'.format(clinical.nrows))
+del confirmedHpoDF
 
 #//////////////////////////////////////////////////////////////////////////////
 
@@ -1310,7 +1332,7 @@ sampleSequencingData['reasonForSequencing'] = dt.Frame([
 status_msg('Recoding sequencingPlatform...')
 sampleSequencingData['sequencingPlatform'] = dt.Frame([
     cosastools.recodeValue(
-        mappings = sequencingInfoMappings,
+        mappings = sequencerPlatformMappings,
         value = d,
         attr = 'platform',
         label = 'sequencingPlatform'
@@ -1321,7 +1343,8 @@ sampleSequencingData['sequencingPlatform'] = dt.Frame([
 # recode `sequencingInstrumentModel`
 status_msg('Recoding sequencing instrument model...')
 sampleSequencingData['sequencingInstrumentModel'] = dt.Frame([
-    cosastools.recode_sequencingInfo(
+    cosastools.recodeValues(
+        data = sequencerInstrumentMappings,
         value = d,
         type = 'model'
     ) for d in sampleSequencingData['sequencingInstrumentModel'].to_list()[0]
