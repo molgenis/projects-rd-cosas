@@ -2,7 +2,7 @@
 #' FILE: mappings_cosasrefs.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-10-07
-#' MODIFIED: 2022-02-24
+#' MODIFIED: 2022-02-25
 #' PURPOSE: build the laboratoryProcedures lookup table
 #' STATUS: stable
 #' PACKAGES: datatable
@@ -16,12 +16,13 @@ from datatable import dt, f, first
 from dotenv import load_dotenv
 from os import environ
 import pandas as pd
+import numpy as np
 
 load_dotenv()
 host = environ['MOLGENIS_HOST_ACC']
 token = environ['MOLGENIS_TOKEN_ACC']
 
-db = molgenis(url=host, token=token)
+db = molgenis.Session(url=host, token=token)
 
 #//////////////////////////////////////
 
@@ -67,12 +68,30 @@ codesNgsDarwin = dt.Frame(
     )
 )
 
-# process objects
+# remove _href column
 del codesSamples['_href']
 del codesArrayAdlas['_href']
 del codesArrayDarwin['_href']
 del codesNgsAdlas['_href']
 del codesNgsDarwin['_href']
+
+# import genetliclines emx
+glines = dt.Frame(
+    pd.read_excel(
+        '_data/genticlines_EMX.xlsx',
+        sheet_name = 'geneticlines_ADLAStest'
+    ).replace({np.nan: None}).to_dict('records')
+)[:, {
+    'TEST_CODE': f.test_code,
+    'TEST_OMS': f.test_description
+}]
+
+# import activeTestCodes dataset
+activeTestCodes = dt.Frame(
+    pd.read_excel('_data/testcodes_ngs_array.xlsx', sheet_name = 'Actieve Testcodes')
+)[
+    :, {'TEST_CODE': f.Testcode, 'TEST_OMS': f.Panel}
+][:, first(f[:]), dt.by('TEST_CODE')]
 
 
 # combine codes
@@ -82,6 +101,8 @@ codes = dt.rbind(
     codesNgsAdlas[:, first(f[:]), dt.by('TEST_CODE')],
     dt.unique(codesArrayDarwin[:, {'TEST_CODE': f.TestId}]),
     dt.unique(codesNgsDarwin[:, {'TEST_CODE': f.TestId}]),
+    glines,
+    activeTestCodes,
     force=True
 )[
     # reduce data to unique records only
@@ -91,86 +112,34 @@ codes = dt.rbind(
     :, {'code': f.TEST_CODE, 'description': f.TEST_OMS}
 ]
 
+# merge gene lists
+file = pd.ExcelFile('_data/testcodes_ngs_array.xlsx')
+sheetnames = [d for d in file.sheet_names if d in codes['code'].to_list()[0]]
 
-# load datasets
-# glines = dt.Frame(
-#     pd.read_excel(
-#         '_raw/geneticlines2021-03-10_15_52_37.366.xlsx',
-#         sheet_name = 'geneticlines_ADLAStest'
-#     ).to_dict('records')
-# )[:, {
-#     'code': f.TEST_CODE,
-#     'description': f.label,
-#     'category': f.panel,
-#     'subcategory': f.labelPanel
-# }]
+genes = dt.Frame()
+for sheet in sheetnames:
+    print('Processing sheet: ', sheet)
+    genes = dt.rbind(
+        genes,
+        dt.Frame()[:, {
+            'code': sheet,
+            'geneList': ','.join(
+                sorted(
+                    list(
+                        pd.read_excel(
+                            '_data/testcodes_ngs_array.xlsx',
+                            sheet_name = sheet,
+                            header = None,
+                            index_col = False,
+                            dtype = str
+                        )[0]
+                    )
+                )
+            )
+        }]
+    )
 
-# # recode panel (remove: nan)
-# glines['category'] = dt.Frame([
-#     d if str(d) != 'nan' else None for d in glines['category'].to_list()[0]
-# ])
-
-# set key for merge
-# glines.key = 'code'
-
-# # Bind columns of interest from selected datasets
-# testCodes = dt.rbind(
-#     # load samples data
-#     dt.Frame(pd.read_excel('_raw/cosasportal_samples.xlsx'))[
-#         :, {'code': f.TEST_CODE, 'description': f.TEST_OMS}
-#     ],
-#     # array data
-#     dt.Frame(pd.read_excel('_raw/cosasportal_array_adlas.xlsx'))[
-#         :, {'code': f.TEST_CODE, 'description': f.TEST_OMS}
-#     ],
-#     # ngs data
-#     dt.Frame(pd.read_excel('_raw/cosasportal_ngs_adlas.xlsx'))[
-#         :, {'code': f.TEST_CODE, 'description': f.TEST_OMS}
-#     ]
-# )[
-#     # sort dataset  by code
-#     :, :, dt.sort(f.code)
-# ][
-#     # grab distinct rows by code
-#     :, first(f[1:]), dt.by(f.code)
-# ]
-
-# # join geneticlines lookup table
-# testCodes = testCodes[:, :, dt.join(glines)]
-
-
-# merge data genelists by testcode
-# file = pd.ExcelFile('_raw/testcodes_ngs_array.xlsx')
-# sheetnames = list(filter(lambda x: x in testCodes['code'].to_list()[0], file.sheet_names))
-# genes = dt.Frame()
-# for sheet in sheetnames:
-#     print('Processing sheet: ', sheet)
-#     genes = dt.rbind(
-#         genes,
-#         dt.Frame()[:, {
-#             'code': sheet,
-#             'geneList': ','.join(
-#                 sorted(
-#                     list(
-#                         pd.read_excel(
-#                             '_raw/testcodes_ngs_array.xlsx',
-#                             sheet_name = sheet,
-#                             header = None,
-#                             index_col = False,
-#                             dtype = str
-#                         )[0]
-#                     )
-#                 )
-#             )
-#         }]
-#     )
-
-# # merge gene list and write to file
-# genes.key = 'code'
-# testCodes = testCodes[
-#     :, :, dt.join(genes)
-# ][
-#     :, (f.code, f.description, f.category, f.subcategory, f.geneList)
-# ]
-
-# testCodes.to_csv('emx/lookups/cosasrefs_laboratoryProcedures.csv')
+# merge gene list and write to file
+genes.key = 'code'
+codes = codes[:, :, dt.join(genes)]
+codes.to_csv('dist/cosasrefs_laboratoryProcedures.csv',quoting="all")
