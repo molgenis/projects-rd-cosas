@@ -14,6 +14,7 @@
 import molgenis.client as molgenis
 from datatable import dt, f, first
 from dotenv import load_dotenv
+from datetime import datetime
 from os import environ
 import pandas as pd
 import numpy as np
@@ -22,12 +23,25 @@ load_dotenv()
 host = environ['MOLGENIS_HOST_ACC']
 token = environ['MOLGENIS_TOKEN_ACC']
 
+def status_msg(*args):
+    """Status Message
+    Print a log-style message, e.g., "[16:50:12.245] Hello world!"
+
+    @param *args one or more strings containing a message to print
+    @return string
+    """
+    print('[{}] {}'.format(
+        datetime.utcnow().strftime('%H:%M:%S.%f')[:-3], ' '.join(map(str, args))
+    ))
+
+
 db = molgenis.Session(url=host, token=token)
 
 #//////////////////////////////////////
 
 # ~ 1 ~
 # Pull data from the portal and combine
+status_msg('Pulling data from the portal....')
 
 codesSamples = dt.Frame(
     db.get(
@@ -76,6 +90,7 @@ del codesNgsAdlas['_href']
 del codesNgsDarwin['_href']
 
 # import genetliclines emx
+status_msg('Loading EMX from other projects....')
 glines = dt.Frame(
     pd.read_excel(
         '_data/genticlines_EMX.xlsx',
@@ -87,6 +102,7 @@ glines = dt.Frame(
 }]
 
 # import activeTestCodes dataset
+status_msg('Loading active test codes list....')
 activeTestCodes = dt.Frame(
     pd.read_excel('_data/testcodes_ngs_array.xlsx', sheet_name = 'Actieve Testcodes')
 )[
@@ -95,6 +111,7 @@ activeTestCodes = dt.Frame(
 
 
 # combine codes
+status_msg('Preparing main code dataset....')
 codes = dt.rbind(
     codesSamples[:, first(f[:]), dt.by('TEST_CODE')],
     codesArrayAdlas[:, first(f[:]), dt.by('TEST_CODE')],
@@ -113,12 +130,13 @@ codes = dt.rbind(
 ]
 
 # merge gene lists
+status_msg('Preparing gene lists....')
 file = pd.ExcelFile('_data/testcodes_ngs_array.xlsx')
 sheetnames = [d for d in file.sheet_names if d in codes['code'].to_list()[0]]
 
 genes = dt.Frame()
 for sheet in sheetnames:
-    print('Processing sheet: ', sheet)
+    status_msg('Processing sheet: {}'.format(sheet))
     genes = dt.rbind(
         genes,
         dt.Frame()[:, {
@@ -140,6 +158,7 @@ for sheet in sheetnames:
     )
 
 # merge gene list and write to file
+status_msg('Join gene data with codes and saving....')
 genes.key = 'code'
 codes = codes[:, :, dt.join(genes)]
 codes.to_csv('dist/cosasrefs_laboratoryProcedures.csv',quoting="all")
