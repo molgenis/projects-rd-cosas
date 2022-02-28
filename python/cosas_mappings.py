@@ -2,13 +2,12 @@
 #' FILE: mappings_cosas.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-10-05
-#' MODIFIED: 2022-02-24
+#' MODIFIED: 2022-02-28
 #' PURPOSE: primary mapping script for COSAS
 #' STATUS: stable
 #' PACKAGES: **see below**
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
-
 
 from datatable import dt, f, as_type, first
 import molgenis.client as molgenis
@@ -29,8 +28,112 @@ token = environ['MOLGENIS_TOKEN_ACC']
 # host = 'http://localhost/api/'
 # token = '${molgenisToken}'
 
-starttime = datetime.now()
 createdBy = 'cosasbot'
+
+# custom logs
+class cosasLogger:
+    def __init__(self, logname: str='cosas-daily-import', silent=False):
+        """Cosas Logger
+        Keep records of all processing steps and summarize the daily imports
+        
+        @param logname : name of the log
+        @param silent : If True, all messages will be disabled
+        """
+        self.silent = silent
+        self.logname = logname
+        self.log = {}
+        self.currentStep = {}
+        self.processingStepLogs = []
+        
+    def _printMsg(self, message):
+        if not self.silent:
+            print(message)
+       
+    def __stoptime__(self, name):
+        timeFormat = '%Y-%m-%d %H:%M:%S'
+        log = self.__getattribute__(name)
+        log['endTime'] = datetime.now()
+        log['elapsedTime'] = (log['endTime'] - log['startTime']).total_seconds()
+        log['endTime'] = log['endTime'].strftime(timeFormat)
+        log['startTime'] = log['startTime'].strftime(timeFormat)
+        self.__setattr__(name, log)
+       
+    def start(self):
+        """Start Log
+        Start logs for an entire job, script, action, etc.
+        """
+        self.log = {
+            'identifier': datetime.now().strftime('%Y-%m-%d'),
+            'name': self.logname,
+            'databaseName': 'cosas',
+            'startTime': datetime.now(),
+            'endTime': None,
+            'elapsedTime': None,
+            'steps': [],
+            'comments': None
+        }
+        
+        self._printMsg(
+            '{}: log started at {}'
+            .format(self.logname, self.log['startTime'].strftime('%H:%M:%S'))
+        )
+       
+    def stop(self):
+        """Stop Log
+        End logging at the end of job, script, etc.
+        """
+        self.__stoptime__(name='log')
+        self.log['steps'] = ','.join(self.log['steps'])
+        self._printMsg(
+            'Logging stopped (elapsed time: {} seconds)'
+            .format(self.log['elapsedTime'])
+        )
+
+    def startProcessingStepLog(self, type: str=None, name: str=None, tablename: str=None):
+        """Start a new log for a processing step
+        Create a new logging object for an individual step such as transforming
+        data or importing data.
+        
+        @param type : data handling type (see lookups)
+        @param name : name of the current step (e.g., 'import-data', 'save-data')
+        @param tablename : database table the current step relates to
+        """
+        stepID = len(self.processingStepLogs) + 1
+        self.currentStep = {
+            'identifier': f"{datetime.now().strftime('%Y-%m-%d')}_{stepID}",
+            'name': name,
+            'step': type,
+            'databaseTable': tablename,
+            'startTime': datetime.now(),
+            'endTime': None,
+            'elapsedTime': None,
+            'status': None,
+            'comment': None
+        }
+        
+        self._printMsg(
+            '{}: new log created for {} at {}'
+            .format(
+                self.logname, name, self.currentStep['startTime'].strftime('%H:%M:%S')
+            )
+        )
+       
+    def stopProcessingStepLog(self):
+        """Stop a log for a processing step
+        Stop logging for the current step
+        
+        @return confirmation message
+        """
+        self.__stoptime__(name='currentStep')
+        self.log['steps'].append(self.currentStep['identifier'])
+        self.processingStepLogs.append(self.currentStep)
+        
+        self._printMsg(
+            '{}: step {} finished (elapsed time: {} seconds)'
+            .format(
+                self.logname, self.currentStep['name'], self.currentStep['elapsedTime']
+            )
+        )
 
 # generic status message with timestamp
 def status_msg(*args):
@@ -45,6 +148,7 @@ def status_msg(*args):
     ))
 
 
+# extend molgenis.Session class
 class Molgenis(molgenis.Session):
     def __init__(self, *args, **kwargs):
         super(Molgenis, self).__init__(*args, **kwargs)
@@ -108,7 +212,7 @@ class Molgenis(molgenis.Session):
         url = '{}v2/{}'.format(self._apiUrl, entity)
         # single push
         if len(data) < 1000:
-            self._POST(url=url, entity=entity, data=data, label=str(entity))
+            self._POST(url=url, data=data, label=str(entity))
             
         # batch push
         if len(data) >= 1000:    
@@ -163,7 +267,7 @@ class Molgenis(molgenis.Session):
         
         # single push
         if len(data) < 1000:
-            self._PUT(url=url, data=data, label=str(entity))
+            self._PUT(url=url, data=data, label=f'{entity}/{attr}')
         
         # batch push
         if len(data) >= 1000:
@@ -177,72 +281,6 @@ class Molgenis(molgenis.Session):
                         str(d)
                     )
                 )
-
-# class cosasLogger:
-#     def __init__(self):
-#         """Cosas Logger
-#         Keep records of all processing steps and summarize the daily imports
-#        
-#         cosaslogs = CosasLogger()
-#        
-#         """
-#         self.currentStep = None
-#         self.log = self.startLog()
-#         self.processingStepLogs = []
-#        
-#     def __stoptime__(self, name):
-#         timeFormat = '%Y-%m-%d %H:%M:%S'
-#         self[str(name)]['endTime'] = datetime.now().strftime(timeFormat)
-#         self[str(name)]['elapsedTime'] = (
-#             self[str(name)]['endTime'] - self[str(name)]['startTime']
-#         ).total_seconds()
-#         self[str(name)]['endTime'] = self[str(name)]['endTime'].strftime(timeFormat)
-#         self[str(name)]['startTime'] = self[str(name)]['startTime'].strftime(timeFormat)
-#        
-#
-#     def startProcessingStepLog(self, tablename):
-#         self.currentStep = {
-#             'identifier': '{}_{}'.format(
-#                 datetime.now().strftime('%Y-%m-%d'),
-#                 len(self.processingStepLogs) + 1
-#             ),
-#             'name': None,
-#             'step': None,
-#             'databaseTable': tablename,
-#             'startTime': datetime.now(),
-#             'endTime': None,
-#             'elapsedTime': None,
-#             'status': None,
-#             'comment': None
-#         }
-#        
-#     def stopProcessingStepLog(self):
-#         self.__stoptime__(name='currentStep')
-#         self.log['steps'].append(self.currentStep['identifier'])
-#         self.processingStepLogs.append(self.currentStep)
-#         self.currentStep = None
-#        
-#        
-#     def startLog(self):
-#         self.log = {
-#             'identifier': datetime.now().strftime('%Y-%m-%d'),
-#             'name': 'cosas-daily-import',
-#             'databaseName': 'cosas',
-#             'startTime': datetime.now(),
-#             'endTime': None,
-#             'elapsedTime': None,
-#             'steps': [],
-#             'comments': None
-#         }
-#        
-#     def stopLog(self):
-#         self.__stoptime__(name='log')
-#         self.log['endTime'] = datetime.now()
-#         self.log['elapsedTime'] = (self.log['endTime'] - self.log['startTime']).total_seconds()
-#         self.log['steps'] = ','.join(self.log['steps'])
-#
-# cosaslogs = cosasLogger()
-# cosaslogs.startLog()
 
 
 # create class of methods used in the mappings
@@ -383,7 +421,7 @@ class cosastools:
             if bool(value) and warn:
                 status_msg('Error in {} recoding: "{}" not found'.format(label, value))
             return None
-        except AttributeError and warn:
+        except AttributeError:
             if bool(value):
                 status_msg('Error in {} recoding: "{}" not found'.format(label, value))
             return None
@@ -428,9 +466,18 @@ class cosastools:
 
 #//////////////////////////////////////////////////////////////////////////////
 
+# init logs
+cosaslogs = cosasLogger()
+cosaslogs.start()
+
 # ~ 0 ~
 # Fetch data
 status_msg('Loading the latest data exports...')
+cosaslogs.startProcessingStepLog(
+    type='Data retrieval',
+    name='fetch-portal-data',
+    tablename="cosasportal"
+)
 
 # connect to db (token is generated on run)
 db = Molgenis(url=host, token=token)
@@ -515,9 +562,7 @@ del raw_array_darwin['_href']
 del raw_ngs_adlas['_href']
 del raw_ngs_darwin['_href']
 
-
-# create a list of unique subject identifiers
-cosasSubjectIdList = list(set(raw_subjects[:, 'UMCG_NUMBER'].to_list()[0]))
+cosaslogs.stopProcessingStepLog()
 
 # ~ 0a ~
 # Pull COSAS Portal Mappings
@@ -528,6 +573,11 @@ cosasSubjectIdList = list(set(raw_subjects[:, 'UMCG_NUMBER'].to_list()[0]))
 # have a single mapping, but this may change in the future.
 #
 status_msg('Pulling umcg to UMDM mapping tables...')
+cosaslogs.startProcessingStepLog(
+    type='Data retrieval',
+    name='fetch-mapping-datasets',
+    tablename='cosasportal'
+)
 
 genderMappings = cosastools.to_keypairs(
     data = db.get(
@@ -585,6 +635,8 @@ cineasHpoMappings = cosastools.to_keypairs(
     valueAttr = 'hpo'
 )
 
+cosaslogs.stopProcessingStepLog()
+
 
 #//////////////////////////////////////////////////////////////////////////////
 
@@ -602,6 +654,11 @@ status_msg('')
 # NOTE: Row level metadata will be applied at the end of the script.
 #
 status_msg('==== Building COSAS Patients ====')
+cosaslogs.startProcessingStepLog(
+    type='Data Processing',
+    name='form-base-table-structure',
+    tablename='subjects'
+)
 
 # pull variables of interest from portal table
 subjects = raw_subjects[
@@ -610,7 +667,7 @@ subjects = raw_subjects[
         'belongsToFamily': f.FAMILIENUMMER,
         'belongsToMother': f.UMCG_MOEDER,
         'belongsToFather': f.UMCG_VADER,
-        'belongsWithFamilyMembers': f.FAMILIELEDEN,
+        # 'belongsWithFamilyMembers': f.FAMILIELEDEN,
         'dateOfBirth': f.GEBOORTEDATUM,
         'yearOfBirth': None,
         'dateOfDeath': f.OVERLIJDENSDATUM,
@@ -622,7 +679,14 @@ subjects = raw_subjects[
     }
 ][:, :, dt.sort(as_type(f.subjectID, int))]
 
+# create a list of unique subject identifiers --- very important!!!!
+cosasSubjectIdList = list(set(subjects[:, 'subjectID'].to_list()[0]))
 
+cosaslogs.currentStep['comment'] = f'Initial subjects count: {subjects.nrows}'
+cosaslogs.stopProcessingStepLog()
+
+#
+# NOTE: WILL NOT DO STEP "1a" FOR NOW.
 #
 # ~ 1a ~
 # Identify new linked family members
@@ -636,47 +700,47 @@ subjects = raw_subjects[
 # The following code identifies missing IDs, creates a new COSAS record, and
 # appends them to the main subject dataset.
 #
-status_msg('Identifying unregistered family member identifiers...')
+# status_msg('Identifying unregistered family member identifiers...')
 
-maternalIDs = subjects['belongsToMother'].to_list()[0]
-paternalIDs = subjects['belongsToFather'].to_list()[0]
-familyData = subjects[:, (f.belongsWithFamilyMembers, f.belongsToFamily,f.subjectID)].to_tuples()
+# maternalIDs = subjects['belongsToMother'].to_list()[0]
+# paternalIDs = subjects['belongsToFather'].to_list()[0]
+# familyData = subjects[:, (f.belongsWithFamilyMembers, f.belongsToFamily,f.subjectID)].to_tuples()
 
-belongsWithFamilyMembers = dt.Frame()
-for entity in familyData:
-    if not (entity[0] is None):
-        ids = [d.strip() for d in entity[0].split(',') if not (d is None) or (d != '')]
-        for el in ids:            
-            # value must: not be blank, not equal to subjectID, and does not exist
-            if (
-                (el != '') and
-                (el != entity[2]) and
-                (el not in cosasSubjectIdList) and
-                (el not in maternalIDs) and
-                (el not in paternalIDs)
-            ):
-                belongsWithFamilyMembers.rbind(
-                    dt.Frame([
-                        {
-                            'subjectID': el,
-                            'belongsToFamily': entity[1],
-                            'belongsWithFamilyMembers': entity[0],
-                            'comments': 'manually registered in COSAS'
-                        }
-                    ])
-                )
+# belongsWithFamilyMembers = dt.Frame()
+# for entity in familyData:
+#     if not (entity[0] is None):
+#         ids = [d.strip() for d in entity[0].split(',') if not (d is None) or (d != '')]
+#         for el in ids:            
+#             # value must: not be blank, not equal to subjectID, and does not exist
+#             if (
+#                 (el != '') and
+#                 (el != entity[2]) and
+#                 (el not in cosasSubjectIdList) and
+#                 (el not in maternalIDs) and
+#                 (el not in paternalIDs)
+#             ):
+#                 belongsWithFamilyMembers.rbind(
+#                     dt.Frame([
+#                         {
+#                             'subjectID': el,
+#                             'belongsToFamily': entity[1],
+#                             'belongsWithFamilyMembers': entity[0],
+#                             'comments': 'manually registered in COSAS'
+#                         }
+#                     ])
+#                 )
                 
-del entity, ids, el
+# del entity, ids, el
 
 # select unique subjects only
-belongsWithFamilyMembers = belongsWithFamilyMembers[
-    :, first(f[:]), dt.by('subjectID')
-][:, :, dt.sort(as_type(f.subjectID, int))]
+# belongsWithFamilyMembers = belongsWithFamilyMembers[
+#     :, first(f[:]), dt.by('subjectID')
+# ][:, :, dt.sort(as_type(f.subjectID, int))]
 
-status_msg(
-    "Identified {} family members that aren't in the export..."
-    .format(belongsWithFamilyMembers.nrows)
-)
+# status_msg(
+#     "Identified {} family members that aren't in the export..."
+#     .format(belongsWithFamilyMembers.nrows)
+# )
 
 
 # ~ 1b ~
@@ -687,6 +751,11 @@ status_msg(
 # values from COSAS, unknown identifiers will be registered as new subjects.
 #
 status_msg('Identifying new maternal identifiers...')
+cosaslogs.startProcessingStepLog(
+    type='Data Processing',
+    name='find-new-maternal-ids',
+    tablename='subjects'
+)
 
 belongsToMother = dt.Frame([
     {
@@ -703,6 +772,10 @@ status_msg(
     .format(belongsToMother.nrows)
 )
 
+# log number of cases found
+cosaslogs.currentStep['comment'] = f'New maternalIDs found: {belongsToMother.nrows}'
+cosaslogs.stopProcessingStepLog()
+
 
 # ~ 1c ~
 # Identify new paternal identifiers
@@ -711,6 +784,12 @@ status_msg(
 # exists in the `subjectID` column.
 #
 status_msg('Identifying new paternal identifiers...')
+cosaslogs.startProcessingStepLog(
+    type='Data Processing',
+    name='find-new-paternal-ids',
+    tablename='subjects'
+)
+
 belongsToFather = dt.Frame([
     {
         'subjectID': d[0],
@@ -726,6 +805,11 @@ status_msg(
     .format(belongsToFather.nrows)
 )
 
+# log number of cases found
+cosaslogs.currentStep['comment'] = f'New paternalIDs found: {belongsToFather.nrows}'
+cosaslogs.stopProcessingStepLog()
+
+
 #
 # ~ 1d ~
 # Combine all new subject identifiers
@@ -735,20 +819,29 @@ status_msg(
 # registered in COSAS. The following code will also bind new family members so
 # that we can bind the data in one step.
 #
-
 status_msg('Creating new subjects to register dataset...')
+cosaslogs.startProcessingStepLog(
+    type='Aggregation',
+    name='merging-new-parental-ids',
+    tablename='subjects'
+)
+
 subjectsToRegister = dt.rbind(
     belongsToMother,
     belongsToFather,
-    belongsWithFamilyMembers,
+    # belongsWithFamilyMembers,
     force = True
 )
 
 status_msg('Registering {} new subjects'.format(subjectsToRegister.nrows))
-del belongsWithFamilyMembers
+cosaslogs.currentStep['comment'] = f'appending {subjectsToRegister.nrows} rows'
+cosaslogs.stopProcessingStepLog()
+
+# del belongsWithFamilyMembers
 del belongsToMother
 del belongsToFather
-
+# del maternalIDs, paternalIDs
+# del familyData
 
 #
 # ~ 1e ~
@@ -764,11 +857,21 @@ del belongsToFather
 # ID.
 #
 status_msg('Binding subjects with new subjects...')
+cosaslogs.startProcessingStepLog(
+    type='Data Processing',
+    name='combine-and-transform-subjects',
+    tablename='subjects'
+)
 
 subjects = dt.rbind(subjects, subjectsToRegister, force = True)[
     :, first(f[:]), dt.by(f.subjectID)
 ][:, :, dt.sort(as_type(f.subjectID, int))]
 
+cosaslogs.currentStep['comment'] = f'total subjects: {subjects.nrows}'
+cosaslogs.stopProcessingStepLog()
+
+
+cosaslogs.startProcessingStepLog(name='transform-subjects-attributes', tablename='subjects')
 
 # Format `belongsWithFamilyMembers`: trimws, remove subject ID
 status_msg('Formating linked Family IDs...')
@@ -846,9 +949,9 @@ subjects['dateOfDeath'] = dt.Frame([
 
 # track records and cleanup
 status_msg('Mapped {} new records'.format(subjects.nrows))
-del maternalIDs, paternalIDs
+cosaslogs.stopProcessingStepLog()
+
 del subjectsToRegister
-del familyData
 
 #//////////////////////////////////////////////////////////////////////////////
 
@@ -861,6 +964,7 @@ status_msg('==== Building COSAS Clinical ====')
 # This dataset provides historical records on observedPhenotypes for older cases.
 # This allows us to populate the COSAS Clinical table with extra information. 
 status_msg('Mapping historical phenotypic data...')
+cosaslogs.startProcessingStepLog(name='prep-cartagenia-data',tablename='clinical')
 
 # Process data from external provider
 confirmedHpoDF = raw_benchcnv[:, {'clinicalID':f.subjectID, 'observedPhenotype': f.observedPhenotype}]
@@ -873,6 +977,8 @@ confirmedHpoDF = confirmedHpoDF[f.keep == True, :]
 confirmedHpoDF.key = 'clinicalID'
 del confirmedHpoDF['keep']
 
+cosaslogs.currentStep['comment'] = f'prepped phenotypic data for: {confirmedHpoDF.nrows} subjects'
+cosaslogs.stopProcessingStepLog()
 
 # ~ 2a ~
 # Build COSAS Clinical Table
@@ -892,9 +998,10 @@ del confirmedHpoDF['keep']
 # be used instead.
 #
 
-status_msg('Processing new clinical data...')
-
 # restructure dataset: rowbind all diagnoses and certainty ratings
+status_msg('Processing new clinical data...')
+cosaslogs.startProcessingStepLog(name='create-clinical-data',tablename='clinical')
+
 clinical = dt.rbind(
     raw_clinical[:,{
         'clinicalID': f.UMCG_NUMBER,
@@ -910,9 +1017,12 @@ clinical = dt.rbind(
     }]
 )[f.code != '-', :]
 
+cosaslogs.currentStep['comment'] = f'Initial structure has {clinical.nrows} rows'
+cosaslogs.stopProcessingStepLog()
 
 # extract CINEAS code for string
 status_msg('Formatting CINEAS codes and mapping to HPO...')
+cosaslogs.startProcessingStepLog(name='transform-variables',tablename='clinical')
 
 clinical['code'] = dt.Frame([
     d.split(':')[0] if d else None
@@ -954,6 +1064,8 @@ clinical['unobservedPhenotype'] = dt.Frame([
     for d in clinical[:, (f.hpo, f.certainty)].to_tuples()
 ])
 
+cosaslogs.stopProcessingStepLog()
+
 
 # Collapse all phenotypic codes by subject
 # Now that all codes have been identified and mapped to HPO, we can prepare
@@ -964,6 +1076,7 @@ clinical['unobservedPhenotype'] = dt.Frame([
 # the dataset for by subject, pulls all HPO codes, and collapses the values
 # into a string.
 status_msg('Collapsing provisional- and unobserved HPO columns...')   
+cosaslogs.startProcessingStepLog(name='reshape-clinical-data', tablename='clinical')
 
 # collapse all provisionalPhenotype codes by ID
 clinical['provisionalPhenotype'] = dt.Frame([
@@ -987,6 +1100,8 @@ clinical = clinical[:, first(f[1:]), dt.by(f.clinicalID)]
 clinical.key = 'clinicalID'
 clinical = clinical[:, :, dt.join(confirmedHpoDF)][:, :, dt.sort(as_type(f.clinicalID, int))]
 
+cosaslogs.currentStep['comment']=f'Clinical Dataset has: {clinical.nrows} rows'
+
 # Check IDs
 # Make sure all identifiers in the clinical dataset exist in COSAS
 clinical['idExists'] = dt.Frame([
@@ -999,11 +1114,21 @@ if clinical[f.idExists == False,:].nrows > 0:
         'Error in clinical mappings: Excepted 0 flagged cases, but found {}.'
         .format(clinical[f.idExists == False,:].nrows)
     )
+    cosaslogs.currentStep['comment'] = '{}; Count of unknown subjects removed {}'.format(
+        cosaslogs.currentStep['comment'],
+        clinical[f.idExists == False,:].nrows
+    ) 
     clinical = clinical[f.idExists, :]
 
 del clinical['idExists']
     
+
 status_msg('Processing {} new records for the clinical table'.format(clinical.nrows))
+cosaslogs.currentStep['comment'] = '{}; Final row count: {}'.format(
+    cosaslogs.currentStep['comment'], clinical.nrows
+)
+cosaslogs.stopProcessingStepLog()
+
 del confirmedHpoDF
 
 #//////////////////////////////////////////////////////////////////////////////
@@ -1021,8 +1146,9 @@ status_msg('==== Building COSAS Samples ====')
 # exports (ADLAS and Darwin). Row level metadata will be added before import
 # into Molgenis.
 #
-#
+
 status_msg('Processing new sample data...')
+cosaslogs.startProcessingStepLog(name='form-base-structure',tablename='samples')
 
 # Pull attributes of interest
 samples = raw_samples[:,
@@ -1056,7 +1182,13 @@ samples = samples[
     :, :, dt.sort(as_type(f.belongsToSubject, int))
 ]
 
+cosaslogs.currentStep['comment'] = f'Samples row count: {samples.nrows}'
+cosaslogs.stopProcessingStepLog()
+
+
 # recode biospecimenType
+cosaslogs.startProcessingStepLog(name='transform-attributes',tablename='samples')
+
 samples['biospecimenType'] = dt.Frame([
     cosastools.recodeValue(
         mappings = biospecimenTypeMappings,
@@ -1065,6 +1197,7 @@ samples['biospecimenType'] = dt.Frame([
     ) if d else None
     for d in samples['biospecimenType'].to_list()[0]
 ])
+
 
 # add ID check
 status_msg('Validating subject IDs in the samples dataset...')
@@ -1078,11 +1211,20 @@ if samples[f.idExists == False,:].nrows > 0:
         'Error in clinical mappings: Excepted 0 flagged cases, but found {}.'
         .format(samples[f.flag == False,:].nrows)
     )
+    cosaslogs.currentStep['comment'] = '{}; Count of unknown subjects removed {}'.format(
+        cosaslogs.currentStep['comment'], samples[f.idExists == False,:].nrows
+    ) 
     samples = samples[f.idExists, :]
 
 del samples['idExists']
 
 status_msg('Processing {} new records for the samples table'.format(samples.nrows))
+cosaslogs.currentStep['comment'] = '{}; Final row count: {}'.format(
+    cosaslogs.currentStep['comment'], samples.nrows
+)
+
+cosaslogs.stopProcessingStepLog()
+
 
 #//////////////////////////////////////////////////////////////////////////////
 
@@ -1107,6 +1249,8 @@ status_msg('==== Building COSAS SamplePreparation and Sequencing ====')
 # will further reduce the dataset by distinct rows only. This object will
 # be joined with the object defined in the next step.
 status_msg('Building Array dataset...')
+
+cosaslogs.startProcessingStepLog(name='build-array-dataset',tablename='samples-sampleprep-seq')
 
 # ~ 4a.i ~
 # Build array-aldas data
@@ -1171,6 +1315,8 @@ arrayData = array_adlas[:, :, dt.join(array_darwin)]
 
 del array_darwin, array_adlas
 
+cosaslogs.currentStep['comment'] = f'Row count for array data: {arrayData.nrows}'
+cosaslogs.stopProcessingStepLog()
 
 # ~ 4b ~
 # Build NGS Dataset
@@ -1180,6 +1326,8 @@ del array_darwin, array_adlas
 # The NGS and Adlas dataset will be merged to create the main dataset that
 # will be used create teh sampleprep and sequencing tables.
 status_msg('Building NGS dataset...')
+cosaslogs.startProcessingStepLog(name='build-ngs-dataset',tablename='samples-sampleprep-seq')
+
 
 # ~ 4b.i ~
 # Process ngs-aldas data
@@ -1238,6 +1386,10 @@ status_msg('Creating object "ngsData"')
 ngs_darwin.key = ['belongsToSubject', 'belongsToLabProcedure']
 ngsData = ngs_adlas[:, :, dt.join(ngs_darwin)]
 
+del ngs_darwin, ngs_darwin
+
+cosaslogs.currentStep['comment'] = f'Row count for array data: {ngsData.nrows}'
+cosaslogs.stopProcessingStepLog()
 
 # ~ 4c ~
 # Create main sample-labs dataset
@@ -1253,6 +1405,7 @@ ngsData = ngs_adlas[:, :, dt.join(ngs_darwin)]
 #       listed in the `samples` table.
 #
 status_msg('Merging array and ngs dataset to create sample+lab tables...')
+cosaslogs.startProcessingStepLog(name='create-sequencing-data',tablename='samples-sampleprep-seq')
 
 sampleSequencingData = dt.rbind(arrayData, ngsData, force=True)
 sampleSequencingData[
@@ -1261,6 +1414,12 @@ sampleSequencingData[
         belongsToSamplePreparation = f.sampleID
     )
 ]
+
+del arrayData, ngsData
+
+cosaslogs.currentStep['comment'] = 'Initial Row count: {}'.format(
+    sampleSequencingData.nrows
+)
 
 # ~ 4c.ii ~
 # Filter dataset for known samples
@@ -1284,9 +1443,19 @@ if sampleSequencingData[f.keep==False,:].nrows > 0:
         "Warning: Found {} cases that aren't listed in 'cosasportal_samples'"
         .format(sampleSequencingData[f.keep==False,:].nrows)
     )
+    cosaslogs.currentStep['comment'] = '{}; Number of rows removed {}'.format(
+        cosaslogs.currentStep['comment'],
+        sampleSequencingData[f.keep==False,:].nrows
+    )
 
 sampleSequencingData = sampleSequencingData[f.keep, :]
 
+cosaslogs.currentStep['comment'] = '{}; Final row count {}'.format(
+        cosaslogs.currentStep['comment'],
+        sampleSequencingData.nrows
+)
+cosaslogs.stopProcessingStepLog()
+    
 
 # ~ 4c.iii ~
 # Prepare data
@@ -1299,6 +1468,7 @@ sampleSequencingData = sampleSequencingData[f.keep, :]
 
 # create unique identifier: sampleID + request + belongsToLabProcedure
 status_msg('Setting unqiue identifiers (primary key)...')
+cosaslogs.startProcessingStepLog(name='transform-attributes',tablename='samples-sampleprep-seq')
 
 sampleSequencingData['belongsToSamplePreparation'] = dt.Frame([
     f'{d[0]}_{d[1]}_{d[2]}' for d in sampleSequencingData[
@@ -1368,6 +1538,8 @@ sampleSequencingData['referenceGenomeUsed'] = dt.Frame([
     for d in sampleSequencingData['referenceGenomeUsed'].to_list()[0]
 ])
 
+cosaslogs.stopProcessingStepLog()
+
 #//////////////////////////////////////
 
 # ~ 4d ~
@@ -1384,6 +1556,9 @@ sampleSequencingData['referenceGenomeUsed'] = dt.Frame([
 # mappings should be used. This will require further discussion.
 #
 status_msg('Pull attributes for the samplePreparation table...')
+cosaslogs.startProcessingStepLog(name='create-sampleprep-data',table='sample-preparation')
+
+# create: sampleprepation
 samplePreparation = sampleSequencingData[
     :, (
         f.sequencingID,
@@ -1400,8 +1575,13 @@ samplePreparation.names={'sequencingID': 'sampleID'}
 samplePreparation = samplePreparation[:, first(f[:]), dt.by(f.sampleID)]
 status_msg('Processed {} new records for the samplePreparation table'.format(samplePreparation.nrows))
 
+cosaslogs.currentStep['comment'] = f'Row count:{samplePreparation.nrows}'
+cosaslogs.stopProcessingStepLog()
  
+# create sequencing
 status_msg('Pulling attributes for the sequencing table...')
+cosaslogs.startProcessingStepLog(name='create-sequencing-data',tablename='sequencing')
+
 sequencing = sampleSequencingData[
     :, (
         f.sequencingID,
@@ -1418,6 +1598,7 @@ sequencing = sampleSequencingData[
 ]
 
 status_msg('Processed {} new records for the sequencing table'.format(sequencing.nrows))
+cosaslogs.currentStep['comment']=f'Row count: {sequencing.nrows}'
 
 #//////////////////////////////////////////////////////////////////////////////
 
@@ -1437,6 +1618,7 @@ status_msg('Preparing to import data...')
 # Set row-level metadata attributes
 # For all objects, add date of processing and author (i.e., cosasbot)
 status_msg('Updating row-level metadata...')
+cosaslogs.startProcessingStepLog(name='setting-row-metadata',tablename='all')
 
 subjects[:, dt.update(
     dateRecordCreated=cosastools.timestamp(),
@@ -1464,6 +1646,8 @@ sequencing[:, dt.update(
 )]
 
 
+cosaslogs.stopProcessingStepLog()
+
 # ~ 5b ~
 # Import data
 # For objects that have intra-table references, you must run a two step import.
@@ -1474,6 +1658,8 @@ status_msg('Importing data...')
 
 # Import data into `umdm_subjects`
 # Run in two steps: 1) subject identifiers, 2) the rest of the data
+cosaslogs.startProcessingStepLog(name='import-subjects',tablename='subjects')
+
 umdm_subjects = subjects.to_pandas().replace({np.nan: None}).to_dict('records')
 umdm_subject_ids = subjects[
     :,(f.subjectID, f.dateRecordCreated,f.recordCreatedBy)
@@ -1481,22 +1667,48 @@ umdm_subject_ids = subjects[
 
 db.importData(entity='umdm_subjects', data=umdm_subject_ids)
 db.updateRows(entity='umdm_subjects', data=umdm_subjects)
-
+cosaslogs.stopProcessingStepLog()
 
 # Import data into 'umdm_samples'
+cosaslogs.startProcessingStepLog(name='import-samples',tablename='samples')
+
 umdm_samples = samples.to_pandas().replace({np.nan: None}).to_dict('records')
 db.importData(entity='umdm_samples', data = umdm_samples)
 
+cosaslogs.stopProcessingStepLog()
+
 
 # Import data into umdm_samplePreparation
+cosaslogs.startProcessingStepLog(name='import-samplepreparation',tablename='samplepreparation')
+
 umdm_samplePreparation = samplePreparation.to_pandas().replace({np.nan: None}).to_dict('records')
 db.importData(entity = 'umdm_samplePreparation', data=umdm_samplePreparation)
 
+cosaslogs.stopProcessingStepLog()
 
 # Import data into 'umdm_sequencing'
+cosaslogs.startProcessingStepLog(name='import-sequencing', tablename='sequencing')
+
 umdm_sequencing = sequencing.to_pandas().replace({np.nan: None}).to_dict('records')
 db.importData(entity='umdm_sequencing', data=umdm_sequencing)
 
+cosaslogs.stopProcessingStepLog()
+
+# import logs
+cosaslogs.stop()
+
+# test = cosaslogs.processingStepLogs
+# for t in test:
+#     if isinstance(t['endTime'], datetime):
+#         t['endTime'] = t['endTime'].strftime('%Y-%m-%d %H:%M:%S')
+# cosaslogs.processingStepLogs = test
+
+db.importData(
+    entity='cosasreports_processingsteps',
+    data=cosaslogs.processingStepLogs
+)
+
+# clean up
 # db.delete(entity='cosasportal_patients')
 # db.delete(entity='cosasportal_diagnoses')
 # db.delete(entity='cosasportal_samples')
@@ -1506,5 +1718,7 @@ db.importData(entity='umdm_sequencing', data=umdm_sequencing)
 # db.delete(entity='cosasportal_labs_array_darwin')
 # db.delete(entity='cosasportal_labs_ngs_adlas')
 # db.delete(entity='cosasportal_labs_ngs_darwin')
-# db.delete(entity='umdm_subjects')
+# db.delete(entity='umdm_sequencing')
+# db.delete(entity='umdm_samplePreparation')
 # db.delete(entity='umdm_samples')
+# db.delete(entity='umdm_subjects')
