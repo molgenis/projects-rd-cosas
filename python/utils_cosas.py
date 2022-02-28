@@ -15,7 +15,7 @@ from datetime import datetime
 import requests
 import json
 
-
+# <!--- start: cosastools --->
 def status_msg(*args):
     """Status Message
     Print a log-style message, e.g., "[16:50:12.245] Hello world!"
@@ -27,7 +27,6 @@ def status_msg(*args):
     print('\033[94m[' + t + '] \033[0m' + ' '.join(map(str, args)))
 
 
-# extend molgenis.client
 class Molgenis(molgenis.Session):
     def __init__(self, *args, **kwargs):
         super(Molgenis, self).__init__(*args, **kwargs)
@@ -160,3 +159,5 @@ class Molgenis(molgenis.Session):
                         str(d)
                     )
                 )
+                
+# <!--- end: cosastools --->
