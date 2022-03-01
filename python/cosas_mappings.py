@@ -2,7 +2,7 @@
 #' FILE: mappings_cosas.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-10-05
-#' MODIFIED: 2022-02-28
+#' MODIFIED: 2022-03-01
 #' PURPOSE: primary mapping script for COSAS
 #' STATUS: stable
 #' PACKAGES: **see below**
@@ -44,25 +44,33 @@ def status_msg(*args):
 
 # custom logs
 class cosasLogger:
-    def __init__(self, logname: str='cosas-daily-import', silent=False):
+    def __init__(self, logname: str='cosas-daily-import', silent=False, printWithTime=True):
         """Cosas Logger
         Keep records of all processing steps and summarize the daily imports
         
         @param logname : name of the log
         @param silent : If True, all messages will be disabled
+        @param printWithTime: If True and silent is False, all messages will be
+            printed with timestamps
         """
         self.silent = silent
         self.logname = logname
         self.log = {}
         self.currentStep = {}
         self.processingStepLogs = []
+        self._printWithTime = printWithTime
         
     def _printMsg(self, message):
         if not self.silent:
+            if self._printWithTime:
+                message = '[{}] {}'.format(
+                    datetime.utcnow().strftime('%H:%M:%S.%f')[:-3],
+                    message
+                )
             print(message)
        
     def __stoptime__(self, name):
-        timeFormat = '%Y-%m-%d %H:%M:%S'
+        timeFormat = '%Y-%m-%dT%H:%M:%SZ'
         log = self.__getattribute__(name)
         log['endTime'] = datetime.now()
         log['elapsedTime'] = (log['endTime'] - log['startTime']).total_seconds()
@@ -652,8 +660,6 @@ cineasHpoMappings = cosastools.to_keypairs(
 
 cosaslogs.currentStep['status'] = 'Success'
 cosaslogs.stopProcessingStepLog()
-status_msg('')
-
 
 #//////////////////////////////////////////////////////////////////////////////
 
@@ -886,6 +892,7 @@ subjects = dt.rbind(subjects, subjectsToRegister, force = True)[
 
 # log nrows
 cosaslogs.currentStep['comment'] = f'total subjects: {subjects.nrows}'
+cosaslogs.currentStep['status'] = 'Success' if subjects.nrows else 'Error'
 cosaslogs.stopProcessingStepLog()
 
 
@@ -897,11 +904,11 @@ cosaslogs.startProcessingStepLog(
 )
 
 # Format `belongsWithFamilyMembers`: trimws, remove subject ID
-status_msg('Subjects: Formating linked Family IDs...')
-subjects['belongsWithFamilyMembers'] = dt.Frame([
-    cosastools.collapseFamilyIDs(d[0],d[1])
-    for d in subjects[:, (f.belongsWithFamilyMembers, f.subjectID)].to_tuples()
-])
+# status_msg('Subjects: Formating linked Family IDs...')
+# subjects['belongsWithFamilyMembers'] = dt.Frame([
+#     cosastools.collapseFamilyIDs(d[0],d[1])
+#     for d in subjects[:, (f.belongsWithFamilyMembers, f.subjectID)].to_tuples()
+# ])
 
 
 # map gender values to `umdm_lookups_genderIdentity`
@@ -976,7 +983,6 @@ cosaslogs.currentStep['status'] = 'Success' if subjects.nrows else 'Error'
 cosaslogs.stopProcessingStepLog()
 
 del subjectsToRegister
-status_msg('')
 
 #//////////////////////////////////////////////////////////////////////////////
 
@@ -1115,6 +1121,7 @@ clinical['unobservedPhenotype'] = dt.Frame([
     for d in clinical[:, (f.hpo, f.certainty)].to_tuples()
 ])
 
+cosaslogs.currentStep['status'] = 'Success'
 cosaslogs.stopProcessingStepLog()
 
 
@@ -1194,8 +1201,6 @@ cosaslogs.stopProcessingStepLog()
 del confirmedHpoDF
 
 #//////////////////////////////////////////////////////////////////////////////
-
-status_msg('')
 
 # ~ 3 ~
 # Build umdm_samples
@@ -1472,7 +1477,7 @@ cosaslogs.currentStep['comment'] = f'Row count for array data: {ngsData.nrows}'
 cosaslogs.currentStep['status'] = 'Success' if ngsData.nrows else 'Error'
 cosaslogs.stopProcessingStepLog()
 
-del ngs_darwin, ngs_darwin
+del ngs_darwin
 
 
 # ~ 4c ~
@@ -1660,7 +1665,7 @@ status_msg('Sample Preparation: Selecting relevant columns...')
 cosaslogs.startProcessingStepLog(
     type='Data Processing',
     name='create-sampleprep-data',
-    table='sample-preparation'
+    tablename='sample-preparation'
 )
 
 # create: sampleprepation
@@ -1767,6 +1772,7 @@ sequencing[:, dt.update(
 
 # update row counts in the log
 cosaslogs.log['subjects'] = subjects.nrows
+cosaslogs.log['clinical'] = clinical.nrows
 cosaslogs.log['samples'] = samples.nrows
 cosaslogs.log['samplePreparation'] = samplePreparation.nrows
 cosaslogs.log['sequencing'] = sequencing.nrows
@@ -1796,10 +1802,25 @@ umdm_subject_ids = cosastools.to_records(
 )
 
 # import subject identifiers first, and then update rows
+status_msg('Importing identifiers...')
 db.importData(entity='umdm_subjects', data=umdm_subject_ids)
+
+status_msg('Importing row data...')
 db.updateRows(entity='umdm_subjects', data=umdm_subjects)
 
 cosaslogs.stopProcessingStepLog()
+
+# ~ 5b.ii ~
+# Import data into 'umdm_clinical'
+# This table has an xref with umdm_subjects
+cosaslogs.startProcessingStepLog(
+    type='Import',
+    name='import-clinical',
+    tablename='clinical'
+)
+
+umdm_clinical = cosastools.to_records(clinical)
+db.importData(entity='umdm_clinical', data=umdm_clinical)
 
 # ~ 5b.ii ~
 # Import data into 'umdm_samples'
@@ -1851,18 +1872,15 @@ cosaslogs.stopProcessingStepLog()
 # ~ 5b.v ~
 # import logs
 cosaslogs.stop()
-
-db.importData(
-    type='Import',
-    entity='cosasreports_processingsteps',
-    data=cosaslogs.processingStepLogs
+status_msg(
+    'Mapping completed in {} minutes'
+    .format(round(cosaslogs.log['elapsedTime'] / 60,3))
 )
 
-db.importData(
-    type='Import',
-    entity='cosasreports_imports',
-    data=cosaslogs.log
-)
+status_msg('Importing logs...')
+db.importData(entity='cosasreports_processingsteps',data=cosaslogs.processingStepLogs)
+db.importData(entity='cosasreports_imports', data=[cosaslogs.log])
+
 
 # clean up
 # db.delete(entity='cosasportal_patients')
@@ -1877,4 +1895,8 @@ db.importData(
 # db.delete(entity='umdm_sequencing')
 # db.delete(entity='umdm_samplePreparation')
 # db.delete(entity='umdm_samples')
+# db.delete(entity='umdm_clinical')
 # db.delete(entity='umdm_subjects')
+# db.delete(entity='umdm_labProcedures')
+# db.delete(entity='cosasreports_imports')
+# db.delete(entity='cosasreports_processingsteps')
