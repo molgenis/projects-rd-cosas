@@ -14,8 +14,8 @@ name: cosasreports
 label: COSAS Reports
 description: Reports on COSAS jobs, imports, and processing
 tags: http://purl.obolibrary.org/obo/NCIT_C82964
-version: 1.0.0
-date: 2022-02-11
+version: 1.1.0
+date: 2022-03-01
 
 # set defaults
 defaults:
@@ -67,7 +67,7 @@ entities:
       - name: elapsedTime
         description: The interval between two reference points in time. (in seconds)
         tags: http://purl.obolibrary.org/obo/NCIT_C82572
-        datetime: decimal
+        dataType: decimal
         
       - name: numberOfRowsAdded
         description: Number of rows added to a database table
@@ -167,7 +167,7 @@ entities:
       - name: elapsedTime
         description: The interval between two reference points in time. (in milliseconds)
         tags: http://purl.obolibrary.org/obo/NCIT_C82572
-        datetime: decimal
+        dataType: decimal
       
       - name: status
         description: A condition or state at a particular time.
