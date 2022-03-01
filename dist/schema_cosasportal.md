@@ -245,12 +245,6 @@ attribute template for mapping tables
 | sourceValue&#8251; | - | Value as listed in the data export | string |
 | newValue | - | New value to assign | string |
 | newValueSecondary | - | A secondary value that corresponds to the source value | string |
-| recordMetadata | - | metadata is data that provides information about data. | compound |
-| comments | - | A written explanation, observation or criticism added to textual material. | text |
-| dateRecordCreated | - | The date on which the activity or entity is created. | datetime |
-| recordCreatedBy | - | Indicates the person or authoritative body who brought the item into existence. | string |
-| dateRecordUpdated | - | The date (and time) on which report was updated after it had been submitted. | datetime |
-| wasUpdatedBy | - | An entity which is updated by another entity or an agent. | string |
 
 Note: The symbol &#8251; denotes attributes that are primary keys
 
