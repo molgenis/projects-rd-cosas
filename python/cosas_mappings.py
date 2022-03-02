@@ -18,18 +18,17 @@ import json
 import pytz
 import re
 
+# uncomment when deployed
+# host = 'http://localhost/api/'
+# token = '${molgenisToken}'
+createdBy = 'cosasbot'
+
 # only for local dev
 from dotenv import load_dotenv
 from os import environ
 load_dotenv()
 host = environ['MOLGENIS_HOST_ACC']
 token = environ['MOLGENIS_TOKEN_ACC'] 
-
-# uncomment when deployed
-# host = 'http://localhost/api/'
-# token = '${molgenisToken}'
-createdBy = 'cosasbot'
-
 
 # generic status message with timestamp
 def status_msg(*args):
@@ -124,11 +123,12 @@ class cosasLogger:
         """
         stepID = len(self.processingStepLogs) + 1
         self.currentStep = {
-            'identifier': f"{self._now(strftime='%Y-%m-%d')}_{stepID}",
+            'identifier': int(f"{self._now(strftime='%Y%m%d')}{stepID}"),
+            'date': self._now(strftime='%Y-%m-%d'),
             'name': name,
             'step': type,
             'databaseTable': tablename,
-            'startTime': datetime.now(),
+            'startTime': self._now(),
             'endTime': None,
             'elapsedTime': None,
             'status': None,
@@ -539,7 +539,7 @@ cineasmappings = dt.Frame(
 raw_samples = dt.Frame(
     db.get(
         entity = 'cosasportal_samples',
-        attributes = 'DNA_NUMMER,UMCG_NUMMER,ADVVRG_ID,MATERIAAL',
+        attributes = 'DNA_NUMMER,UMCG_NUMMER,ADVVRG_ID,MATERIAAL,TEST_CODE,TEST_OMS',
         batch_size = 10000
     )
 )
@@ -574,6 +574,14 @@ raw_ngs_darwin = dt.Frame(
     )
 )
 
+# get labprocedures
+activeTestCodes = dt.Frame(
+    db.get(
+        entity='umdm_labProcedures',
+        attributes='code'
+    )
+)
+
 # delete _href column (not necessary, but helpful for local dev)
 del raw_subjects['_href']
 del raw_clinical['_href']
@@ -584,6 +592,7 @@ del raw_array_adlas['_href']
 del raw_array_darwin['_href']
 del raw_ngs_adlas['_href']
 del raw_ngs_darwin['_href']
+del activeTestCodes['_href']
 
 cosaslogs.currentStep['status'] = 'Success'
 cosaslogs.stopProcessingStepLog()
@@ -623,7 +632,6 @@ sampleReasonMappings = cosastools.to_keypairs(
         attributes='sourceValue,newValue,newValueSecondary'
     )
 )
-
 
 sequencerPlatformMappings = cosastools.to_keypairs(
     data = db.get(
@@ -1088,7 +1096,6 @@ clinical['hpo'] = dt.Frame([
     for d in clinical['code'].to_list()[0]
 ])
 
-cosaslogs.currentStep['status'] = 'Success' if clinical[f.hpo, :].nrows else 'Error'
 cosaslogs.stopProcessingStepLog()
 
 # ~ 2c ~
@@ -1122,7 +1129,6 @@ clinical['unobservedPhenotype'] = dt.Frame([
     for d in clinical[:, (f.hpo, f.certainty)].to_tuples()
 ])
 
-cosaslogs.currentStep['status'] = 'Success'
 cosaslogs.stopProcessingStepLog()
 
 # ~ 2d ~
@@ -1156,11 +1162,6 @@ clinical['unobservedPhenotype'] = dt.Frame([
 ])
 
 # update log
-if clinical[(f.provisonalPhenotype),:].nrows and clinical[(f.unobservedPhenotype),:].nrows:
-    cosaslogs.currentStep['status'] = 'Success'
-else: 
-    cosaslogs.currentStep['status'] = 'Error'
-
 del clinical[:, ['certainty','code','hpo']]
 cosaslogs.stopProcessingStepLog()
 
@@ -1293,18 +1294,14 @@ cosaslogs.startProcessingStepLog(
 )
 
 samples['idExists'] = dt.Frame([
-    d in cosasSubjectIdList for d in samples['belongsToSubject'].to_list()[0]
+    d in cosasSubjectIdList
+    for d in samples['belongsToSubject'].to_list()[0]
 ])
 
 if samples[f.idExists == False,:].nrows > 0:
-    status_msg(
-        'Samples: ERROR excepted 0 flagged cases, but found {}.'
-        .format(samples[f.flag == False,:].nrows)
-    )
-    cosaslogs.currentStep['comment'] = 'Rows removed {}'.format(
-        samples[f.idExists == False,:].nrows
-    ) 
     samples = samples[f.idExists, :]
+    status_msg('Samples: ERROR excepted 0 flagged cases, but found {}.'.format(samples.nrows))
+    cosaslogs.currentStep['comment'] = f'Rows removed {samples.nrows}'
 
 
 status_msg('Samples: processed {} new records'.format(samples.nrows))
@@ -1726,6 +1723,57 @@ cosaslogs.stopProcessingStepLog()
 #//////////////////////////////////////////////////////////////////////////////
 
 # ~ 5 ~
+# Process Active Test Codes
+#
+# Before importing the data, check to see if all testcodes are valid. Use the
+# raw datasets to identify codes that do not exist in the table. Rather than
+# the processed data as it will catch more cases that will need to be updated.
+# This attribute is called 'belongsToLabProcedure' which is a xref to the table
+# 'umdm_labProcedures' (fetched in step 0).
+
+status_msg('Validation: checking test codes')
+cosaslogs.startProcessingStepLog(
+    type = 'Filtering',
+    name = 'Identify new test codes',
+    tablename='lab-procedures'
+)
+
+# bind all testcodes
+testcodes = dt.rbind(
+    raw_samples[:, ['TEST_CODE','TEST_OMS']],
+    raw_array_adlas[:, ['TEST_CODE','TEST_OMS']],
+    raw_ngs_adlas[:, ['TEST_CODE','TEST_OMS']],
+    raw_array_darwin[:, {'TEST_CODE': f.TestId}],
+    raw_ngs_darwin[:, {'TEST_CODE': f.TestId}],
+    force = True
+)[:, first(f[:]), dt.by('TEST_CODE')]
+
+# test code: is it active?
+testcodes['codeExists'] = dt.Frame([
+    d in activeTestCodes['code'].to_list()[0]
+    for d in testcodes['TEST_CODE'].to_list()[0]
+])
+
+# select new cases
+if testcodes[f.codeExists == False, :].nrows:
+    newTestCodes = testcodes[
+        f.codeExists == False,
+        {'code': f.TEST_CODE, 'description': f.TEST_OMS}
+    ]
+    
+    status_msg('Validation: Identified {} new codes'.format(newTestCodes.nrows))
+    cosaslogs.currentStep['comment'] = 'Identified {} new codes'.format(newTestCodes.nrows)
+    
+    status_msg('Validation: Importing new testcodes')    
+    db.importData(entity='umdm_labProcedures', data=cosastools.to_records(newTestCodes))
+    del newTestCodes
+
+else:
+    status_msg('Validation: all testcodes passed')
+
+#//////////////////////////////////////////////////////////////////////////////
+
+# ~ 6 ~
 # Prep data and import
 #
 # All primary data tables will be written to csv, and then import via a
