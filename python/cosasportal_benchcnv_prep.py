@@ -2,10 +2,10 @@
 #' FILE: cosasportal_benchcnv_prep.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-02-21
-#' MODIFIED: 2022-02-22
+#' MODIFIED: 2022-03-02
 #' PURPOSE: prep bench cnv dataset before mapping
 #' STATUS: stable
-#' PACKAGES: molgenis.client, datetime, datatable, numpy, requests, json, re
+#' PACKAGES: **see below**
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
@@ -15,6 +15,7 @@ from datatable import dt, f
 import numpy as np
 import requests
 import json
+import pytz
 import re
 
 host='http://localhost/api/'
@@ -35,8 +36,9 @@ def status_msg(*args):
     @param *args one or more strings containing a message to print
     @return string
     """
-    t = datetime.utcnow().strftime('%H:%M:%S.%f')[:-3]
-    print('\033[94m[' + t + '] \033[0m' + ' '.join(map(str, args)))
+    message = ' '.join(map(str, args))
+    time = datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime('%H:%M:%S.%f')[:-3]
+    print(f'[{time}] {message}')
 
 
 class Molgenis(molgenis.Session):
@@ -188,7 +190,7 @@ benchcnvRaw = dt.Frame(
     )
 )
 
-del benchcnvRaw['_href']
+# del benchcnvRaw['_href']
 
 #//////////////////////////////////////
 
@@ -211,7 +213,6 @@ benchcnv = benchcnvRaw[:,
     }
 ]
 
-
 # ~ 1b ~ 
 # Identify cases to keep
 # All records must have a valid ID (i.e., start with a number) and must contain
@@ -226,17 +227,14 @@ benchcnv['keep'] = dt.Frame([
     for d in benchcnv[:, (f.primid, f.observedPhenotype)].to_tuples()
 ])
 
-# capture number of rows removed
-before = benchcnv.nrows
-benchcnv = benchcnv[f.keep, :]
-after = benchcnv.nrows
+status_msg('Rows before =', benchcnv.nrows)
 
+# remove rows
+benchcnv = benchcnv[f.keep, :][:, :, dt.sort(f.primid)]
+
+status_msg('Rows after =', benchcnv.nrows)
 del benchcnv['keep']
 
-status_msg(
-    'Removed {} rows out of {}. Current nrows = {}'
-    .format(str(before-after), str(before), str(after))
-)
 
 # ~ 1c ~
 # Format HPO codes
@@ -322,6 +320,3 @@ db.updateColumn(
     attr = 'processed',
     data = updateProcessed
 )
-
-# db.delete('cosasportal_benchcnv_prepped')
-# db.delete('cosasportal_benchcnv')
