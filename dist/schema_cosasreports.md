@@ -4,7 +4,7 @@
 
 | Name | Description | Parent |
 |:---- |:-----------|:------|
-| cosasreports | Reports on COSAS jobs, imports, and processing (v1.1.0, 2022-03-01) | - |
+| cosasreports | Reports on COSAS jobs, imports, and processing (v1.2.0, 2022-03-02) | - |
 | cosasreports_refs | Reference tables for COSAS Reports | cosasreports |
 
 ## Entities
@@ -48,11 +48,11 @@ Historical records of steps involved in the processing of daily cosas jobs
 
 | Name | Label | Description | Data Type |
 |:---- |:-----|:-----------|:---------|
-| identifier&#8251; | - | One or more characters used to identify, name, or characterize the nature, properties, or contents of a thing. | string |
+| identifier&#8251; | - | One or more characters used to identify, name, or characterize the nature, properties, or contents of a thing. | int |
+| date | - | The particular day, month and year an event has happened or will happen. | date |
 | name | - | The words or language units by which a thing is known. | string |
 | step | - | A specific stage of progression through a sequential process. | categorical |
 | databaseTable | - | A database table is a set of named columns with zero or more rows composed of cells that contain column values and is part of a database. | string |
-| date | - | The particular day, month and year an event has happened or will happen. | date |
 | startTime | - | The time at which something is to start or did start. | datetime |
 | endTime | - | The time when an event has ceased. | datetime |
 | elapsedTime | - | The interval between two reference points in time. (in milliseconds) | decimal |

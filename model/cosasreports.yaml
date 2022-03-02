@@ -14,8 +14,8 @@ name: cosasreports
 label: COSAS Reports
 description: Reports on COSAS jobs, imports, and processing
 tags: http://purl.obolibrary.org/obo/NCIT_C82964
-version: 1.1.0
-date: 2022-03-01
+version: 1.2.0
+date: 2022-03-02
 
 # set defaults
 defaults:
@@ -131,9 +131,14 @@ entities:
       - name: identifier
         description: One or more characters used to identify, name, or characterize the nature, properties, or contents of a thing.
         tags: http://purl.obolibrary.org/obo/NCIT_C25364
-        dataType: string
+        dataType: int
         idAttribute: true
         nillable: false
+      
+      - name: date
+        description: The particular day, month and year an event has happened or will happen.
+        tags: http://purl.obolibrary.org/obo/NCIT_C25164
+        dataType: date
         
       - name: name
         description: The words or language units by which a thing is known.
@@ -148,11 +153,6 @@ entities:
       - name: databaseTable
         description: A database table is a set of named columns with zero or more rows composed of cells that contain column values and is part of a database.
         tags: http://semanticscience.org/resource/SIO_000754
-        
-      - name: date
-        description: The particular day, month and year an event has happened or will happen.
-        tags: http://purl.obolibrary.org/obo/NCIT_C25164
-        dataType: date
         
       - name: startTime
         description: The time at which something is to start or did start.
