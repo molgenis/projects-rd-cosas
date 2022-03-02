@@ -36,7 +36,9 @@ tables = {
         'cosasportal_labs_array_adlas',
         'cosasportal_labs_array_darwin',
         'cosasportal_labs_ngs_adlas',
-        'cosasportal_labs_ngs_darwin'
+        'cosasportal_labs_ngs_darwin',
+        'cosasportal_benchcnv',
+        'cosasportal_benchcnv_prepped',
     ],
     'cosasreports': [
         'cosasreports_imports',
