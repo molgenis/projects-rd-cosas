@@ -19,16 +19,16 @@ import pytz
 import re
 
 # uncomment when deployed
-# host = 'http://localhost/api/'
-# token = '${molgenisToken}'
+host = 'http://localhost/api/'
+token = '${molgenisToken}'
 createdBy = 'cosasbot'
 
 # only for local dev
-from dotenv import load_dotenv
-from os import environ
-load_dotenv()
-host = environ['MOLGENIS_HOST_ACC']
-token = environ['MOLGENIS_TOKEN_ACC'] 
+# from dotenv import load_dotenv
+# from os import environ
+# load_dotenv()
+# host = environ['MOLGENIS_HOST_ACC']
+# token = environ['MOLGENIS_TOKEN_ACC'] 
 
 # generic status message with timestamp
 def status_msg(*args):
@@ -106,7 +106,7 @@ class cosasLogger:
         End logging at the end of job, script, etc.
         """
         self.__stoptime__(name='log')
-        self.log['steps'] = ','.join(self.log['steps'])
+        self.log['steps'] = ','.join(map(str, self.log['steps']))
         self._printMsg(
             'Logging stopped (elapsed time: {} seconds)'
             .format(self.log['elapsedTime'])
@@ -583,16 +583,16 @@ activeTestCodes = dt.Frame(
 )
 
 # delete _href column (not necessary, but helpful for local dev)
-del raw_subjects['_href']
-del raw_clinical['_href']
-del raw_benchcnv['_href']
-del cineasmappings['_href']
-del raw_samples['_href']
-del raw_array_adlas['_href']
-del raw_array_darwin['_href']
-del raw_ngs_adlas['_href']
-del raw_ngs_darwin['_href']
-del activeTestCodes['_href']
+# del raw_subjects['_href']
+# del raw_clinical['_href']
+# del raw_benchcnv['_href']
+# del cineasmappings['_href']
+# del raw_samples['_href']
+# del raw_array_adlas['_href']
+# del raw_array_darwin['_href']
+# del raw_ngs_adlas['_href']
+# del raw_ngs_darwin['_href']
+# del activeTestCodes['_href']
 
 cosaslogs.currentStep['status'] = 'Success'
 cosaslogs.stopProcessingStepLog()
@@ -697,7 +697,7 @@ subjects = raw_subjects[
         'belongsToFamily': f.FAMILIENUMMER,
         'belongsToMother': f.UMCG_MOEDER,
         'belongsToFather': f.UMCG_VADER,
-        # 'belongsWithFamilyMembers': f.FAMILIELEDEN,
+        'belongsWithFamilyMembers': f.FAMILIELEDEN,
         'dateOfBirth': f.GEBOORTEDATUM,
         'yearOfBirth': None,
         'dateOfDeath': f.OVERLIJDENSDATUM,
@@ -912,11 +912,11 @@ cosaslogs.startProcessingStepLog(
 )
 
 # Format `belongsWithFamilyMembers`: trimws, remove subject ID
-# status_msg('Subjects: Formating linked Family IDs...')
-# subjects['belongsWithFamilyMembers'] = dt.Frame([
-#     cosastools.collapseFamilyIDs(d[0],d[1])
-#     for d in subjects[:, (f.belongsWithFamilyMembers, f.subjectID)].to_tuples()
-# ])
+status_msg('Subjects: Formating linked Family IDs...')
+subjects['belongsWithFamilyMembers'] = dt.Frame([
+    cosastools.collapseFamilyIDs(d[0],d[1])
+    for d in subjects[:, (f.belongsWithFamilyMembers, f.subjectID)].to_tuples()
+])
 
 
 # map gender values to `umdm_lookups_genderIdentity`
@@ -1926,23 +1926,3 @@ status_msg(
 status_msg('Importing logs...')
 db.importData(entity='cosasreports_processingsteps',data=cosaslogs.processingStepLogs)
 db.importData(entity='cosasreports_imports', data=[cosaslogs.log])
-
-
-# clean up
-# db.delete(entity='cosasportal_patients')
-# db.delete(entity='cosasportal_diagnoses')
-# db.delete(entity='cosasportal_samples')
-# db.delete(entity='cosasportal_benchcnv')
-# db.delete(entity='cosasportal_benchcnv_prepped')
-# db.delete(entity='cosasportal_labs_array_adlas')
-# db.delete(entity='cosasportal_labs_array_darwin')
-# db.delete(entity='cosasportal_labs_ngs_adlas')
-# db.delete(entity='cosasportal_labs_ngs_darwin')
-# db.delete(entity='umdm_sequencing')
-# db.delete(entity='umdm_samplePreparation')
-# db.delete(entity='umdm_samples')
-# db.delete(entity='umdm_clinical')
-# db.delete(entity='umdm_subjects')
-# db.delete(entity='umdm_labProcedures')
-# db.delete(entity='cosasreports_imports')
-# db.delete(entity='cosasreports_processingsteps')
