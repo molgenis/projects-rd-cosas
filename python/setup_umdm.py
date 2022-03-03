@@ -1,5 +1,5 @@
 #'////////////////////////////////////////////////////////////////////////////
-#' FILE: setup.py
+#' FILE: setup_umdm.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-02-15
 #' MODIFIED: 2022-03-03
@@ -9,12 +9,17 @@
 #' COMMENTS: This script is designed to run in MOLGENIS
 #'////////////////////////////////////////////////////////////////////////////
 
+from urllib.parse import urlparse, urlunparse
 import molgenis.client as molgenis
 from datetime import datetime
 from os.path import basename
 import requests
 import pytz
 import re
+
+# If you would like to update the EMX, set `updateOnly` to True. Otherwise,
+# set the value to False (useful for intitial import).
+updateOnly=False
 
 # generic status message with timestamp
 def status_msg(*args):
@@ -71,6 +76,11 @@ class Molgenis(molgenis.Session):
             self._apiUrl = self._url
         if '_api_url' in props:
             self._apiUrl = self._api_url
+        
+        if self._apiUrl:
+            url = urlparse(self._apiUrl)
+            url = url._replace(path = '')
+            self._apiUrl = urlunparse(url)
     
     def importFile(self, filepath, action='ADD'):
         actions = ['ADD','ADD_UPDATE_EXISTING','UPDATE','ADD_IGNORE_EXISTING']
@@ -87,22 +97,16 @@ class Molgenis(molgenis.Session):
             )
             
             if (r.status_code // 100) != 2:
-                err = r.json().get('errors')[0].get('message')
-                status_msg(f'Failed to import file ({r.status_code}): {err}')
+                # err = r.json().get('errors')[0].get('message')
+                status_msg(f'Failed to import file ({r.status_code}): {r.content}')
             else:
                 status_msg(f'Imported {basename(filepath)}')
             r.raise_for_status()
         except requests.exceptions.HTTPError as e:
             raise SystemError(e)
 
-#//////////////////////////////////////////////////////////////////////////////
 
-# ~ 1 ~
-# Fetch Available Files
-# Based on the repositories defined above (see `reposToFetch`), list the files
-# that are available to download and combine into a single object. Select files
-# that match the expected file pattern.
-
+# list available files at molgenis/molgenis-cosas/dist/umdm-emx1/
 gh = github()
 availableFiles = gh.contents(
     owner = 'molgenis',
@@ -110,11 +114,11 @@ availableFiles = gh.contents(
     path = 'dist/umdm-emx1'
 )
 
-# collate list of files: path should contain all umdm files, but run a check
-# just to be sure
+# pull relevant files based on pattern and update status
+pattern = re.compile('^(umdm.xlsx)') if updateOnly else re.compile('^(umdm.xlsx|umdm_lookups_)')
 files = []
 for file in availableFiles:
-    if re.search(r'^(umdm.xlsx|umdm_lookups_)', file.get('name')):
+    if re.search(pattern, file.get('name')):
         files.append({
             'name': file['name'],
             'download_url': file['download_url']
