@@ -40,7 +40,7 @@ class github:
         try:
             r = requests.get(url, headers = headers)
             if (r.status_code // 100) != 2:
-                return f'Error: unable to import data({r.status_code}): {r.content}'
+                return f'Error: unable get data({r.status_code}): {r.content}'
                 
             r.raise_for_status()
             return r.json()
