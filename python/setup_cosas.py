@@ -1,18 +1,36 @@
 #'////////////////////////////////////////////////////////////////////////////
-#' FILE: setup.py
+#' FILE: setup_cosas.py
 #' AUTHOR: David Ruvolo
-#' CREATED: 2022-02-15
-#' MODIFIED: 2022-02-15
-#' PURPOSE: script to setup the UMDM script in python
-#' STATUS: 
+#' CREATED: 2022-03-03
+#' MODIFIED: 2022-03-03
+#' PURPOSE: push COSAS files to MOLGENIS
+#' STATUS: stable
 #' PACKAGES: 
-#' COMMENTS: 
+#' COMMENTS: This script is designed to run on GitHub
 #'////////////////////////////////////////////////////////////////////////////
 
-from urllib.parse import urlparse, urlunparse
 import molgenis.client as molgenis
+from datetime import datetime
 from os.path import basename
+from os import environ
 import requests
+import pytz
+import re
+
+host=environ['MOLGENIS_HOST']
+token=environ['MOLGENIS_TOKEN']
+
+# generic status message with timestamp
+def status_msg(*args):
+    """Status Message
+    Print a log-style message, e.g., "[16:50:12.245] Hello world!"
+
+    @param *args one or more strings containing a message to print
+    @return string
+    """
+    message = ' '.join(map(str, args))
+    time = datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime('%H:%M:%S.%f')[:-3]
+    print(f'[{time}] {message}')
 
 # define class for listing metadata for public github repos
 class github:
@@ -22,10 +40,10 @@ class github:
             'Accept': 'application/vnd.github.v3+json'
         }
         
-    def _get(self, url, headers):
+    def _GET(self, url, headers):
         try:
             r = requests.get(url, headers = headers)
-            if not r.status_code // 100 == 2:
+            if (r.status_code // 100) != 2:
                 return f'Error: unable to import data({r.status_code}): {r.content}'
                 
             r.raise_for_status()
@@ -43,53 +61,41 @@ class github:
             
         """
         url = f'{self.host}repos/{owner}/{repo}/contents/{path}'
-        raw = self._get(url, self.headers)
-        return raw
+        return self._GET(url, self.headers)
         
 class Molgenis(molgenis.Session):
+    def __init__(self, *args, **kwargs):
+        super(Molgenis, self).__init__(*args, **kwargs)
+        self.__getApiUrl__()
     
-    def __setSessionUrls__(self):
+    def __getApiUrl__(self):
+        """Find API endpoint regardless of version"""
         props = list(self.__dict__.keys())
         if '_url' in props:
             self._apiUrl = self._url
         if '_api_url' in props:
             self._apiUrl = self._api_url
-            
-        if self._apiUrl:
-            url = urlparse(self._apiUrl)
-            url = url._replace(path = '')
-            self._hostUrl = urlunparse(url)
     
     def importFile(self, filepath, action='ADD'):
-        actions = [
-            'ADD',
-            'ADD_UPDATE_EXISTING',
-            'UPDATE',
-            'ADD_IGNORE_EXISTING'
-        ]
+        actions = ['ADD','ADD_UPDATE_EXISTING','UPDATE','ADD_IGNORE_EXISTING']
         if action not in actions:
             raise KeyError(f'Value {str(action)} is not a valid action')
         
-        self.__setSessionUrls__()
         url = '{}/plugin/importwizard/importByUrl?notify=false&action={}&url={}'.format(
-            self._hostUrl,
-            action.lower(),
-            filepath
+            self._apiUrl, action.lower(), filepath
         )
         
         try:
-            response = self._session.post(
-                url = url,
-                headers = self._get_token_header_with_content_type()
+            r = self._session.post(
+                url=url, headers=self._get_token_header_with_content_type()
             )
             
-            print(response.status_code, response.content)
-            
-            response.raise_for_status()
-            
-            if response.status_code // 100 == 2:
-                print(f'Imported file {basename(filepath)}')
- 
+            if (r.status_code // 100) != 2:
+                err = r.json().get('errors')[0].get('message')
+                status_msg(f'Failed to import file ({r.status_code}): {err}')
+            else:
+                status_msg(f'Imported {basename(filepath)}')
+            r.raise_for_status()
         except requests.exceptions.HTTPError as e:
             raise SystemError(e)
 
@@ -97,21 +103,22 @@ class Molgenis(molgenis.Session):
 
 # ~ 1 ~
 # Fetch Available Files
-#
-# From the molgenis/rd-datamodel repository, compile a list of files associated
-# with the 
+# Based on the repositories defined above (see `reposToFetch`), list the files
+# that are available to download and combine into a single object. Select files
+# that match the expected file pattern.
+
 gh = github()
-repo = gh.contents(
+availableFiles = gh.contents(
     owner = 'molgenis',
-    repo = 'rd-datamodel',
-    path = 'dist/umdm-emx1'
+    repo = 'molgenis-cosas',
+    path = 'dist'
 )
 
 # collate list of files: path should contain all umdm files, but run a check
 # just to be sure
 files = []
-for file in repo:
-    if (file.get('name') == 'umdm.xlsx') or ('umdm_lookups_' in file.get('name')):
+for file in availableFiles:
+    if re.search(r'^(cosasportal_|cosasportal.xlsx|cosasreports.xlsx|umdm_[a-zA-Z]{1,}_.csv)', file.get('name')):
         files.append({
             'name': file['name'],
             'download_url': file['download_url']
@@ -120,9 +127,7 @@ for file in repo:
 
 # ~ 2 ~
 # Import
-
-db = Molgenis(url='http://localhost/api/', token='${molgenisToken}')
-
-for file in files[:1]:
+db = Molgenis(url=host, token=token)
+for file in files:
     print(f'Importing file {file.get("download_url")}')
     db.importFile(filepath = file.get('download_url'))
