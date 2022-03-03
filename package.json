@@ -8,7 +8,7 @@
     "m:set-prod": "dotenv cross-var mcmd config set host %HOST%",
     "m:predeploy": "mcmd delete -p umdm",
     "data:map": "python3 python/mappings_cosas.py",
-    "data:zip": "zip -r -j dist/cosas.zip dist/cosasportal* dist/umdm_*.csv"
+    "data:zip": "zip -r -j dist/cosas.zip dist/cosasportal* dist/cosasreports* dist/umdm_*.csv"
   },
   "repository": {
     "type": "git",
