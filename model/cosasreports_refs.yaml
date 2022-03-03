@@ -2,13 +2,12 @@
 #' FILE: cosasreports_lookups.yaml
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-02-14
-#' MODIFIED: 2022-02-14
+#' MODIFIED: 2022-03-03
 #' PURPOSE: EMX for logging COSAS jobs
 #' STATUS: stable
 #' PACKAGES: NA
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
-
 
 # define package
 name: cosasreports_refs
@@ -103,7 +102,7 @@ entities:
         
       - value: Deposition
         description: Deposit some data in a database or some other type of repository or software system.
-        cdesystem: EDAM
+        codesystem: EDAM
         code: 3431
         iri: http://edamontology.org/operation_3431
         
@@ -115,7 +114,7 @@ entities:
 
       - value: Export
         description: To transfer from a local area to an external or distant area; to move data out of one file or system with the purpose of importing it into another file or system.
-        codeystem: NCIT
+        codesystem: NCIT
         code: C71586
         iri: http://purl.obolibrary.org/obo/NCIT_C71586
 
@@ -126,10 +125,16 @@ entities:
         iri: http://edamontology.org/operation_3695
         
       - value: Format detection
-        descrition: Recognition of which format the given data is in.
+        description: Recognition of which format the given data is in.
         codesystem: EDAM
         code: 3357
         iri: http://edamontology.org/operation_3357
+        
+      - value: Format validation
+        description: Test and validate the format and content of a data file.
+        codesystem: EDAM
+        code: 0336
+        iri: http://edamontology.org/operation_0336
         
       - value: Formatting
         description: Reformat a file of data (or equivalent entity in memory).
@@ -190,6 +195,12 @@ entities:
         codesystem: EDAM
         code: 3080
         iri: http://edamontology.org/operation_3080
+        
+      - value: Validation
+        description: Validate some data.
+        codesystem: EDAM
+        code: 2428
+        iri: http://edamontology.org/operation_2428
       
   # @name cosasreports_lookups_status
   - name: status
