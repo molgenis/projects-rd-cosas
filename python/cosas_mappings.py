@@ -482,10 +482,49 @@ class cosastools:
 
 #//////////////////////////////////////////////////////////////////////////////
 
+# ~ 999 ~
+# Initial Steps
+# Steps to run before starting the mapping steps
+
+# connect to db (token is generated on run)
+db = Molgenis(url=host, token=token)
+
 # init logs
 status_msg('COSAS: starting job...')
 cosaslogs = cosasLogger(silent=True)
 cosaslogs.start()
+
+# Clear database tables
+# Before the data can be processed, it is important to clean up the existing
+# COSAS tables. Since the data export sends everything (new records and
+# updates), it was decided to rebuild COSAS. The first step is to clear all
+# tables in the database. The clearing of the portal table can happen in this
+# script, but it might be better to run it separately.
+
+status_msg('Clearing COSAS tables....')
+cosaslogs.startProcessingStepLog(
+    type = 'Data Processing',
+    name = 'Clear COSAS tables',
+    tablename = 'COSAS'
+)
+
+cosastables = [
+    'umdm_files',
+    'umdm_sequencing',
+    'umdm_samplePreparation',
+    'umdm_samples',
+    'umdm_clinical',
+    'umdm_subjects'
+]
+
+for table in cosastables:
+    status_msg('Clearing', table)
+    db.delete(entity = table)
+    
+cosaslogs.stopProcessingStepLog()
+    
+
+#////////////////////////////////////////////////////////////////////////////// 
 
 # ~ 0 ~
 # Fetch data
@@ -501,9 +540,6 @@ cosaslogs.startProcessingStepLog(
     name='Fetch portal data',
     tablename="cosasportal"
 )
-
-# connect to db (token is generated on run)
-db = Molgenis(url=host, token=token)
 
 # get patients
 raw_subjects = dt.Frame(
