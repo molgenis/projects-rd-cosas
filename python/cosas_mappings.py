@@ -489,41 +489,10 @@ class cosastools:
 # connect to db (token is generated on run)
 db = Molgenis(url=host, token=token)
 
-# ~ 99.a ~
 # init logs
 status_msg('COSAS: starting job...')
 cosaslogs = cosasLogger(silent=True)
-cosaslogs.start()
-
-# Clear database tables
-# Before the data can be processed, it is important to clean up the existing
-# COSAS tables. Since the data export sends everything (new records and
-# updates), it was decided to rebuild COSAS. The first step is to clear all
-# tables in the database. The clearing of the portal table can happen in this
-# script, but it might be better to run it separately.
-
-status_msg('Clearing COSAS tables....')
-cosaslogs.startProcessingStepLog(
-    type = 'Data Processing',
-    name = 'Clear COSAS tables',
-    tablename = 'COSAS'
-)
-
-cosastables = [
-    'umdm_files',
-    'umdm_sequencing',
-    'umdm_samplePreparation',
-    'umdm_samples',
-    'umdm_clinical',
-    'umdm_subjects'
-]
-
-for table in cosastables:
-    status_msg('Clearing', table)
-    db.delete(entity = table)
-    
-cosaslogs.stopProcessingStepLog()
-    
+cosaslogs.start()    
 
 #////////////////////////////////////////////////////////////////////////////// 
 
@@ -1849,7 +1818,7 @@ else:
 # 
 status_msg('COSAS Import: Preparing to import data...')
 
-# ~ 5a ~
+# ~ 6a ~
 # Set row-level metadata attributes
 # For all objects, add date of processing and author (i.e., cosasbot)
 
@@ -1893,7 +1862,34 @@ cosaslogs.log['samplePreparation'] = samplePreparation.nrows
 cosaslogs.log['sequencing'] = sequencing.nrows
 cosaslogs.stopProcessingStepLog()
 
-# ~ 5b ~
+
+# ~ 6b ~
+# Clear database tables
+# Before the data can be imported, clean up the existing COSAS tables.
+status_msg('Clearing COSAS tables....')
+cosaslogs.startProcessingStepLog(
+    type = 'Data Processing',
+    name = 'Clear COSAS tables',
+    tablename = 'COSAS'
+)
+
+cosastables = [
+    'umdm_files',
+    'umdm_sequencing',
+    'umdm_samplePreparation',
+    'umdm_samples',
+    'umdm_clinical',
+    'umdm_subjects'
+]
+
+for table in cosastables:
+    status_msg('Clearing', table)
+    db.delete(entity = table)
+    
+cosaslogs.stopProcessingStepLog()
+
+
+# ~ 6c ~
 # Import data
 # For objects that have intra-table references, you must run a two step import.
 # The first import the reference columns, and then import everything else.
