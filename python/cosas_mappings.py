@@ -2,7 +2,7 @@
 #' FILE: mappings_cosas.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-10-05
-#' MODIFIED: 2022-03-02
+#' MODIFIED: 2022-03-17
 #' PURPOSE: primary mapping script for COSAS
 #' STATUS: stable
 #' PACKAGES: **see below**
@@ -482,13 +482,14 @@ class cosastools:
 
 #//////////////////////////////////////////////////////////////////////////////
 
-# ~ 999 ~
+# ~ 99 ~
 # Initial Steps
 # Steps to run before starting the mapping steps
 
 # connect to db (token is generated on run)
 db = Molgenis(url=host, token=token)
 
+# ~ 99.a ~
 # init logs
 status_msg('COSAS: starting job...')
 cosaslogs = cosasLogger(silent=True)
@@ -630,10 +631,40 @@ activeTestCodes = dt.Frame(
 # del raw_ngs_darwin['_href']
 # del activeTestCodes['_href']
 
+# ~ 0a ~
+# Before we move on, check to see if the objects are empty. If any of these
+# datasets are, then quit the job. It is likely that something failed during
+# the file import process.
+datasets = {
+    'subjects': raw_subjects,
+    'samples': raw_samples,
+    'clinical': raw_clinical,
+    'array_adlas': raw_array_adlas,
+    'array_darwin': raw_array_darwin,
+    'ngs_adlas': raw_ngs_adlas,
+    'ngs_darwin': raw_ngs_darwin
+}
+
+# test nrows: stop at first empty dataset
+for data in datasets:
+    if not datasets[data].nrows:
+
+        cosaslogs.currentStep['status'] = 'Source Data Not Available'
+        cosaslogs.currentStep['comment'] = f'Object {data} is empty'
+        cosaslogs.stopProcessingStepLog()
+        
+        cosaslogs.stop()
+        db.importData(entity='cosasreports_processingsteps',data=cosaslogs.processingStepLogs)
+        db.importData(entity='cosasreports_imports', data=[cosaslogs.log])
+        
+        raise SystemError(f'Source data cannot be found for {data}')
+
+# continue
+del datasets
 cosaslogs.currentStep['status'] = 'Success'
 cosaslogs.stopProcessingStepLog()
 
-# ~ 0a ~
+# ~ 0b ~
 # Pull COSAS Portal Mappings
 #
 # The following objects allow internal data to be mapped to the unified model
