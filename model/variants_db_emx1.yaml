@@ -28,19 +28,27 @@ defaults:
   unique: false
   visible: true  
 
-# Define primary tables and then reference entities
+# For use in the COSAS database, the original names and identifiers should be
+# retained
+
 entities:
-  
-  # @name variantdb_variant
+
   - name: variant
     label: Classified/Curated Variants
     attributes:
     
-  # @name variantdb_allelinfo
+      - name: geneticVariantIdentifier
+        dataType: string
+        idAttribute: true
+        tags: http://purl.obolibrary.org/obo/NCIT_C164813
+        
+    
   - name: allelinfo
     label: Extra Allel Info
     description: Depth and frequency
-    attributes:    
+    tags: http://purl.obolibrary.org/obo/OBI_0001352
+    attributes:
+    
       - name: id
         label: allel identifier	
         description: UMCGnr_#CHROM-start-REF-ALT
@@ -53,34 +61,39 @@ entities:
         unique: true
         tags: http://purl.obolibrary.org/obo/NCIT_C25364
         
-      - name: freqAllel1
-        label: Allele Frequency Allele 1
+      # - name: freqAllel1
+      #   label: Allele Frequency Allele 1
+      - name: variantFrequencyAllele1 # is 1 needed?
         dataType: decimal
         tags: http://purl.obolibrary.org/obo/NCIT_C154665
     
-      - name: freqAllel2
-        label: Allele Frequency Allele 2
+      # - name: freqAllel2
+      #   label: Allele Frequency Allele 2
+      - name: variantFrequencyAllele2
         dataType: decimal
         tags: http://purl.obolibrary.org/obo/NCIT_C154665
         
       # TODO: is this the correct tag?
-      - name: depthAllel1
-        label: Allelic Depth Allele 1
+      # - name: depthAllel1
+      #   label: Allelic Depth Allele 1
+      - name: alternativeSequenceReadDepth1
         dataType: int
         tags: http://purl.obolibrary.org/obo/NCIT_C164666
         
       # TODO: is this the correct tag?
-      - name: depthAllel2
-        label: Allelic Depth Allele 2
+      # - name: depthAllel2
+      #   label: Allelic Depth Allele 2
+      - name: alternativeSequenceReadDepth2
         dataType: int
         tags: http://purl.obolibrary.org/obo/NCIT_C164666
         
       - name: chromosomeType
         label: Chromosome Type
-        dataType: enum
+        dataType: categorical
         nillable: false
         lookupAttribute: true
-        enumOptions: Autosomal,Dominant,X-linked,Y-linked,Codominant,Mitchondrial,Inherited_Unresolved,NA
+        # dataType: enum
+        # enumOptions: Autosomal,Dominant,X-linked,Y-linked,Codominant,Mitchondrial,Inherited_Unresolved,NA
 
       # TODO: is this the correct tag? 
       - name: mother
@@ -180,7 +193,51 @@ entities:
       - identifier: 6
         omschrijving: Ik weet niet of dit de goede omschrijvingen zijn??
     
-  # @name variantdb_link
+  - name: chromosomeType
+    tags:
+    attributes:
+      - name: value
+        idAttribute: true
+        nillable: false
+        lookupAttribute: true
+        labelAttribute: true
+        tags: http://purl.obolibrary.org/obo/NCIT_C49100
+        description: The information contained in a data field. It may represent a numeric quantity, a textual characterization, a date or time measurement, or some other state, depending on the nature of the attribute.
+        
+      - name: description
+        dataType: text
+        tags: http://purl.obolibrary.org/obo/NCIT_C25365
+        description: A written or verbal account, representation, statement, or explanation of something
+      
+      - name: codesystem
+        tags: http://purl.obolibrary.org/obo/NCIT_C70895
+        description: A systematized collection of concepts that define corresponding codes.
+      
+      - name: code
+        tags: http://purl.obolibrary.org/obo/NCIT_C25162
+        description: A symbol or combination of symbols which is assigned to the members of a collection.
+      
+      - name: iri
+        dataType: hyperlink
+        tags: http://purl.obolibrary.org/obo/NCIT_C165071
+        description: A unique symbol that establishes identity of the resource.
+    data:
+      - value: Autosomal
+      
+      - value: Dominant
+      
+      - value: X-linked
+      
+      - value: Y-linked
+      
+      - value: Codominant
+      
+      - value: semi-dominant
+      
+      - value: Mitchondrial
+      
+      - value: Interited Unresolved
+  
   - name: link
     attributes:
       - name: id
