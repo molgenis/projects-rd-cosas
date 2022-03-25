@@ -9,19 +9,166 @@
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
-from datatable import dt, f, as_type, first
+import molgenis.client as molgenis
+from datatable import dt, f
 import numpy as np
 import datetime
 import requests
+import json
+import pytz
 import re
 
 # only for local dev
 from dotenv import load_dotenv
-from os import environ
+from os import environ, stat
 load_dotenv()
 apiUrl = environ['CNV_API_HOST']
 apiToken = environ['CNV_API_TOKEN']
 
+def status_msg(*args):
+    """Status Message
+    Print a log-style message, e.g., "[16:50:12.245] Hello world!"
+
+    @param *args one or more strings containing a message to print
+    @return string
+    """
+    message = ' '.join(map(str, args))
+    time = datetime.datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime('%H:%M:%S.%f')[:-3]
+    print(f'[{time}] {message}')
+
+
+class Molgenis(molgenis.Session):
+    def __init__(self, *args, **kwargs):
+        super(Molgenis, self).__init__(*args, **kwargs)
+        self.__getApiUrl__()
+    
+    def __getApiUrl__(self):
+        """Find API endpoint regardless of version"""
+        props = list(self.__dict__.keys())
+        if '_url' in props:
+            self._apiUrl = self._url
+        if '_api_url' in props:
+            self._apiUrl = self._api_url
+    
+    def _checkResponseStatus(self, response, label):
+        if (response.status_code // 100) != 2:
+            err = response.json().get('errors')[0].get('message')
+            status_msg(f'Failed to import data into {label} ({response.status_code}): {err}')
+        else:
+            status_msg(f'Imported data into {label}')
+    
+    def _POST(self, url: str = None, data: list = None, label: str=None):
+        try:
+            response = self._session.post(
+                url = url,
+                headers = self._get_token_header_with_content_type(),
+                data = json.dumps({'entities': data})
+            )
+            
+            self._checkResponseStatus(response, label)
+            response.raise_for_status()
+            
+        except requests.exceptions.HTTPError as e:
+            raise SystemError(e)
+            
+    def _PUT(self, url: str=None, data: list=None, label: str=None):
+        try:
+            response = self._session.put(
+                url = url,
+                headers = self._get_token_header_with_content_type(),
+                data = json.dumps({'entities': data})
+            )
+            
+            self._checkResponseStatus(response, label)
+            response.raise_for_status()
+
+        except requests.exceptions.HTTPError as e:
+            raise SystemError(e)
+            
+    
+    def importData(self, entity: str, data: list):
+        """Import Data
+        Import data into a table. The data must be a list of dictionaries that
+        contains the 'idAttribute' and one or more attributes that you wish
+        to import.
+        
+        @param entity (str) : name of the entity to import data into
+        @param data (list) : data to import (a list of dictionaries)
+        
+        @return a status message
+        """
+        url = '{}v2/{}'.format(self._apiUrl, entity)
+        # single push
+        if len(data) < 1000:
+            self._POST(url=url, entity=entity, data=data, label=str(entity))
+            
+        # batch push
+        if len(data) >= 1000:    
+            for d in range(0, len(data), 1000):
+                self._POST(
+                    url = url,
+                    data = data[d:d+1000],
+                    label = '{} (batch {})'.format(str(entity), str(d))
+                )
+    
+    
+    def updateRows(self, entity: str, data: list):
+        """Update Rows
+        Update rows in a table. The data must be a list of dictionaries that
+        contains the 'idAttribute' and must contain values for all attributes
+        in addition to the one that you wish to update. This is ideal for
+        updating rows. To update an attribute, use `updateColumn`.
+        
+        @param entity (str) : name of the entity to import data into
+        @param data (list) : data to import (list of dictionaries)
+        
+        @return a status message
+        """
+        url = '{}v2/{}'.format(self._apiUrl, entity)
+        # single push
+        if len(data) < 1000:
+            self._PUT(url=url, data=data, label=str(entity))
+            
+        # batch push
+        if len(data) >= 1000:    
+            for d in range(0, len(data), 1000):
+                self._PUT(
+                    url = url,
+                    data = data[d:d+1000],
+                    label = '{} (batch {})'.format(str(entity), str(d))
+                )
+
+    def updateColumn(self, entity: str, attr: str, data: list):
+        """Update Column
+        Update values of an single column in a table. The data must be a list of
+        dictionaries that contain the `idAttribute` and the value of the
+        attribute that you wish to update. As opposed to the `updateRows`, you
+        do not need to supply values for all columns.
+        
+        @param entity (str) : name of the entity to import data into
+        @param attr (str) : name of the attribute to update
+        @param data (list) : data to import (list of dictionaries)
+        
+        @retrun status message
+        """
+        url = '{}v2/{}/{}'.format(self._apiUrl, str(entity), str(attr))
+        
+        # single push
+        if len(data) < 1000:
+            self._PUT(url=url, data=data, label=str(entity))
+        
+        # batch push
+        if len(data) >= 1000:
+            for d in range(0, len(data), 1000):
+                self._PUT(
+                    url = url,
+                    data = data[d:d+1000],
+                    label = '{}/{} (batch {})'.format(
+                        str(entity),
+                        str(attr),
+                        str(d)
+                    )
+                )
 
 class Cartagenia:
     """Cartagenia Client"""
@@ -32,7 +179,7 @@ class Cartagenia:
     
     def getData(self):
         try:
-            print('Sending request....')
+            status_msg('Sending request....')
             response = self.session.get(
                 url = self._api_url,
                 headers = {'x-api-key': self._api_token}
@@ -40,7 +187,7 @@ class Cartagenia:
             
             response.raise_for_status()
             
-            print('Preparing data...')
+            status_msg('Preparing data...')
             data = response.json()
             
             if 'Output' not in data:
@@ -87,49 +234,68 @@ def extractIdsFromValue(value):
 
 #//////////////////////////////////////////////////////////////////////////////
 
+
+# init db connections
+db = Molgenis(url='http://localhost/api/', token = '${molgenisToken}')
+cg = Cartagenia(url = apiUrl, token = apiToken)
+
+
 # ~ 1 ~
 # Build Phenotype Dataset
 #
 # Pull the latest dataset from Cartagenia, process the data, and import into
-# the portal table cosasportal_cartagenia. Data will be used in the main data
-# processing script ('cosas_mappings.py').
+# the portal table `cosasportal_cartagenia`. Data will be used in the main data
+# processing script ('cosas_mappings.py'). Only columns of interest and records
+# that meet the following inclusion criteria are imported into the COSAS portal
+# table.
+#
+# INCLUSION CRITERIA
+# Each records must have the following:
+#
+#   1) a valid subject identifier that starts with the pattern ^([0-9]{1,})
+#   2) a valid HPO code that matches the pattern ^(HP:)
+#
+# All other cases will be removed from the dataset as they do not contain any
+# information of use for the COSAS dataset. Should this change at any point,
+# please update step 1c accordingly.
+#
 
-
+# ~ 1a ~
 # query the Cartagenia endpoint (i.e., lambda function for UMCG data)
+status_msg('Querying Cartagenia endpoint...')
 cg = Cartagenia(url = apiUrl, token = apiToken)
 rawData = cg.getData()
 
 
-# ~ 1a ~
+# ~ 1b ~
 # Query the Cartagenia endpoint and extract results
 # 
 # For the time being, keep all columns in case we need these later. Columns of
-# interest are selected in the next step.
-#
+# interest are selected in the next step. Convert to datatable.Frame for faster
+# data transformatons. The headers were defined by the original Cartagenia
+# file. The structure did not change when the export was moved to a private
+# endpoint.
+status_msg('Processing raw data...')
+
 rawBenchCnv = dt.Frame()
 for entity in rawData:
     row = list(entity)
     rawBenchCnv = dt.rbind(
         rawBenchCnv,
-        dt.Frame([
-            {
-                'primid': row[0],
-                'secid': row[1],
-                'externalid': row[2],
-                'gender': row[3],
-                'comment': row[4],
-                'phenotype': row[5],
-                'created': row[6]
-            }]
-        )
+        dt.Frame([{
+            'primid': row[0],
+            'secid': row[1],
+            'externalid': row[2],
+            'gender': row[3],
+            'comment': row[4],
+            'phenotype': row[5],
+            'created': row[6]
+        }])
     )
 
-
-# Identify cases to keep
-# Inclusion criteria for a record is that each record must have...
-#   1) a valid ID, e.g., 1*
-#   2) one or more valid HPO code, e.g., HP:*
-
+# ~ 1c ~
+# Filter dataset (apply inclusion criteria)
+status_msg('Applying inclusion criteria...')
 rawBenchCnv['keep'] = dt.Frame([
     (
         bool(re.search(r'^[0-9].*', str(d[0]).strip())) and
@@ -139,11 +305,15 @@ rawBenchCnv['keep'] = dt.Frame([
     for d in rawBenchCnv[:, (f.primid, f.phenotype)].to_tuples()
 ])
 
-# remove rows and columns
-benchcnv = rawBenchCnv[f.keep, :][:, (f.primid, f.phenotype), dt.sort(f.primid)]
+benchcnv = rawBenchCnv[f.keep, :][
+    :, (f.primid, f.phenotype), dt.sort(f.primid)
+]
 
+# ~ 1d ~
+# Transform columns
+status_msg('Formatting columns...')
 
-# clean IDs: remove white space
+# format IDs: remove white space
 benchcnv['primid'] = dt.Frame([
     d.strip().replace(' ','')
     for d in benchcnv['primid'].to_list()[0]
@@ -157,10 +327,19 @@ benchcnv['phenotype'] = dt.Frame([
 ])
 
 
-# determine fetus status
+# set fetus status
 benchcnv['isFetus'] = dt.Frame([
     True if re.search(r'^[0-9]{1,}(F|f)', d) else False
     for d in benchcnv['primid'].to_list()[0]
+])
+
+
+# extract subjectID, belongsToMother (maternal ID), and alternative IDs from
+# Cartagenia identifier 'primid'.
+benchcnv[['subjectID','belongsToMother','alternativeIdentifiers']] = dt.Frame([
+    extractIdsFromValue(d[0].strip())
+    if d[1] else (None,None,None)
+    for d in benchcnv[:, (f.primid, f.isFetus)].to_tuples()
 ])
 
 # check for duplicate entries
@@ -173,16 +352,16 @@ if len(list(set(benchcnv['primid'].to_list()[0]))) != benchcnv.nrows:
         )
     )
 
+# ~ 1e ~
+# Convert data to record set
 
-# extract 
-benchcnv[['subjectID','belongsToMother','alternativeIdentifiers']] = dt.Frame([
-    extractIdsFromValue(d[0].strip())
-    if d[1] else (None,None,None)
-    for d in benchcnv[:, (f.primid, f.isFetus)].to_tuples()
-])
-
-# rename columns
 benchcnv.names = {'primid': 'id', 'phenotype': 'observedPhenotype'}
-
-# select columns
 benchCnvPrepped = benchcnv.to_pandas().replace({np.nan: None}).to_dict('records')
+
+#//////////////////////////////////////////////////////////////////////////////
+
+# ~ 2 ~
+# Import data
+
+status_msg('Imporing data into cosasportal...')
+db.importData(entity='cosasportal_cartagenia', data=benchCnvPrepped)
