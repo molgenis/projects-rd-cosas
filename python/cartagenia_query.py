@@ -2,9 +2,9 @@
 #' FILE: cartagenia_query.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-03-23
-#' MODIFIED: 2022-03-23
+#' MODIFIED: 2022-03-28
 #' PURPOSE: run query for cartagenia data
-#' STATUS: in.progress
+#' STATUS: stable
 #' PACKAGES: **see below**
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
@@ -19,11 +19,11 @@ import pytz
 import re
 
 # only for local dev
-from dotenv import load_dotenv
-from os import environ, stat
-load_dotenv()
-apiUrl = environ['CNV_API_HOST']
-apiToken = environ['CNV_API_TOKEN']
+# from dotenv import load_dotenv
+# from os import environ
+# load_dotenv()
+# apiUrl = environ['CNV_API_HOST']
+# apiToken = environ['CNV_API_TOKEN']
 
 def status_msg(*args):
     """Status Message
@@ -198,7 +198,6 @@ class Cartagenia:
         except requests.exceptions.HTTPError as e:
             raise SystemError(e)
 
-
 def extractIdsFromValue(value):
     """Extract Identifiers from value
     Extract subject ID, maternal ID, and alternative IDs from a string
@@ -244,12 +243,13 @@ apiUrl = db.get(
     entity = 'sys_sec_Token',
     attributes='token',
     q='description=="cartagenia-api-url"'
-)
+)[0]['token']
+
 apiToken = db.get(
     entity = 'sys_sec_Token',
     attributes='token',
     q='description=="cartagenia-api-token"'
-)
+)[0]['token']
 
 cg = Cartagenia(url = apiUrl, token = apiToken)
 
@@ -351,7 +351,7 @@ benchcnv['isFetus'] = dt.Frame([
 # Cartagenia identifier 'primid'.
 benchcnv[['subjectID','belongsToMother','alternativeIdentifiers']] = dt.Frame([
     extractIdsFromValue(d[0].strip())
-    if d[1] else (None,None,None)
+    if d[1] else (d[0],None,None)
     for d in benchcnv[:, (f.primid, f.isFetus)].to_tuples()
 ])
 
@@ -376,4 +376,5 @@ benchCnvPrepped = benchcnv.to_pandas().replace({np.nan: None}).to_dict('records'
 # Import data
 
 status_msg('Imporing data into cosasportal...')
+db.delete(entity='cosasportal_cartagenia')
 db.importData(entity='cosasportal_cartagenia', data=benchCnvPrepped)
