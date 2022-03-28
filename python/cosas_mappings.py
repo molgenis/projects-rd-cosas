@@ -2,7 +2,7 @@
 #' FILE: mappings_cosas.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-10-05
-#' MODIFIED: 2022-03-17
+#' MODIFIED: 2022-03-28
 #' PURPOSE: primary mapping script for COSAS
 #' STATUS: stable
 #' PACKAGES: **see below**
@@ -529,7 +529,7 @@ raw_clinical = dt.Frame(
 
 raw_benchcnv = dt.Frame(
     db.get(
-        entity = 'cosasportal_benchcnv_prepped',
+        entity = 'cosasportal_cartagenia',
         batch_size = 10000
     )
 )
