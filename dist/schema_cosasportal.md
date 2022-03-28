@@ -194,7 +194,7 @@ Processed Cartagenia CNV bench data
 
 | Name | Label | Description | Data Type |
 |:---- |:-----|:-----------|:---------|
-| id | - | Cartagenia identifier | string |
+| id&#8251; | - | Cartagenia identifier | string |
 | subjectID | - | parsed UMCG number | string |
 | belongsToMother | - | parsed maternal ID (UMCG Number) | string |
 | belongsToFamily | - | family number (may not be accurate) | string |

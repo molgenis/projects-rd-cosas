@@ -220,6 +220,7 @@ entities:
     description: Processed Cartagenia CNV bench data
     attributes:
       - name: id
+        idAttribute: true
         description: Cartagenia identifier
       - name: subjectID
         description: parsed UMCG number
