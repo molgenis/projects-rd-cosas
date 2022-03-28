@@ -218,7 +218,6 @@ entities:
   # @name cosasportal_cartagenia
   - name: cartagenia
     description: Processed Cartagenia CNV bench data
-    extends: cosasportal_template
     attributes:
       - name: id
         description: Cartagenia identifier

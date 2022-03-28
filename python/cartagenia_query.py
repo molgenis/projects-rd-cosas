@@ -234,9 +234,23 @@ def extractIdsFromValue(value):
 
 #//////////////////////////////////////////////////////////////////////////////
 
-
+# ~ 0 ~
 # init db connections
 db = Molgenis(url='http://localhost/api/', token = '${molgenisToken}')
+
+
+# get login information for Cartagenia
+apiUrl = db.get(
+    entity = 'sys_sec_Token',
+    attributes='token',
+    q='description=="cartagenia-api-url"'
+)
+apiToken = db.get(
+    entity = 'sys_sec_Token',
+    attributes='token',
+    q='description=="cartagenia-api-token"'
+)
+
 cg = Cartagenia(url = apiUrl, token = apiToken)
 
 
@@ -262,8 +276,7 @@ cg = Cartagenia(url = apiUrl, token = apiToken)
 
 # ~ 1a ~
 # query the Cartagenia endpoint (i.e., lambda function for UMCG data)
-status_msg('Querying Cartagenia endpoint...')
-cg = Cartagenia(url = apiUrl, token = apiToken)
+status_msg('Querying Cartagenia endpoint....')
 rawData = cg.getData()
 
 
@@ -275,7 +288,7 @@ rawData = cg.getData()
 # data transformatons. The headers were defined by the original Cartagenia
 # file. The structure did not change when the export was moved to a private
 # endpoint.
-status_msg('Processing raw data...')
+status_msg('Processing raw data....')
 
 rawBenchCnv = dt.Frame()
 for entity in rawData:
@@ -295,7 +308,7 @@ for entity in rawData:
 
 # ~ 1c ~
 # Filter dataset (apply inclusion criteria)
-status_msg('Applying inclusion criteria...')
+status_msg('Applying inclusion criteria....')
 rawBenchCnv['keep'] = dt.Frame([
     (
         bool(re.search(r'^[0-9].*', str(d[0]).strip())) and
@@ -306,12 +319,12 @@ rawBenchCnv['keep'] = dt.Frame([
 ])
 
 benchcnv = rawBenchCnv[f.keep, :][
-    :, (f.primid, f.phenotype), dt.sort(f.primid)
+    :, (f.primid, f.secid, f.phenotype), dt.sort(f.primid)
 ]
 
 # ~ 1d ~
 # Transform columns
-status_msg('Formatting columns...')
+status_msg('Formatting columns....')
 
 # format IDs: remove white space
 benchcnv['primid'] = dt.Frame([
@@ -344,7 +357,7 @@ benchcnv[['subjectID','belongsToMother','alternativeIdentifiers']] = dt.Frame([
 
 # check for duplicate entries
 if len(list(set(benchcnv['primid'].to_list()[0]))) != benchcnv.nrows:
-    print(
+    raise SystemError(
         'Total number of distinct identifiers ({}) must match row numbers ({})'
         .format(
             len(list(set(benchcnv['primid'].to_list()[0]))),
@@ -354,8 +367,7 @@ if len(list(set(benchcnv['primid'].to_list()[0]))) != benchcnv.nrows:
 
 # ~ 1e ~
 # Convert data to record set
-
-benchcnv.names = {'primid': 'id', 'phenotype': 'observedPhenotype'}
+benchcnv.names = {'primid': 'id', 'secid': 'belongsToFamily', 'phenotype': 'observedPhenotype'}
 benchCnvPrepped = benchcnv.to_pandas().replace({np.nan: None}).to_dict('records')
 
 #//////////////////////////////////////////////////////////////////////////////
