@@ -12,8 +12,8 @@
 name: cosasportal
 label: COSAS Portal
 description: Staging tables for raw data exports
-version: 1.5.0
-date: 2022-02-21
+version: 1.6.0
+date: 2022-03-28
 
 # define entity level defaults
 defaults:
@@ -214,43 +214,27 @@ entities:
       - name: GenomeBuild
       - name: CallRate
       - name: StandaardDeviatie
-
-  # @name cosasportal_benchcnv
-  - name: benchcnv
-    description: Staging table for Raw CNV exports
+      
+  # @name cosasportal_cartagenia
+  - name: cartagenia
+    description: Processed Cartagenia CNV bench data
     extends: cosasportal_template
     attributes:
-      - name: primid
-        description: UMCG Number
-        
-      - name: secid
-        description: Family Number
-        
-      - name: externalid
-      
-      - name: gender
-      
-      - name: comment
-        dataType: text
-        
-      - name: phenotype
-        dataType: text
-        
-      - name: created
-      
-  # @name cosasporatl_benchcnv_prepped
-  - name: benchcnv_prepped
-    description: Processed CNV bench data
-    extends: cosasportal_template
-    attributes:
-      - name: primid
+      - name: id
+        description: Cartagenia identifier
       - name: subjectID
+        description: parsed UMCG number
       - name: belongsToMother
+        description: parsed maternal ID (UMCG Number)
       - name: belongsToFamily
+        description: family number (may not be accurate)
       - name: isFetus
+        description: computed fetus status
         dataType: bool
       - name: alternativeIdentifiers
+        description: additional UMCG numbers detected in column 'id'
       - name: observedPhenotype
+        description: HPO terms provided by Cartagenia 
         dataType: text
 
   # @name: cosasportal_cineasmappings

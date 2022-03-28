@@ -4,7 +4,7 @@
 
 | Name | Description | Parent |
 |:---- |:-----------|:------|
-| cosasportal | Staging tables for raw data exports (v1.5.0, 2022-02-21) | - |
+| cosasportal | Staging tables for raw data exports (v1.6.0, 2022-03-28) | - |
 | cosasportal_mappings | Mapping tables for processing raw data into UMDM terminology | cosasportal |
 
 ## Entities
@@ -19,8 +19,7 @@
 | labs_array_darwin | Raw array metadata from Darwin | cosasportal |
 | labs_ngs_adlas | Raw NGS data from ADLAS | cosasportal |
 | labs_ngs_darwin | Raw NSG metadata from Darwin | cosasportal |
-| benchcnv | Staging table for Raw CNV exports | cosasportal |
-| benchcnv_prepped | Processed CNV bench data | cosasportal |
+| cartagenia | Processed Cartagenia CNV bench data | cosasportal |
 | cineasmappings | Cineas to HPO mappings | cosasportal |
 | template | attribute template for mapping tables | cosasportal_mappings |
 | genderidentity | mappings for genderidentity | cosasportal_mappings |
@@ -189,40 +188,19 @@ Raw NSG metadata from Darwin
 | CallRate | - | - | string |
 | StandaardDeviatie | - | - | string |
 
-### Entity: cosasportal_benchcnv
+### Entity: cosasportal_cartagenia
 
-Staging table for Raw CNV exports
-
-| Name | Label | Description | Data Type |
-|:---- |:-----|:-----------|:---------|
-| primid | - | UMCG Number | string |
-| secid | - | Family Number | string |
-| externalid | - | - | string |
-| gender | - | - | string |
-| comment | - | - | text |
-| phenotype | - | - | text |
-| created | - | - | string |
-
-### Entity: cosasportal_benchcnv_prepped
-
-Processed CNV bench data
+Processed Cartagenia CNV bench data
 
 | Name | Label | Description | Data Type |
 |:---- |:-----|:-----------|:---------|
-| primid | - | UMCG Number | string |
-| secid | - | Family Number | string |
-| externalid | - | - | string |
-| gender | - | - | string |
-| comment | - | - | text |
-| phenotype | - | - | text |
-| created | - | - | string |
-| primid | - | - | string |
-| subjectID | - | - | string |
-| belongsToMother | - | - | string |
-| belongsToFamily | - | - | string |
-| isFetus | - | - | bool |
-| alternativeIdentifiers | - | - | string |
-| observedPhenotype | - | - | text |
+| id | - | Cartagenia identifier | string |
+| subjectID | - | parsed UMCG number | string |
+| belongsToMother | - | parsed maternal ID (UMCG Number) | string |
+| belongsToFamily | - | family number (may not be accurate) | string |
+| isFetus | - | computed fetus status | bool |
+| alternativeIdentifiers | - | additional UMCG numbers detected in column 'id' | string |
+| observedPhenotype | - | HPO terms provided by Cartagenia | text |
 
 ### Entity: cosasportal_cineasmappings
 
