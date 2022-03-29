@@ -2,7 +2,7 @@
 #' FILE: mappings_cosas.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-10-05
-#' MODIFIED: 2022-03-28
+#' MODIFIED: 2022-03-29
 #' PURPOSE: primary mapping script for COSAS
 #' STATUS: stable
 #' PACKAGES: **see below**
@@ -455,7 +455,7 @@ class cosastools:
         return datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime('%Y-%m-%dT%H:%M:%SZ')
         
     @staticmethod
-    def to_keypairs(data, keyAttr='sourceValue', valueAttr='newValue'):
+    def to_keypairs(data, keyAttr='from', valueAttr='to'):
         """To Key pairs
         Convert a list of dictionaries into a key-value dictionary. This method
         is useful for creating objects for mapping tables.
@@ -649,56 +649,33 @@ cosaslogs.startProcessingStepLog(
 )
 
 genderMappings = cosastools.to_keypairs(
-    data = db.get(
-        entity='cosasportal_mappings_genderidentity',
-        attributes='sourceValue,newValue'
-    )
+    data = db.get('cosasportal_mappings_genderidentity')
 )
 
 biospecimenTypeMappings = cosastools.to_keypairs(
-    data = db.get(
-        entity='cosasportal_mappings_biospecimentype',
-        attributes='sourceValue,newValue'
-    )
+    data = db.get('cosasportal_mappings_biospecimentype')
 )
 
 sampleReasonMappings = cosastools.to_keypairs(
-    data = db.get(
-        entity='cosasportal_mappings_samplereason',
-        attributes='sourceValue,newValue,newValueSecondary'
-    )
+    data = db.get('cosasportal_mappings_samplereason')
 )
 
 sequencerPlatformMappings = cosastools.to_keypairs(
-    data = db.get(
-        entity='cosasportal_mappings_sequencerinfo',
-        attributes='sourceValue,newValue'
-    ),
-    keyAttr = 'sourceValue',
-    valueAttr = 'newValue'
+    data = db.get('cosasportal_mappings_sequencerinfo')
 )
 
 sequencerInstrumentMappings = cosastools.to_keypairs(
-    data = db.get(
-        entity='cosasportal_mappings_sequencerinfo',
-        attributes='sourceValue,newValueSecondary'
-    ),
-    keyAttr = 'sourceValue',
-    valueAttr = 'newValueSecondary'
+    data = db.get('cosasportal_mappings_sequencerinfo'),
+    keyAttr = 'from',
+    valueAttr= 'toAlternate'
 )
 
 genomeBuildMappings = cosastools.to_keypairs(
-    data = db.get(
-        entity='cosasportal_mappings_genomebuild',
-        attributes='sourceValue,newValue,newValueSecondary'
-    )
+    data = db.get('cosasportal_mappings_genomebuild')
 )
 
 cineasHpoMappings = cosastools.to_keypairs(
-    data = db.get(
-        entity='cosasportal_cineasmappings',
-        attributes='code,hpo'
-    ),
+    data = db.get('cosasportal_cineasmappings', attributes='code,hpo'),
     keyAttr = 'code',
     valueAttr = 'hpo'
 )
