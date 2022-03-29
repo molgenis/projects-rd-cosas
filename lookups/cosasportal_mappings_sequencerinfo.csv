@@ -1,0 +1,7 @@
+from,to,toAlternate
+HiSeq,Illumina platform,Illumina HiSeq Sequencer
+MiSeq sequencer 1,Illumina platform,MiSeq
+MiSeq sequencer 2,Illumina platform,MiSeq
+NextSeq sequencer 1,Illumina platform,
+NextSeq sequencer 2,Illumina platform,
+NextSeq sequencer 3,Illumina platform,
