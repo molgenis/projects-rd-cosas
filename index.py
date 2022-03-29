@@ -2,7 +2,7 @@
 #' FILE: emx.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-10-05
-#' MODIFIED: 2022-02-23
+#' MODIFIED: 2022-03-29
 #' PURPOSE: generate emx files for COSAS
 #' STATUS: working
 #' PACKAGES: emxconvert
@@ -11,31 +11,31 @@
 
 from yamlemxconvert import Convert, Convert2
 from python.utils_emx import buildEmxTags
+import yaml
 
-# render umdm portal
-cosas = Convert(files = ['model/cosasportal.yaml', 'model/cosasportal_mappings.yaml'])
-cosas.convert()
-cosas.write('cosasportal', format='xlsx', outDir='dist')
-cosas.write_schema(path = 'dist/schema_cosasportal.md')
+# load emx config 
+with open('model.yaml', 'r') as stream:
+    emxConfig = yaml.safe_load(stream)
 
 
-# render reports emx
-reports = Convert(files = ['model/cosasreports.yaml', 'model/cosasreports_refs.yaml'])
-reports.convert()
-
-# build tags
-tags = reports.tags
-tags.extend(buildEmxTags(reports.packages))
-tags.extend(buildEmxTags(reports.entities))
-tags.extend(buildEmxTags(reports.attributes))
-tags = list({d['identifier']: d for d in tags}.values())
-reports.tags = sorted(tags, key = lambda d: d['identifier'])
-
-# write
-reports.write('cosasreports', format='xlsx', outDir='dist')
-reports.write_schema(path='dist/schema_cosasreports.md')
-
-# Optional EMX2
-cosas2 = Convert2(file='model/cosasportal.yaml')
-cosas2.convert()
-cosas2.write(name='cosasportal_emx2', outDir='dist')
+# build EMX1 and EMX2 version of each model
+for model in emxConfig.get('models'):
+    print('Building EMX Model:', model['name'])
+    m = Convert(files = model.get('paths'))
+    m.convert()
+    
+    tags = m.tags
+    tags.extend(buildEmxTags(m.packages))
+    tags.extend(buildEmxTags(m.entities))
+    tags.extend(buildEmxTags(m.attributes))
+    tags = list({d['identifier']: d for d in tags}.values())
+    m.tags = sorted(tags, key = lambda d: d['identifier'])
+    
+    m.write(model['name'], format='xlsx',outDir=emxConfig['outputPaths'].get('main'))
+    m.write_schema(path=f"{emxConfig['outputPaths'].get('schemas')}/{model['name']}_schema.md")
+    
+    for file in model.get('paths'):
+        print('Generating EMX2 version')
+        m2 = Convert2(file = file)
+        m2.convert()
+        m2.write(name=f"{model['name']}_emx2", outDir=emxConfig['outputPaths'].get('main'))

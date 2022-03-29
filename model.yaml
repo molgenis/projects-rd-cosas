@@ -1,0 +1,18 @@
+
+outputPaths:
+  main: dist/
+  schemas: schemas/
+
+
+models:
+  - name: cosasportal
+    paths: [
+      "model/cosasportal.yaml",
+      "model/cosasportal_mappings.yaml"
+    ]
+  
+  - name: cosasreports
+    paths: [
+      "model/cosasreports.yaml",
+      "model/cosasreports_refs.yaml"
+    ]

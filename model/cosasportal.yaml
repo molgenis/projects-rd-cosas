@@ -38,18 +38,18 @@ entities:
         auto: true
         nillable: false
         lookupAttribute: true
-        # tags: http://purl.obolibrary.org/obo/NCIT_C25364
+        tags: http://purl.obolibrary.org/obo/NCIT_C25364
         
       - name: recordMetadata
         description: metadata is data that provides information about data.
         dataType: compound
-        # tags: http://semanticscience.org/resource/SIO_001330
+        tags: http://semanticscience.org/resource/SIO_001330
         
       - name: processed
         description: The data which is modified and processed for analysis or other experiments. If True, data from the row has been imported into COSAS.
         dataType: bool
         defaultValue: false
-        # tags: https://w3id.org/reproduceme#ProcessedData
+        tags: https://w3id.org/reproduceme#ProcessedData
 
       - name: dateRecordCreated
         description: The date on which the activity or entity is created.
@@ -57,12 +57,12 @@ entities:
         dataType: datetime
         auto: true
         partOfAttribute: recordMetadata
-        # tags: http://purl.obolibrary.org/obo/NCIT_C164483
+        tags: http://purl.obolibrary.org/obo/NCIT_C164483
       
       - name: recordCreatedBy
         description: Indicates the person or authoritative body who brought the item into existence.
         partOfAttribute: recordMetadata
-        # tags: http://purl.obolibrary.org/obo/NCIT_C42628
+        tags: http://purl.obolibrary.org/obo/NCIT_C42628
     
 
   # @name cosasportal_patients

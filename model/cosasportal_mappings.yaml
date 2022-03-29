@@ -2,17 +2,21 @@
 #' FILE: cosasportal.yaml
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-12-10
-#' MODIFIED: 2022-02-14
+#' MODIFIED: 2022-03-29
 #' PURPOSE: EMX for COSAS staging tables
 #' STATUS: stable
 #' PACKAGES: NA
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
+
+# define package
 name: cosasportal_mappings
 label: COSAS mappings
 description: Mapping tables for processing raw data into UMDM terminology
 parent: cosasportal
+version: 1.0.0
+date: 2022-03-29
 
 # define entity level defaults
 defaults:
@@ -22,44 +26,41 @@ defaults:
   nillable: true
   lookupAttribute: false
 
-# define tables
 entities:
 
-  # @name cosasportal_mappings_template
   - name: template
     description: attribute template for mapping tables
     abstract: true
     attributes:
 
-      - name: sourceValue
-        description: Value as listed in the data export
+      - name: from
+        description: Used to indicate a specified place or time as a starting point; used to indicate a source, cause, agent, or instrument.
         idAttribute: true
         nillable: false
         lookupAttribute: true
         unique: true
+        tags: http://purl.obolibrary.org/obo/NCIT_C25516
         
-      - name: newValue
-        description: New value to assign
+      - name: to
+        description: Used as a function word to indicate direction, purpose, or movement.
+        tags: http://purl.obolibrary.org/obo/NCIT_C65107
         
-      - name: newValueSecondary
-        description: A secondary value that corresponds to the source value
+      - name: toAlternate
+        description: Available in place of something else.
+        tags: http://purl.obolibrary.org/obo/NCIT_C25415
         
-  # @name cosasportal_mappings_genderidentity
   - name: genderidentity
     description: mappings for genderidentity
     extends: cosasportal_mappings_template
     
-  # @name cosasportal biospecimen type mappings
   - name: biospecimentype
     description: mappings for biospecimen type
     extends: cosasportal_mappings_template
-    
-  # @name samplereason
+
   - name: samplereason
     description: mappings for reason for sampling
     extends: cosasportal_mappings_template
-    
-  # @name sequencerinfo
+
   - name: sequencerinfo
     description: mappings for sequencer information
     extends: cosasportal_mappings_template
