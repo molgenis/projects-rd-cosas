@@ -5,7 +5,7 @@
 | Name | Description | Parent |
 |:---- |:-----------|:------|
 | cosasportal | Staging tables for raw data exports (v1.6.0, 2022-03-28) | - |
-| cosasportal_mappings | Mapping tables for processing raw data into UMDM terminology | cosasportal |
+| cosasportal_mappings | Mapping tables for processing raw data into UMDM terminology (v1.0.0, 2022-03-29) | cosasportal |
 
 ## Entities
 
@@ -220,9 +220,9 @@ attribute template for mapping tables
 
 | Name | Label | Description | Data Type |
 |:---- |:-----|:-----------|:---------|
-| sourceValue&#8251; | - | Value as listed in the data export | string |
-| newValue | - | New value to assign | string |
-| newValueSecondary | - | A secondary value that corresponds to the source value | string |
+| from&#8251; | - | Used to indicate a specified place or time as a starting point; used to indicate a source, cause, agent, or instrument. | string |
+| to | - | Used as a function word to indicate direction, purpose, or movement. | string |
+| toAlternate | - | Available in place of something else. | string |
 
 Note: The symbol &#8251; denotes attributes that are primary keys
 
