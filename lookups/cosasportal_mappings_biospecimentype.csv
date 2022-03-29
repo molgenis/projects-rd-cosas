@@ -1,27 +1,28 @@
-from,toFirstValue
-dna,Blood DNA
-dna reeds aanwezig,DNA Library
-"ebv, dna",Blood DNA
+from,to
 abortusmateriaal,Human Fetal Tissue
 beenmerg,Bone Marrow Sample
 bloed,Whole Blood
+"bloed, dna en rna",Whole Blood
+dna,Blood DNA
+dna reeds aanwezig,DNA Library
+"ebv, dna",Blood DNA
 fibroblastenkweek,Bone Marrow-Derived Fibroblasts
 foetus,Human Fetal Tissue
-gekweekt foetaal weefsel,Human Fetal Tissue
-gekweekt weefsel,Tissue Sample
 gekweekte amnion cellen,Amnion
 gekweekte chorion villi,Chorionic Villus
+gekweekt foetaal weefsel,Human Fetal Tissue
+gekweekt weefsel,Tissue Sample
 huidbiopt,Skin/Subcutaneous Tissue
-navelstreng ongekweekt,Umbilical Cord Blood
 navelstrengbloed,Umbilical Cord Blood
-ongekweekt foetaal weefsel,Human Fetal Tissue
-ongekweekt weefsel,Tissue Sample
+navelstreng ongekweekt,Umbilical Cord Blood
 ongekweekte amnion cellen,Amnion
 ongekweekte chorion villi,Chorionic Villus
+ongekweekt foetaal weefsel,Human Fetal Tissue
+ongekweekt weefsel,Tissue Sample
 overig,Tissue Sample
+paraffineblokjes,
 paraffine normaal,
 paraffine tumor,
-paraffineblokjes,
 plasmacellen,Serum or Plasma
 speeksel,Saliva Sample
 suspensie,Mixed Adherent Cells in Suspension
