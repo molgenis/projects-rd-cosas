@@ -71,9 +71,9 @@
         </div>
       </section>
     </main>
-    <footer id="portal-footer" class="p-4 bg-dark">
+    <div id="portal-footer" class="bg-dark footer">
       <img :src="MolgenisLogo" alt="molgenis open source data platform" class="molgenis-logo"/>
-    </footer>
+    </div>
   </div>
 </template>
 
@@ -90,8 +90,17 @@ export default {
 </script>
 
 <style lang="scss">
-body {
-  height: 100%;
+.mg-page,
+.mg-app,
+.container-fluid,
+.row,
+.col-sm-8,
+.col-sm-3 {
+  padding: 0;
+  
+}
+.mg-page .mg-page-content {
+  margin-top: 0;
 }
 
 footer.footer {
@@ -99,7 +108,7 @@ footer.footer {
 }
 
 #portal {
-  section {
+  section, .footer {
     padding: 2em 1em;
   }
 }
