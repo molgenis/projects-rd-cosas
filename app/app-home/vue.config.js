@@ -25,7 +25,7 @@ const htmlTemplate = () => {
   if (process.env.NODE_ENV === 'test') return 'public/preview.html'
 }
 
-const PROXY_TARGET = 'https://david.gcc.rug.nl'
+const PROXY_TARGET = 'https://cosas-acc.molgeniscloud.org'
 
 module.exports = {
   transpileDependencies: ['@molgenis-ui/components-library'],

@@ -12,9 +12,9 @@
         <div class="col-sm-8 m-auto">
           <h2 id="portal-welcome-title" class="text-center">Welcome</h2>
           <p>
-            Through the <strong>Genetica Diagnostics Portal</strong> you can
+            Welcome to the <strong>Genetica Diagnostics Portal</strong>! With this site, you can
             access a number of databases and systems available to members of the
-            genetica department....
+            genetica department developed by the Molgenis team.
           </p>
         </div>
       </section>
@@ -33,41 +33,42 @@
         <div id="db-card-container" class="d-flex flex-wrap justify-content-md-center">
           <div class="card col-md-3">
             <div class="card-body">
-              <h3 class="cart-title">COSAS</h3>
+              <h3 class="card-title">COSAS</h3>
               <p class="card-text">
-                The Catalog of Sequences, Arrays, and Samples &mdash; or COSAS
-                &mdash; is an database for tracking patient metadata generated
-                by the genome diagnostic clinic at UMCG.
+                View the Catalog of Sequences, Arrays, and Samples.
               </p>
-              <a href="/menu/main/navigator/umdm" class="btn btn-dark btn-block"
-                >View</a
-              >
+              <a href="/menu/main/navigator/umdm" class="btn btn-dark btn-block">
+                View
+              </a>
             </div>
           </div>
           <div class="card col-md-3">
             <div class="card-body">
-              <h3 class="cart-title">Unsolved Cases</h3>
+              <h3 class="card-title">Unsolved Cases</h3>
               <p class="card-text">
-                Amet dolore id commodo culpa ullamco nulla irure culpa officia
-                aute ea deserunt in eu. Ut labore quis nulla ad irure dolor
-                irure fugiat pariatur laborum in. Quis culpa in minim labore.
+                View and submit new cases to the Unsolved Cases Portal.
               </p>
-              <a href="/menu/main/navigator/ucu" class="btn btn-dark btn-block"
-                >View</a
-              >
+              <a href="/menu/main/navigator/ucu" class="btn btn-dark btn-block">
+                View
+              </a>
             </div>
           </div>
           <div class="card col-md-3">
             <div class="card-body">
-              <h3 class="cart-title">VariantDB</h3>
+              <h3 class="card-title">VariantDB</h3>
               <p class="card-text">
-                Amet dolore id commodo culpa ullamco nulla irure culpa officia
-                aute ea deserunt in eu. Ut labore quis nulla ad irure dolor
-                irure fugiat pariatur laborum in. Quis culpa in minim labore.
+                Find and explore variants in the Variants database.
               </p>
               <a href="/menu/main/navigator/variantdb" class="btn btn-dark btn-block">View</a>
             </div>
           </div>
+        </div>
+      </section>
+      <section id="portal-help" aria-labelledby="portal-help-title">
+        <div class="col-md-4 m-auto">
+          <h2 id="portal-help-title" class="text-center">Get help</h2>
+          <p>Need help? Do you have a question? If so, please contact the support desk.</p>
+          <a href="mailto:molgenis-support@umcg.nl" class="btn btn-dark btn-block">Contact Support</a>
         </div>
       </section>
     </main>
@@ -90,6 +91,7 @@ export default {
 </script>
 
 <style lang="scss">
+
 .mg-page,
 .mg-app,
 .container-fluid,
@@ -99,15 +101,24 @@ export default {
   padding: 0;
   
 }
+
+h1,h2,h3,h4,h5,h6 {
+  color: #252525;
+}
+
 .mg-page .mg-page-content {
   margin-top: 0;
 }
 
 footer.footer {
   display: none;
+  padding: 0;
+  margin: 0;
 }
 
 #portal {
+  color: #3f454b;
+
   section, .footer {
     padding: 2em 1em;
   }
@@ -119,13 +130,13 @@ footer.footer {
   justify-content: center;
   align-items: center;
   width: 100%;
-  height: 18em;
-  background: none;
-  background-image: url("~@/assets/header-bg-2.jpg");
-  background-position: 100% 0;
-  background-size: cover;
   border: none;
   border-radius: 0;
+  height: 22em;
+  background: none;
+  background-position: 100% 0;
+  background-size: cover;
+  background-image: url("~@/assets/header-bg-2.jpg");
 
   .header-filter {
     position: absolute;
@@ -141,6 +152,10 @@ footer.footer {
     height: 100%;
     z-index: 1;
     color: #f6f6f6;
+    
+    h1, h2 {
+      color: inherit;
+    }
     
     h1 {
       font-size: 13pt;
@@ -165,6 +180,16 @@ footer.footer {
 }
 
 #db-card-container {
+  padding: 1em 0;
   gap: 12px;
+  .card {
+    .card-title {
+      font-size: 11pt;
+      text-transform: uppercase;
+      font-weight: bold;
+      letter-spacing: 2px;
+    }
+  }
 }
+
 </style>
