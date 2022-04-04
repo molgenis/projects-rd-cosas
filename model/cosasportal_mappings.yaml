@@ -2,11 +2,12 @@
 #' FILE: cosasportal.yaml
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-12-10
-#' MODIFIED: 2022-03-29
+#' MODIFIED: 2022-04-04
 #' PURPOSE: EMX for COSAS staging tables
 #' STATUS: stable
 #' PACKAGES: NA
-#' COMMENTS: NA
+#' COMMENTS: EMX for mapping tables that are used to recode raw data into
+#'    standard terminology (unified-fg model). 
 #'////////////////////////////////////////////////////////////////////////////
 
 
@@ -15,8 +16,8 @@ name: cosasportal_mappings
 label: COSAS mappings
 description: Mapping tables for processing raw data into UMDM terminology
 parent: cosasportal
-version: 1.0.0
-date: 2022-03-29
+version: 1.1.0
+date: 2022-04-04
 
 # define entity level defaults
 defaults:
@@ -32,7 +33,6 @@ entities:
     description: attribute template for mapping tables
     abstract: true
     attributes:
-
       - name: from
         description: Used to indicate a specified place or time as a starting point; used to indicate a source, cause, agent, or instrument.
         idAttribute: true
@@ -50,24 +50,26 @@ entities:
         tags: http://purl.obolibrary.org/obo/NCIT_C25415
         
   - name: genderidentity
-    description: mappings for genderidentity
+    description: mappings for 'Gender identity'
+    extends: cosasportal_mappings_template
+    
+  - name: genderatbirth
+    description: mappings for 'Gender at birth'
     extends: cosasportal_mappings_template
     
   - name: biospecimentype
-    description: mappings for biospecimen type
+    description: mappings for 'Biospecimen type'
     extends: cosasportal_mappings_template
 
   - name: samplereason
-    description: mappings for reason for sampling
+    description: mappings for 'Reason for sampling'
     extends: cosasportal_mappings_template
 
   - name: sequencerinfo
-    description: mappings for sequencer information
+    description: mappings for 'Sequencer information'
     extends: cosasportal_mappings_template
     
   - name: genomebuild
-    description: mappings for genome build
+    description: mappings for 'Genome build'
     extends: cosasportal_mappings_template
-    
-    
       
