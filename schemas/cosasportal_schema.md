@@ -5,7 +5,7 @@
 | Name | Description | Parent |
 |:---- |:-----------|:------|
 | cosasportal | Staging tables for raw data exports (v1.6.0, 2022-03-28) | - |
-| cosasportal_mappings | Mapping tables for processing raw data into UMDM terminology (v1.0.0, 2022-03-29) | cosasportal |
+| cosasportal_mappings | Mapping tables for processing raw data into UMDM terminology (v1.1.0, 2022-04-04) | cosasportal |
 
 ## Entities
 
@@ -22,11 +22,12 @@
 | cartagenia | Processed Cartagenia CNV bench data | cosasportal |
 | cineasmappings | Cineas to HPO mappings | cosasportal |
 | template | attribute template for mapping tables | cosasportal_mappings |
-| genderidentity | mappings for genderidentity | cosasportal_mappings |
-| biospecimentype | mappings for biospecimen type | cosasportal_mappings |
-| samplereason | mappings for reason for sampling | cosasportal_mappings |
-| sequencerinfo | mappings for sequencer information | cosasportal_mappings |
-| genomebuild | mappings for genome build | cosasportal_mappings |
+| genderidentity | mappings for 'Gender identity' | cosasportal_mappings |
+| genderatbirth | mappings for 'Gender at birth' | cosasportal_mappings |
+| biospecimentype | mappings for 'Biospecimen type' | cosasportal_mappings |
+| samplereason | mappings for 'Reason for sampling' | cosasportal_mappings |
+| sequencerinfo | mappings for 'Sequencer information' | cosasportal_mappings |
+| genomebuild | mappings for 'Genome build' | cosasportal_mappings |
 
 ## Attributes
 
