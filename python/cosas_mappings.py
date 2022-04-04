@@ -649,7 +649,7 @@ cosaslogs.startProcessingStepLog(
 )
 
 genderMappings = cosastools.to_keypairs(
-    data = db.get('cosasportal_mappings_genderidentity')
+    data = db.get('cosasportal_mappings_genderatbirth')
 )
 
 biospecimenTypeMappings = cosastools.to_keypairs(
@@ -716,7 +716,7 @@ subjects = raw_subjects[
         'dateOfDeath': f.OVERLIJDENSDATUM,
         'yearOfDeath': None,
         'ageAtDeath': None,
-        'genderIdentity': f.GESLACHT,
+        'genderAtBirth': f.GESLACHT,
         'ageAtDeath': None,
         'primaryOrganization': 'UMCG'
     }
@@ -808,7 +808,7 @@ belongsToMother = dt.Frame([
     {
         'subjectID': d[0],
         'belongsToFamily': d[1],
-        'genderIdentity': 'Vrouw',
+        'genderAtBirth': 'Vrouw',
         'comments': 'manually registered in COSAS'
     }
     for d in subjects[:, (f.belongsToMother, f.belongsToFamily)].to_tuples()
@@ -839,7 +839,7 @@ belongsToFather = dt.Frame([
     {
         'subjectID': d[0],
         'belongsToFamily': d[1],
-        'genderIdentity': 'Man',
+        'genderAtBirth': 'Man',
         'comments': 'manually registered in COSAS'
     }
     for d in subjects[:, (f.belongsToFather, f.belongsToFamily)].to_tuples()
@@ -932,15 +932,15 @@ subjects['belongsWithFamilyMembers'] = dt.Frame([
 ])
 
 
-# map gender values to `umdm_lookups_genderIdentity`
-status_msg('Subjects: Recoding gender identity...')
-subjects['genderIdentity'] = dt.Frame([
+# map gender values to `umdm_lookups_genderAtBirth`
+status_msg('Subjects: Recoding gender at birth...')
+subjects['genderAtBirth'] = dt.Frame([
     cosastools.recodeValue(
         mappings = genderMappings,
         value = d,
-        label = 'genderIdentity'
+        label = 'genderAtBirth'
     )
-    for d in subjects['genderIdentity'].to_list()[0]
+    for d in subjects['genderAtBirth'].to_list()[0]
 ])
 
 
