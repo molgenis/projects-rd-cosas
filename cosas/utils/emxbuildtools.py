@@ -1,11 +1,11 @@
 #'////////////////////////////////////////////////////////////////////////////
-#' FILE: utils_emx.py
+#' FILE: emxbuildtools.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-02-14
-#' MODIFIED: 2022-02-14
+#' MODIFIED: 2022-04-06
 #' PURPOSE: utils for building emx files
 #' STATUS: stable
-#' PACKAGES: 
+#' PACKAGES: os, re
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 

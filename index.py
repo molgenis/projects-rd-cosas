@@ -2,15 +2,15 @@
 #' FILE: emx.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-10-05
-#' MODIFIED: 2022-03-29
+#' MODIFIED: 2022-04-06
 #' PURPOSE: generate emx files for COSAS
-#' STATUS: working
+#' STATUS: stable
 #' PACKAGES: emxconvert
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
-from yamlemxconvert import Convert, Convert2
-from python.utils_emx import buildEmxTags
+from cosas.utils.emxbuildtools import buildEmxTags
+import yamlemxconvert
 import yaml
 
 # load emx config 
@@ -21,7 +21,7 @@ with open('model.yaml', 'r') as stream:
 # build EMX1 and EMX2 version of each model
 for model in emxConfig.get('models'):
     print('Building EMX Model:', model['name'])
-    m = Convert(files = model.get('paths'))
+    m = yamlemxconvert.Convert(files = model.get('paths'))
     m.convert()
     
     tags = m.tags
@@ -36,6 +36,6 @@ for model in emxConfig.get('models'):
     
     for file in model.get('paths'):
         print('Generating EMX2 version')
-        m2 = Convert2(file = file)
+        m2 = yamlemxconvert.Convert2(file = file)
         m2.convert()
         m2.write(name=f"{model['name']}_emx2", outDir=emxConfig['outputPaths'].get('main'))

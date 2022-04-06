@@ -1,8 +1,8 @@
 #'////////////////////////////////////////////////////////////////////////////
-#' FILE: utils_cosas.py
+#' FILE: molgenis_emx1_client.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-12-03
-#' MODIFIED: 2022-02-22
+#' MODIFIED: 2022-04-06
 #' PURPOSE: extra functions for COSAS mapping
 #' STATUS: stable
 #' PACKAGES: molgenis.client, datetime, requests, json

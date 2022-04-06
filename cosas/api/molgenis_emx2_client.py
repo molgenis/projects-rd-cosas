@@ -1,5 +1,5 @@
 #'////////////////////////////////////////////////////////////////////////////
-#' FILE: emx2_client.py
+#' FILE: molgenis_emx2_client.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-02-09
 #' MODIFIED: 2022-02-23
