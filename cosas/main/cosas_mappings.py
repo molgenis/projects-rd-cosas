@@ -2,7 +2,7 @@
 #' FILE: mappings_cosas.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-10-05
-#' MODIFIED: 2022-03-29
+#' MODIFIED: 2022-04-06
 #' PURPOSE: primary mapping script for COSAS
 #' STATUS: stable
 #' PACKAGES: **see below**
