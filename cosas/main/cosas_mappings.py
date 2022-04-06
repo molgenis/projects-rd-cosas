@@ -2,7 +2,7 @@
 #' FILE: mappings_cosas.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-10-05
-#' MODIFIED: 2022-03-29
+#' MODIFIED: 2022-04-06
 #' PURPOSE: primary mapping script for COSAS
 #' STATUS: stable
 #' PACKAGES: **see below**
@@ -88,6 +88,7 @@ class cosasLogger:
         self.log = {
             'identifier': self._now(strftime='%Y-%m-%d'),
             'name': self.logname,
+            'date': self._now(strftime='%Y-%m-%d'),
             'databaseName': 'cosas',
             'startTime': self._now(),
             'endTime': None,
