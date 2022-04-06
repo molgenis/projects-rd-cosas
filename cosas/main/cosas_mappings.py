@@ -88,6 +88,7 @@ class cosasLogger:
         self.log = {
             'identifier': self._now(strftime='%Y-%m-%d'),
             'name': self.logname,
+            'date': self._now(strftime='%Y-%m-%d'),
             'databaseName': 'cosas',
             'startTime': self._now(),
             'endTime': None,
