@@ -1,12 +1,14 @@
 # COSAS
 
-COSAS &mdash; or the **C**atalogue of **S**equences, **A**rrays, and **S**amples &mdash; runs on the [Unified Molgenis Data Model](https://github.com/molgenis/rd-datamodel). This repository contains all of the files and code required for maintaining the COSAS database, as well as additional EMX files that were built specifically for this project.
+COSAS &mdash; or the **C**atalogue of **S**equences, **A**rrays, and **S**amples &mdash; runs on the [Unified Model](https://github.com/molgenis/rd-datamodel). This repository contains all of the files and code required for maintaining the COSAS database, as well as additional EMX files that were built specifically for this project.
 
-All EMX models are located in `src/emx/`. These models are created at build time using the [yamlemxconvert](https://pypi.org/project/yamlemxconvert/) python library. See [index.py](https://github.com/molgenis/molgenis-cosas/tree/main/src/index.py) for more information.
+All EMX models are located in `model` folder. These models are created at build time using the [yamlemxconvert](https://pypi.org/project/yamlemxconvert/) python library. See [index.py](https://github.com/molgenis/molgenis-cosas/tree/main/src/index.py) for more information.
 
 ## Get Started
 
-Sign in to your Molgenis instance or create a new one, and navigate to the scripts plugin. Copy the contents of the [setup.py](https://github.com/molgenis/molgenis-cosas/blob/main/python/setup.py) file into a new python script. Run the script. This will pull the EMX and all lookups from the GitHub repository into your Molgenis instance. Once this has completed, a few more items will need to be imported from this repository.
+Sign in to your Molgenis instance or create a new one, and navigate to the scripts plugin. Copy the contents of the [setup.py](https://github.com/molgenis/molgenis-cosas/blob/main/cosas/main/setup_umdm.py) file into a new python script. Run the script. This will pull the EMX and all lookups from the GitHub repository into your Molgenis instance.
+
+Once this has completed, a few more COSAS specific files will need to be imported. Use the [molgenis commander](https://github.com/molgenis/molgenis-tools-commander) to import the files.
 
 ```shell
 # add or set the url to your Molgenis instance
