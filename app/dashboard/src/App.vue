@@ -33,16 +33,19 @@
       <Section id="viz">
         <div class="col-sm-12 col-md-10">
           <h2>Database at a glance</h2>
-          <p>Data is imported into COSAS every day. The following chart shows the growth of the dataset since the initial release. To use this chart, hover over a line to view more information or click on it to hide from the chart.</p>
+          <p>Data is imported into COSAS every day. The following chart shows the change in the total number of subjects, samples, and sequences over the last 30 days. This chart is meant to give an indication of the growth. Actually growth may be difficult to detect visually as the difference between days may be very minimal (i.e., less than 100 cases). Please consult the reports table <a href="/menu/plugins/dataexplorer?entity=cosasreports_imports&hideselect=true">Daily Import </a> to view the raw data.</p>
         </div>
-        <!-- {{ reportData }} -->
-        <GroupedLineChart
-          chartId="daily-imports-timeseries"
-          :data="reportData"
-          group="group"
-          x="index"
-          y="value"
-        />
+        <div class="col-sm-9">
+          <GroupedTimeSeries
+            chartId="daily-imports-timeseries"
+            :data="reportData"
+            group="group"
+            x="date"
+            y="value"
+            xlab="Date"
+            ylab=null
+          />
+        </div>
       </Section>
     </main>
     <div id="dashboard-footer" class="bg-dark footer">
@@ -60,7 +63,7 @@ import Header from './components/Header.vue'
 import Section from './components/Section.vue'
 import DataHighlightContainer from './components/DataHighlightContainer.vue'
 import DataHighlightBox from './components/DataHighlightBox.vue'
-import GroupedLineChart from './components/VizGroupedLineChart.vue'
+import GroupedTimeSeries from './components/GroupedTimeSeries.vue'
 
 export default {
   data () {
@@ -78,7 +81,7 @@ export default {
     Section,
     DataHighlightBox,
     DataHighlightContainer,
-    GroupedLineChart
+    GroupedTimeSeries
   },
   methods: {
     async fetchReportData () {
@@ -98,24 +101,24 @@ export default {
     },
     transformReportData (data) {
       const reportData = []
-      data.items.map((item, index) => {
+      data.items.forEach((item, index) => {
         reportData.push(
           {
             group: 'subjects',
             index: index,
-            date: item.date,
+            date: new Date(item.date),
             value: this.stringAsNumber(item.subjects)
           },
           {
             group: 'samples',
             index: index,
-            date: item.date,
+            date: new Date(item.date),
             value: this.stringAsNumber(item.samples)
           },
           {
             group: 'sequencing',
             index: index,
-            date: item.date,
+            date: new Date(item.date),
             value: this.stringAsNumber(item.sequencing)
           }
         )
@@ -164,6 +167,10 @@ export default {
 }
 
 #data-highlights-section {
+  background: hsl(0, 0%, 86%);
+}
+
+#viz-section {
   background: #f6f6f6;
 }
 
