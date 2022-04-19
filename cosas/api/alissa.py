@@ -31,13 +31,14 @@
 import requests
 import json
 
-
 class Alissa:
     def __init__(self, host):
         """Alissa Interpret Public API (v5.3)
         A mini api client to get molecular variant information per patient.
 
         @param host The url of your Alissa Interpret instance
+        
+        @reference Alissa Interpret Public API documentation v5.3
         @return class
         """
         self.session = requests.Session()
@@ -55,6 +56,20 @@ class Alissa:
             for key in parameters.keys()
             if (key != 'self') and (parameters[key] is not None)
         )
+    
+    def _GET(self, url):
+        response = self.session.get(url=url, headers= self._headers)
+        response.raise_for_status()
+        return response.json()
+        
+    def _POST(self, url, data, headers: dict=None):
+        response = self.session.post(
+            url=url,
+            headers=self._headers if headers is not None else headers,
+            data=json.dumps(data)
+        )
+        response.raise_for_status()
+        return response.json()
 
     def login(self, username: str, password: str):
         """Login
@@ -63,31 +78,24 @@ class Alissa:
         @param username client ID
         @param password client secret
 
+        @references Alissa Interpret Public API (v5.3; p5)
         @return status, string containing authorization token
         """
-        try:
-            response = self.session.post(
-                url=self.endpoints.get('login'),
-                headers={
-                    'Content-Types': 'multipart/form-data',
-                    'Authorization': f'Basic {password}'
-                },
-                data={
-                    'grant_type': 'password',
-                    'username': username,
-                    'password': password
-                }
-            )
-            response.raise_for_status()
-            if response.status_code // 100 == 2:
-                print('Logged in as', username)
-                data = response.json()
-                self._token = data.get('access_token')
-                self._headers = {
-                    'Authorization': f"{data.get('token_type')} {data.get('access_token')}"
-                }
-        except requests.exceptions.HTTPError as error:
-            raise SystemError(error)
+        data = self._POST(
+            url=self.endpoints.get('login'),
+            data={
+                'grant_type': 'password',
+                'username': username,
+                'password': password
+            },
+            headers={
+                'Content-Types': 'multipart/form-data',
+                'Authorization': f'Basic {password}'
+            }
+        )
+        print('Logged in as', data.get('user_name'))
+        self._token=data.get('access_token')
+        self._headers['Authorization'] = f"{data.get('token_type')} {data.get('access_token')}"
 
     def getPatients(
         self,
@@ -116,26 +124,16 @@ class Alissa:
         @param lastUpdatedBefore Filter patients with a last updated date before
             the specified date time (ISO 8601 date time format)
         @param lastUpdatedBy User that updated the patient.
-
+        
+        @reference Alissa Interpret Public API (v5.3; p21)
         @return dictionary containing one or more patient records
         """
         apiQueryString = self._argsToStringParameters(locals())
         url = self.endpoints.get('patients')
         if apiQueryString:
             url = f'{url}?{apiQueryString}'
-
-        try:
-            response = self.session.get(
-                url=url,
-                headers=self._headers
-            )
-            response.raise_for_status()
-            if response.status_code // 100 == 2:
-                data = response.json()
-                print('Returned', len(data), 'records')
-                return data
-        except requests.exceptions.HTTPError as error:
-            raise SystemError(error)
+        data = self._GET(url=url)
+        return data
 
     def getPatientAnalyses(self, patientId: str) -> dict:
         """Get Analyses of Patient
@@ -143,18 +141,12 @@ class Alissa:
 
         @param patientId The unique internal identifier of the patient
 
+        @reference Alissa Interpret Public API (v5.3; p42)
         @return dictionary containing metadata for one or more analyses
         """
         url = f"{self.endpoints.get('patients')}/patientId/analyses"
-        try:
-            response = self.session.get(url=url, headers=self._headers)
-            response.raise_for_status()
-            if response.status_code // 100 == 2:
-                data = response.json()
-                print('Returned', len(data), 'records')
-                return data
-        except requests.exceptions.HTTPError as error:
-            raise SystemError(error)
+        data = self._GET(url=url)
+        return data
 
     def getPatientVariantExportId(self, analysisId: int, markedForReview: bool = None, markedIncludeInReport: bool = None) -> dict:
         """Request Patient Molecular Variants Export
@@ -165,6 +157,7 @@ class Alissa:
         @param markedForReview Is the variant marked for review
         @param markedIncludeInReport Is the variant included in the report
 
+        @reference Alissa Interpret Public API (v5.3; p44)
         @param dictionary containing the export identifier
         """
         url = f"{self.endpoints.get('patient_analyses')}/{analysisId}/molecular_variants/exports"
@@ -174,19 +167,10 @@ class Alissa:
             data['markedForReview'] = markedForReview
         if markedIncludeInReport is not None:
             data['markedIncludeInReport'] = markedIncludeInReport
-
-        try:
-            response = self.session.post(
-                url=url,
-                headers=self._headers,
-                data=json.dumps(data)
-            )
-            response.raise_for_status()
-            if response.status_code // 100 == 2:
-                data = response.json()
-                return data.get('exportId')
-        except requests.exceptions.HTTPError as error:
-            raise SystemError(error)
+        
+        data = self._POST(url=url,data=data)
+        # return data.get('exportId')
+        return data
 
     def getPatientVariantExportData(self, analysisId: int, exportId: str) -> dict:
         """Get Patient Molecular Variants Export
@@ -196,14 +180,10 @@ class Alissa:
         @param analysisId The unique internal identifier of an analysis
         @param exportId The unique internal identifier of the export
 
+        @reference Alissa Interpret Public API (v5.3; p45)
         @return dictionary containing the molecular variant export data from a
             single analysis of one patient
         """
         url = f"{self.endpoints.get('patient_analyses')}/{analysisId}/molecular_variants/exports/{exportId}"
-        try:
-            response = self.session.get(url=url, headers=self._headers)
-            response.raise_for_status()
-            if response.status_code // 100 == 2:
-                return response.json()
-        except requests.exceptions.HTTPError as error:
-            raise SystemError(error)
+        data = self._GET(url=url)
+        return data
