@@ -2,7 +2,7 @@
 #' FILE: cosasreports_lookups.yaml
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-02-14
-#' MODIFIED: 2022-03-03
+#' MODIFIED: 2022-04-19
 #' PURPOSE: EMX for logging COSAS jobs
 #' STATUS: stable
 #' PACKAGES: NA
@@ -250,3 +250,20 @@ entities:
         codesystem: NCIT
         code: C47896
         iri: http://purl.obolibrary.org/obo/NCIT_C47896
+        
+  - name: keytypes
+    description: A database key is an informational entity whose value is constructed from one or more database columns.
+    tags: http://semanticscience.org/resource/SIO_000762
+    extends: cosasreports_refs_template
+    data: 
+      - value: foreign database key
+        description: A foreign database key is a database key that refers to a key in some table.
+        codesystem: SIO
+        code: 000764
+        iri: http://semanticscience.org/resource/SIO_000764
+      
+      - value: primary database key
+        description: A primary database key is a database key that identifies every row of a table.
+        codesystem: SIO
+        code: 000763
+        iri: http://semanticscience.org/resource/SIO_000763

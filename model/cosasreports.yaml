@@ -14,8 +14,8 @@ name: cosasreports
 label: COSAS Reports
 description: Reports on COSAS jobs, imports, and processing
 tags: http://purl.obolibrary.org/obo/NCIT_C82964
-version: 1.2.0
-date: 2022-03-02
+version: 1.4.0
+date: 2022-04-19
 
 # set defaults
 defaults:
@@ -179,4 +179,58 @@ entities:
         description: A written explanation, observation or criticism added to textual material.
         tags: http://purl.obolibrary.org/obo/NCIT_C25393
         dataType: text
-       
+  
+  - name: attributesummary
+    label: COSAS Attribute Summary
+    description: Summary of attributes used by COSAS table and the percentage of available data
+    tags: http://purl.allotrope.org/ontologies/result#AFR_0001213
+    attributes:
+      
+      - name: identifier
+        description: One or more characters used to identify, name, or characterize the nature, properties, or contents of a thing.
+        tags: http://purl.obolibrary.org/obo/NCIT_C25364
+        dataType: int
+        idAttribute: true
+        nillable: false
+      
+      - name: dateLastUpdated
+        description: A data item that indicates the time when data about the sample collection was last updated in a database.
+        tags: http://purl.obolibrary.org/obo/OBIB_0000681
+        dataType: date
+        
+      - name: databaseTable
+        description: A database table is a set of named columns with zero or more rows composed of cells that contain column values and is part of a database.
+        tags: http://semanticscience.org/resource/SIO_000754
+        dataType: string
+      
+      - name: databaseColumn
+        description: A database collumn is a column in a database table.
+        tags: http://semanticscience.org/resource/SIO_000757
+        dataType: string
+        
+      - name: databaseKey
+        description: A database key is an informational entity whose value is constructed from one or more database columns.
+        tags: http://semanticscience.org/resource/SIO_000762
+        dataType: xref
+        refEntity: cosasreports_refs_keytypes
+        
+      - name: countOfValues
+        description: Determining the number or amount of something.
+        tags: http://purl.obolibrary.org/obo/NCIT_C25463
+        dataType: int
+        
+      - name: totalValues
+        description: Pertaining to an entirety or whole, also constituting the full quantity or extent; complete; derived by addition.
+        tags: http://purl.obolibrary.org/obo/NCIT_C25304
+        dataType: int
+        
+      - name: differenceInValues
+        description: The quality of being unlike or dissimilar.
+        tags: http://purl.obolibrary.org/obo/NCIT_C46003
+        dataType: int
+        
+      - name: percentComplete
+        description: A fraction or ratio with 100 understood as the denominator.
+        tags: http://purl.obolibrary.org/obo/NCIT_C25613
+        dataType: decimal
+    

@@ -4,7 +4,7 @@
 
 | Name | Description | Parent |
 |:---- |:-----------|:------|
-| cosasreports | Reports on COSAS jobs, imports, and processing (v1.2.0, 2022-03-02) | - |
+| cosasreports | Reports on COSAS jobs, imports, and processing (v1.4.0, 2022-04-19) | - |
 | cosasreports_refs | Reference tables for COSAS Reports | cosasreports |
 
 ## Entities
@@ -13,9 +13,11 @@
 |:---- |:-----------|:-------|
 | imports | Historical records of daily COSAS imports | cosasreports |
 | processingsteps | Historical records of steps involved in the processing of daily cosas jobs | cosasreports |
+| attributesummary | Summary of attributes used by COSAS table and the percentage of available data | cosasreports |
 | template | - | cosasreports_refs |
 | datahandling | Basic (non-analytical) operations of some data, either a file or equivalent entity in memory, such that the same basic type of data is consumed as input and generated as output. | cosasreports_refs |
 | status | A condition or state at a particular time. | cosasreports_refs |
+| keytypes | A database key is an informational entity whose value is constructed from one or more database columns. | cosasreports_refs |
 
 ## Attributes
 
@@ -58,6 +60,22 @@ Historical records of steps involved in the processing of daily cosas jobs
 | elapsedTime | - | The interval between two reference points in time. (in milliseconds) | decimal |
 | status | - | A condition or state at a particular time. | xref |
 | comment | - | A written explanation, observation or criticism added to textual material. | text |
+
+### Entity: cosasreports_attributesummary
+
+Summary of attributes used by COSAS table and the percentage of available data
+
+| Name | Label | Description | Data Type |
+|:---- |:-----|:-----------|:---------|
+| identifier&#8251; | - | One or more characters used to identify, name, or characterize the nature, properties, or contents of a thing. | int |
+| dateLastUpdated | - | A data item that indicates the time when data about the sample collection was last updated in a database. | date |
+| databaseTable | - | A database table is a set of named columns with zero or more rows composed of cells that contain column values and is part of a database. | string |
+| databaseColumn | - | A database collumn is a column in a database table. | string |
+| databaseKey | - | A database key is an informational entity whose value is constructed from one or more database columns. | xref |
+| countOfValues | - | Determining the number or amount of something. | int |
+| totalValues | - | Pertaining to an entirety or whole, also constituting the full quantity or extent; complete; derived by addition. | int |
+| differenceInValues | - | The quality of being unlike or dissimilar. | int |
+| percentComplete | - | A fraction or ratio with 100 understood as the denominator. | decimal |
 
 ### Entity: cosasreports_refs_template
 
