@@ -2,15 +2,16 @@
 #' FILE: cosasreports_attribute_summary.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-04-19
-#' MODIFIED: 2022-04-19
+#' MODIFIED: 2022-04-20
 #' PURPOSE: generate a coverage report of all attributes in COSAS
 #' STATUS: experimental
 #' PACKAGES: **see below**
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
-import molgenis.client as molgenis
+import molgenis.client as Molgenis
 from datatable import dt,f
+import numpy as np
 import re
 
 # for local dev
@@ -22,9 +23,6 @@ host=environ['MOLGENIS_HOST_ACC']
 token=environ['MOLGENIS_TOKEN_ACC']
 # host='http://localhost/api'
 # token='${molgenisToken}'
-
-cosas=molgenis.Session(url=host, token=token)
-
 
 def summarizeData(tablename, data) -> dict:
     """Summarize Data
@@ -100,7 +98,10 @@ cosasTables={
 # ~ 1 ~
 # GET INPUT DATA
 # Fetch all data from the UMDM schema and flatten attributes
+
 print('Preparing data....')
+cosas=Molgenis(url=host,token=token)
+
 
 # ~ 1a ~
 # Get Data
@@ -202,24 +203,46 @@ cosasSummary.append(summarizeData('sequencing', sequencing))
 
 cosasSummaryDT = dt.Frame(cosasSummary)
 
-
 # ~ 2b ~
 # Add and transform columns
 
 # add row identifier
+print('Setting unique identifiers....')
 cosasSummaryDT['identifier'] = dt.Frame([
     f'{row[0]}_{row[1]}'
     for row in cosasSummaryDT[:, (f.databaseTable, f.databaseColumn)].to_tuples()
 ])
 
-# find the number of missing values (i.e., None) and calcuate percent coverage
-cosasSummaryDT[['differenceInValues', 'percentComplete']] = dt.Frame([
-    (row[1] - row[0], row[0] / row[1])
+# find the number of missing values (i.e., None)
+print('Calculating difference in values (total - count)....')
+cosasSummaryDT['differenceInValues'] = dt.Frame([
+    row[1] - row[0]
     for row in cosasSummaryDT[:, (f.countOfValues, f.totalValues)].to_tuples()
 ])
 
-# determine key type
+# calculate the percentage of coverage (i.e., how many values out of the total)
+print('Calculating percentage of coverage (count / total)....')
+cosasSummaryDT['percentComplete'] = dt.Frame([
+    row[0] / row[1]
+    for row in cosasSummaryDT[:, (f.countOfValues, f.totalValues)].to_tuples()
+])
+
+
+# set key type based on the presence of 'belongs' and 'ID'
+print('Determining key type....')
 cosasSummary['databaseKey'] = dt.Frame([
-    'foreign database key' if re.search(r'^(belong)', value) else ('primary database key' if re.search(r'(ID)$', value) else None)
+    'foreign database key' if re.search(r'^(belong)', value) else (
+        'primary database key' if re.search(r'(ID)$', value) else None
+    )
     for value in cosasSummaryDT[:, f.databaseColumn].to_list()[0]
 ])
+
+#//////////////////////////////////////////////////////////////////////////////
+
+# ~ 3 ~
+# Import
+
+print('Importing data....')
+importData = cosasSummaryDT.to_pandas().replace({np.nan: None}).to_dict('records')
+cosas.delete(entity='cosasreports_attributesummary')
+cosas.add_all(entity='cosasreports_attributesummary', entities=importData)
