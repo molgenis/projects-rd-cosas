@@ -67,7 +67,7 @@ Summary of attributes used by COSAS table and the percentage of available data
 
 | Name | Label | Description | Data Type |
 |:---- |:-----|:-----------|:---------|
-| identifier&#8251; | - | One or more characters used to identify, name, or characterize the nature, properties, or contents of a thing. | int |
+| identifier&#8251; | - | One or more characters used to identify, name, or characterize the nature, properties, or contents of a thing. | string |
 | dateLastUpdated | - | A data item that indicates the time when data about the sample collection was last updated in a database. | date |
 | databaseTable | - | A database table is a set of named columns with zero or more rows composed of cells that contain column values and is part of a database. | string |
 | databaseColumn | - | A database collumn is a column in a database table. | string |
