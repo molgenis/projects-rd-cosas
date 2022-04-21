@@ -33,8 +33,13 @@
       <Section id="viz">
         <div class="col-sm-12 col-md-10">
           <h2>Database over the last 30 days</h2>
-          <p>Data is imported into COSAS at regular intervals. The following table displays the change in values over the last 30 days.</p>
-          <p>For more information, see the <a href="/menu/plugins/dataexplorer?entity=cosasreports_imports&hideselect=true">Daily Import</a>table to view the raw data.</p>
+          <p>Data is imported into COSAS at regular intervals. The following table displays the change in values over the last 30 days. For more information, see the <a href="/menu/plugins/dataexplorer?entity=cosasreports_imports&hideselect=true">Daily Import</a> table to view the raw data.</p>
+          <DataTable
+            tableId="daily-import-summary"
+            :data="dailyImportSummary"
+            caption="Growth of the COSAS database over the last 30 days"
+            :columnOrder="['category','startingValue','finalValue', 'difference']"
+          />
         </div>
       </Section>
     </main>
@@ -53,11 +58,13 @@ import Header from './components/Header.vue'
 import Section from './components/Section.vue'
 import DataHighlightContainer from './components/DataHighlightContainer.vue'
 import DataHighlightBox from './components/DataHighlightBox.vue'
+import DataTable from './components/Table.vue'
+
 export default {
   data () {
     return {
-      reportData: [],
-      earliestItem: {},
+      dailyImportSummary: [],
+      mostRecentImport: {},
       images: {
         logo: require('../src/assets/Logo_Blue_Small.png'),
         dashboardImage: require('../src/assets/stairs.jpg')
@@ -68,78 +75,59 @@ export default {
     Header,
     Section,
     DataHighlightBox,
-    DataHighlightContainer
+    DataHighlightContainer,
+    DataTable
   },
   methods: {
-    async fetchReportData () {
-      const response = await fetch('/api/v2/cosasreports_imports?sort=date:desc&num=30')
-      const data = await response.json()
-      return data
-    },
-    async fetchAttributeSummaryData () {
-      const response = await fetch('/api/v2/cosasreports_attributesummary')
+    async fetchData (url) {
+      const response = await fetch(url)
       const data = await response.json()
       return data
     },
     setMostRecentItem (data) {
-      const mostRecentItem = data.items[0]
-      mostRecentItem.subjects = mostRecentItem.subjects.toLocaleString('en')
-      mostRecentItem.samples = mostRecentItem.samples.toLocaleString('en')
-      mostRecentItem.sequencing = mostRecentItem.sequencing.toLocaleString('en')
-      this.mostRecentImport = mostRecentItem
+      const firstRow = data.items[0]
+      firstRow.subjects = firstRow.subjects.toLocaleString('en')
+      firstRow.samples = firstRow.samples.toLocaleString('en')
+      firstRow.sequencing = firstRow.sequencing.toLocaleString('en')
+      this.mostRecentImport = firstRow
+    },
+    minDate (data, dateVar) {
+      return new Date(Math.min(...data.map(row => new Date(row[dateVar]))))
+    },
+    maxDate (data, dateVar) {
+      return new Date(Math.max(...data.map(row => new Date(row[dateVar]))))
     },
     stringAsNumber (value) {
       return typeof value === 'string' ? parseFloat(value.replace(/,/g, '')) : value
     },
-    transformReportData (data) {
-      const reportData = []
-      const dateByMaxAndMinDates = [data.items[0], data.items[data.items.length - 1]]
-      dateByMaxAndMinDates.forEach(row => {
-        Object.keys(row).forEach(key => {
-          if (['subjects', 'samples', 'sequencing'].indexOf(key) > -1) {
-            reportData.push({
-              category: key,
-              date: new Date(row.date),
-              value: this.stringAsNumber(row[key])
-            })
-          }
-        })
-      })
-      // const dateRange = dateByMaxAndMinDates.map(row => row.date)
+    transformImportData (data) {
+      const dateRange = {
+        min: this.minDate(data.items, 'date').toISOString().split('T')[0],
+        max: this.maxDate(data.items, 'date').toISOString().split('T')[0]
+      }
+      const dataFiltered = {
+        min: data.items.filter(row => row.date === dateRange.min),
+        max: data.items.filter(row => row.date === dateRange.max)
+      }
       
-      // data.items.forEach((item, index) => {
-      //   reportData.push(
-      //     {
-      //       group: 'subjects',
-      //       index: index,
-      //       date: new Date(item.date),
-      //       value: this.stringAsNumber(item.subjects)
-      //     },
-      //     {
-      //       group: 'samples',
-      //       index: index,
-      //       date: new Date(item.date),
-      //       value: this.stringAsNumber(item.samples)
-      //     },
-      //     {
-      //       group: 'sequencing',
-      //       index: index,
-      //       date: new Date(item.date),
-      //       value: this.stringAsNumber(item.sequencing)
-      //     }
-      //   )
-      // })
-      this.reportData = reportData
+      const columns = ['subjects', 'samples', 'sequencing']
+      this.dailyImportSummary = columns.map(column => {
+        const row = {
+          category: column,
+          startingValue: this.stringAsNumber(dataFiltered.min[0][column]),
+          finalValue: this.stringAsNumber(dataFiltered.max[0][column])
+        }
+        row.difference = row.finalValue - row.startingValue
+        return row
+      })
     }
   },
   mounted () {
     Promise.all([
-      this.fetchReportData(),
-      this.fetchAttributeSummaryData()
-    ]).then((dailyImportData, attributeSummaryData) => {
+      this.fetchData('/api/v2/cosasreports_imports?sort=date:desc&num=30')
+    ]).then((dailyImportData) => {
       this.setMostRecentItem(dailyImportData[0])
-      this.setEarlistItem(dailyImportData[0])
-      this.transformReportData(attributeSummaryData[0])
+      this.transformImportData(dailyImportData[0])
     })
   }
 }
