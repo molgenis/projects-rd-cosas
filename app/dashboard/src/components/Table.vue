@@ -54,7 +54,7 @@ export default {
         .append('tr')
         
       // for each row in the input data, create <td> element
-      const tableCells = tableRows.selectAl('tr')
+      const tableCells = tableRows.selectAll('tr')
         .data(row => {
           return this.columnOrder.map(column => {
             return { column: column, value: row[column] }
@@ -81,8 +81,14 @@ export default {
         return css
       })
     }
+  },
+  watch: {
+    data () {
+      if (this.data) {
+        this.renderTable()
+      }
+    }
   }
-
 }
 </script>
 
@@ -102,7 +108,7 @@ $text-default: #3f454b;
     
     .datatable-caption {
       caption-side: top;
-      font-size: 16pt;
+      font-size: 14pt;
       margin: 12px 0;
       font-size: 600;
       color: $text-dark;
