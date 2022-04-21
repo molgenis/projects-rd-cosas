@@ -9,20 +9,21 @@
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
-import molgenis.client as Molgenis
+import molgenis.client as molgenis
+from datetime import datetime
 from datatable import dt,f
 import numpy as np
 import re
 
 # for local dev
-from dotenv import load_dotenv
-from os import environ
-load_dotenv()
+# from dotenv import load_dotenv
+# from os import environ
+# load_dotenv()
+# host=environ['MOLGENIS_HOST_ACC']
+# token=environ['MOLGENIS_TOKEN_ACC']
 
-host=environ['MOLGENIS_HOST_ACC']
-token=environ['MOLGENIS_TOKEN_ACC']
-# host='http://localhost/api'
-# token='${molgenisToken}'
+host='http://localhost/api'
+token='${molgenisToken}'
 
 def summarizeData(tablename, data) -> dict:
     """Summarize Data
@@ -100,7 +101,7 @@ cosasTables={
 # Fetch all data from the UMDM schema and flatten attributes
 
 print('Preparing data....')
-cosas=Molgenis(url=host,token=token)
+cosas=molgenis.Session(url=host,token=token)
 
 
 # ~ 1a ~
@@ -114,7 +115,7 @@ subjectData = cosas.get(
 )
 
 clinicalData = cosas.get(
-    entity='umdm_clincial',
+    entity='umdm_clinical',
     batch_size=10000,
     attributes=','.join(cosasTables['clinical'])
 )
@@ -150,9 +151,9 @@ for row in subjectData:
 
 for row in clinicalData:
     row['belongsToSubject'] = row.get('belongsToSubject',{}).get('subjectID')
-    row['observedPhenotype'] = len(row.get('observedPhenotype'))
-    row['unobservedPhenotype'] = len(row.get('unobservedPhenotype'))
-    row['provisionPhenotype'] = len(row.get('provisionPhenotype'))
+    row['observedPhenotype'] = len(row.get('observedPhenotype')) if row.get('observedPhenotype') is not None else None
+    row['unobservedPhenotype'] = len(row.get('unobservedPhenotype')) if row.get('unobservedPhenotype') is not None else None
+    row['provisionalPhenotype'] = len(row.get('provisionalPhenotype')) if row.get('provisionalPhenotype') is not None else None
     
 for row in samplesData:
     row['belongsToSubject'] = row.get('belongsToSubject',{}).get('subjectID')
@@ -196,10 +197,10 @@ del sequencing['_href']
 
 print('Summarizing data....')
 cosasSummary=summarizeData('subjects', subjects)
-cosasSummary.append(summarizeData('clinical', clinical))
-cosasSummary.append(summarizeData('samples', samples))
-cosasSummary.append(summarizeData('samplePreparation', samplePrep))
-cosasSummary.append(summarizeData('sequencing', sequencing))
+cosasSummary.extend(summarizeData('clinical', clinical))
+cosasSummary.extend(summarizeData('samples', samples))
+cosasSummary.extend(summarizeData('samplePreparation', samplePrep))
+cosasSummary.extend(summarizeData('sequencing', sequencing))
 
 cosasSummaryDT = dt.Frame(cosasSummary)
 
@@ -223,24 +224,29 @@ cosasSummaryDT['differenceInValues'] = dt.Frame([
 # calculate the percentage of coverage (i.e., how many values out of the total)
 print('Calculating percentage of coverage (count / total)....')
 cosasSummaryDT['percentComplete'] = dt.Frame([
-    row[0] / row[1]
+    round(row[0] / row[1], 2)
     for row in cosasSummaryDT[:, (f.countOfValues, f.totalValues)].to_tuples()
 ])
 
 
 # set key type based on the presence of 'belongs' and 'ID'
 print('Determining key type....')
-cosasSummary['databaseKey'] = dt.Frame([
-    'foreign database key' if re.search(r'^(belong)', value) else (
+cosasSummaryDT['databaseKey'] = dt.Frame([
+    'foreign database key' if re.search(r'(belong|Phenotype|Organization|subjectStatus|reference|sequencingInstrument|sequencingPlatform|Type|reasonFor)', value) else (
         'primary database key' if re.search(r'(ID)$', value) else None
     )
     for value in cosasSummaryDT[:, f.databaseColumn].to_list()[0]
 ])
 
+# set date last updated
+cosasSummaryDT['dateLastUpdated'] = datetime.utcnow().strftime('%Y-%m-%d')
+
 #//////////////////////////////////////////////////////////////////////////////
 
 # ~ 3 ~
 # Import
+
+# cosasSummaryDT.to_csv('_data/cosasreports_attributesummary.csv')
 
 print('Importing data....')
 importData = cosasSummaryDT.to_pandas().replace({np.nan: None}).to_dict('records')
