@@ -32,19 +32,9 @@
       </Section>
       <Section id="viz">
         <div class="col-sm-12 col-md-10">
-          <h2>Database at a glance</h2>
-          <p>Data is imported into COSAS every day. The following chart shows the change in the total number of subjects, samples, and sequences over the last 30 days. This chart is meant to give an indication of the growth. Actually growth may be difficult to detect visually as the difference between days may be very minimal (i.e., less than 100 cases). Please consult the reports table <a href="/menu/plugins/dataexplorer?entity=cosasreports_imports&hideselect=true">Daily Import </a> to view the raw data.</p>
-        </div>
-        <div class="col-sm-9">
-          <GroupedTimeSeries
-            chartId="daily-imports-timeseries"
-            :data="reportData"
-            group="group"
-            x="date"
-            y="value"
-            xlab="Date"
-            ylab=null
-          />
+          <h2>Database over the last 30 days</h2>
+          <p>Data is imported into COSAS at regular intervals. The following table displays the change in values over the last 30 days.</p>
+          <p>For more information, see the <a href="/menu/plugins/dataexplorer?entity=cosasreports_imports&hideselect=true">Daily Import</a>table to view the raw data.</p>
         </div>
       </Section>
     </main>
@@ -63,13 +53,11 @@ import Header from './components/Header.vue'
 import Section from './components/Section.vue'
 import DataHighlightContainer from './components/DataHighlightContainer.vue'
 import DataHighlightBox from './components/DataHighlightBox.vue'
-import GroupedTimeSeries from './components/GroupedTimeSeries.vue'
-
 export default {
   data () {
     return {
       reportData: [],
-      mostRecentImport: {},
+      earliestItem: {},
       images: {
         logo: require('../src/assets/Logo_Blue_Small.png'),
         dashboardImage: require('../src/assets/stairs.jpg')
@@ -80,12 +68,16 @@ export default {
     Header,
     Section,
     DataHighlightBox,
-    DataHighlightContainer,
-    GroupedTimeSeries
+    DataHighlightContainer
   },
   methods: {
     async fetchReportData () {
       const response = await fetch('/api/v2/cosasreports_imports?sort=date:desc&num=30')
+      const data = await response.json()
+      return data
+    },
+    async fetchAttributeSummaryData () {
+      const response = await fetch('/api/v2/cosasreports_attributesummary')
       const data = await response.json()
       return data
     },
@@ -101,37 +93,53 @@ export default {
     },
     transformReportData (data) {
       const reportData = []
-      data.items.forEach((item, index) => {
-        reportData.push(
-          {
-            group: 'subjects',
-            index: index,
-            date: new Date(item.date),
-            value: this.stringAsNumber(item.subjects)
-          },
-          {
-            group: 'samples',
-            index: index,
-            date: new Date(item.date),
-            value: this.stringAsNumber(item.samples)
-          },
-          {
-            group: 'sequencing',
-            index: index,
-            date: new Date(item.date),
-            value: this.stringAsNumber(item.sequencing)
+      const dateByMaxAndMinDates = [data.items[0], data.items[data.items.length - 1]]
+      dateByMaxAndMinDates.forEach(row => {
+        Object.keys(row).forEach(key => {
+          if (['subjects', 'samples', 'sequencing'].indexOf(key) > -1) {
+            reportData.push({
+              category: key,
+              date: new Date(row.date),
+              value: this.stringAsNumber(row[key])
+            })
           }
-        )
+        })
       })
+      // const dateRange = dateByMaxAndMinDates.map(row => row.date)
+      
+      // data.items.forEach((item, index) => {
+      //   reportData.push(
+      //     {
+      //       group: 'subjects',
+      //       index: index,
+      //       date: new Date(item.date),
+      //       value: this.stringAsNumber(item.subjects)
+      //     },
+      //     {
+      //       group: 'samples',
+      //       index: index,
+      //       date: new Date(item.date),
+      //       value: this.stringAsNumber(item.samples)
+      //     },
+      //     {
+      //       group: 'sequencing',
+      //       index: index,
+      //       date: new Date(item.date),
+      //       value: this.stringAsNumber(item.sequencing)
+      //     }
+      //   )
+      // })
       this.reportData = reportData
     }
   },
   mounted () {
     Promise.all([
-      this.fetchReportData()
-    ]).then((data) => {
-      this.setMostRecentItem(data[0])
-      this.transformReportData(data[0])
+      this.fetchReportData(),
+      this.fetchAttributeSummaryData()
+    ]).then((dailyImportData, attributeSummaryData) => {
+      this.setMostRecentItem(dailyImportData[0])
+      this.setEarlistItem(dailyImportData[0])
+      this.transformReportData(attributeSummaryData[0])
     })
   }
 }
