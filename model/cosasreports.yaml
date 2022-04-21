@@ -189,7 +189,7 @@ entities:
       - name: identifier
         description: One or more characters used to identify, name, or characterize the nature, properties, or contents of a thing.
         tags: http://purl.obolibrary.org/obo/NCIT_C25364
-        dataType: int
+        dataType: string
         idAttribute: true
         nillable: false
       

@@ -35,7 +35,7 @@ for model in emxConfig.get('models'):
         m.write(model['name'], format='xlsx',outDir=emxConfig['outputPaths'].get('main'))
         m.write_schema(path=f"{emxConfig['outputPaths'].get('schemas')}/{model['name']}_schema.md")
     
-        for file in model.get('paths'):
+        for file in model.get('files'):
             print('Generating EMX2 version')
             m2 = yamlemxconvert.Convert2(file = file)
             m2.convert()
