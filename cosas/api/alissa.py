@@ -2,7 +2,7 @@
 # FILE: alissa.py
 # AUTHOR: David Ruvolo
 # CREATED: 2022-04-13
-# MODIFIED: 2022-04-13
+# MODIFIED: 2022-04-22
 # PURPOSE: custom Alissa public api client
 # STATUS: experimental
 # PACKAGES: requests
@@ -26,76 +26,89 @@
 # All Alissa Public API parameters listed in the documentation are supported.
 # Each method returns all records unless filters have been supplied. Additional
 # processing can be done in between each request.
+#
+# This script was adapted from the Alissa Interpret Client written by the
+# UMCU Genetics GitHub Organisation. In that version, it didn't quite work
+# for out use case as either some of the endpoints have changed since the
+# last release or they are using a different version.
+# https://github.com/UMCUGenetics/alissa_interpret_client/blob/main/alissa_interpret_client/alissa_interpret.py
 # ////////////////////////////////////////////////////////////////////////////
 
-import requests
-import json
+from oauthlib.oauth2 import LegacyApplicationClient
+from requests_oauthlib import OAuth2Session
 
 class Alissa:
-    def __init__(self, host):
-        """Alissa Interpret Public API (v5.3)
+    """Alissa Interpret Public API (v5.3)"""
+    
+    def __init__(self, host, clientId, clientSecret, username, password):
+        """Create new instance of the client
         A mini api client to get molecular variant information per patient.
 
         @param host The url of your Alissa Interpret instance
+        @param clientId provided by Alissa Support
+        @param clientSecret provided by Alissa Support
+        @param username username of the API account
+        @param password password of the API account
         
         @reference Alissa Interpret Public API documentation v5.3
         @return class
         """
-        self.session = requests.Session()
-        self.host = host
-        self.endpoints = {
-            'login': f'{self.host}/auth/oauth/token',
-            'patients': f'{self.host}/api/2/patients',
-            'patient_analyses': f'{self.host}/api/2/patient_analyses/'
-        }
-        self._headers = {}
-
-    def _argsToStringParameters(self, parameters: dict) -> str:
-        return '&'.join(
-            f'q={key}={parameters[key]}'
-            for key in parameters.keys()
-            if (key != 'self') and (parameters[key] is not None)
+        self.host=host
+        self.apiUrl=f"{host}/interpret/api/2"
+        self.session=OAuth2Session(client=LegacyApplicationClient(client_id=clientId))
+        self.session.fetch_token(
+            token_url=f"{host}/auth/oauth/token",
+            username=username,
+            password=password,
+            client_id=clientId,
+            client_secret=clientSecret
         )
+        
+        
+        if self.session.access_token:
+            print('Connected to', host, 'as', username)
+        else:
+            print('Unable to connect to', host, 'as', username)
+        
+
+    def _formatOptionalParams(self, params: dict=None) -> dict:
+        """Format Optional Parameters
+        
+        @param params dictionary containg one or more parameter
+        @return dict
+        """
+        return {
+            key: params[key]
+            for key in params.keys()
+            if (key != 'self') and (params[key] is not None)
+        }
     
-    def _GET(self, url):
-        response = self.session.get(url=url, headers= self._headers)
+    def _get(self, endpoint, params=None, **kwargs):
+        """GET
+
+        @param endpoint the Alissa Interpret endpoint where data should be
+            sent to. The path "/interpret/api/2" is prefilled.
+        @param params Optional parameters to add to the request
+
+        """
+        uri = f'{self.apiUrl}/{endpoint}'
+        response = self.session.get(uri, params=params, **kwargs)
         response.raise_for_status()
         return response.json()
         
-    def _POST(self, url, data, headers: dict=None):
-        response = self.session.post(
-            url=url,
-            headers=self._headers if headers is not None else headers,
-            data=json.dumps(data)
-        )
+    def _post(self, endpoint, data=None, json=None, **kwargs):
+        """POST
+        
+        @param endpoint the Alissa Interpret endpoint where data should be
+            sent to. The path "/interpret/api/2" is prefilled.
+        @param data Optional dictionary, list of tuples, bytes, or file-like
+            object
+        @param json Optional json data
+        """
+        uri = f'{self.apiUrl}/{endpoint}'
+        response = self.session.post(uri, data, json, **kwargs)
         response.raise_for_status()
         return response.json()
-
-    def login(self, username: str, password: str):
-        """Login
-        Get Auth token.
-
-        @param username client ID
-        @param password client secret
-
-        @references Alissa Interpret Public API (v5.3; p5)
-        @return status, string containing authorization token
-        """
-        data = self._POST(
-            url=self.endpoints.get('login'),
-            data={
-                'grant_type': 'password',
-                'username': username,
-                'password': password
-            },
-            headers={
-                'Content-Types': 'multipart/form-data',
-                'Authorization': f'Basic {password}'
-            }
-        )
-        print('Logged in as', data.get('user_name'))
-        self._token=data.get('access_token')
-        self._headers['Authorization'] = f"{data.get('token_type')} {data.get('access_token')}"
 
     def getPatients(
         self,
@@ -121,34 +134,32 @@ class Alissa:
         @param familyIdentifier The unique identifier of the family.
         @param lastUpdatedAfter Filter patients with a last updated date after
             the specified date time (ISO 8601 date time format)
-        @param lastUpdatedBefore Filter patients with a last updated date before
-            the specified date time (ISO 8601 date time format)
+        @param lastUpdatedBefore Filter patients with a last updated date
+            before the specified date time (ISO 8601 date time format)
         @param lastUpdatedBy User that updated the patient.
         
         @reference Alissa Interpret Public API (v5.3; p21)
         @return dictionary containing one or more patient records
         """
-        apiQueryString = self._argsToStringParameters(locals())
-        url = self.endpoints.get('patients')
-        if apiQueryString:
-            url = f'{url}?{apiQueryString}'
-        data = self._GET(url=url)
-        return data
+        params = self._formatOptionalParams(params=locals())
+        return self._get(endpoint='patients', params=params)
 
     def getPatientAnalyses(self, patientId: str) -> dict:
         """Get Analyses of Patient
-        Get all analyses of a patient
 
         @param patientId The unique internal identifier of the patient
 
         @reference Alissa Interpret Public API (v5.3; p42)
         @return dictionary containing metadata for one or more analyses
         """
-        url = f"{self.endpoints.get('patients')}/patientId/analyses"
-        data = self._GET(url=url)
-        return data
+        return self._get(endpoint=f"patients/{patientId}/analyses")
 
-    def getPatientVariantExportId(self, analysisId: int, markedForReview: bool = None, markedIncludeInReport: bool = None) -> dict:
+    def getPatientVariantExportId(
+        self,
+        analysisId: int,
+        markedForReview: bool=False,
+        markedIncludeInReport: bool=False
+    ) -> dict:
         """Request Patient Molecular Variants Export
         Request an export of all variants. When filter criteria are provided,
         the result is limited to the variants matching the criteria.
@@ -160,17 +171,9 @@ class Alissa:
         @reference Alissa Interpret Public API (v5.3; p44)
         @param dictionary containing the export identifier
         """
-        url = f"{self.endpoints.get('patient_analyses')}/{analysisId}/molecular_variants/exports"
-
-        data = {}
-        if markedForReview is not None:
-            data['markedForReview'] = markedForReview
-        if markedIncludeInReport is not None:
-            data['markedIncludeInReport'] = markedIncludeInReport
-        
-        data = self._POST(url=url,data=data)
-        # return data.get('exportId')
-        return data
+        data={'markedForReview': markedForReview, 'markedIncludeInReport': markedIncludeInReport}
+        api=f"patient_analyses/{analysisId}/molecular_variants/exports"
+        return self._post(endpoint=api,json=data)
 
     def getPatientVariantExportData(self, analysisId: int, exportId: str) -> dict:
         """Get Patient Molecular Variants Export
@@ -184,6 +187,5 @@ class Alissa:
         @return dictionary containing the molecular variant export data from a
             single analysis of one patient
         """
-        url = f"{self.endpoints.get('patient_analyses')}/{analysisId}/molecular_variants/exports/{exportId}"
-        data = self._GET(url=url)
-        return data
+        api=f"patient_analyses/{analysisId}/molecular_variants/exports/{exportId}"
+        return self._get(endpoint=api)
