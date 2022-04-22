@@ -2,10 +2,10 @@
 # FILE: alissa.py
 # AUTHOR: David Ruvolo
 # CREATED: 2022-04-19
-# MODIFIED: 2022-04-19
+# MODIFIED: 2022-04-22
 # PURPOSE: fetch data from alissa
 # STATUS: experimental
-# PACKAGES: 
+# PACKAGES: cosas.api.alissa, dotenv, os, requests
 # COMMENTS: The purpose of this script is to extract variant information for
 # all patients, or a subset of patients, from the UMCG instance of Alissa
 # Interpret. To extract classifications, you must run a series of requests.
@@ -28,14 +28,24 @@
 #//////////////////////////////////////////////////////////////////////////////
 
 from cosas.api.alissa import Alissa
-
-# for dev only
 from dotenv import load_dotenv
 from os import environ
+import requests
 load_dotenv()
 
-db = Alissa(environ['ALISSA_HOST'])
-db.login(username='druvolo',password=environ['ALISSA_PASSWORD'])
+# Connect to the UMCG instance of Alissa Interpret
+#
+# NOTE: Credentials are stored in the vault, but you will need your own API
+# username and password. This information can be generated if you have been
+# given admin rights in Alissa.
+#   
+api = Alissa(
+    host=environ['ALISSA_HOST'],
+    clientId=environ['ALISSA_CLIENT_ID'],
+    clientSecret=environ['ALISSA_CLIENT_SECRET'],
+    username=environ['ALISSA_USERNAME'],
+    password=environ['ALISSA_PASSWORD']
+)
 
 
 # ~ 1 ~
@@ -44,41 +54,74 @@ db.login(username='druvolo',password=environ['ALISSA_PASSWORD'])
 # system. Add additional request paramaters as needed or filter data after
 # the request has completed.
 
-patients = db.getPatients()
+# for now, grab a subset patients using ISO 8601 date-time
+patients = api.getPatients(createdAfter="2022-03-01T00:00:00.000+00:00")
+patientIdentifiers=[patient['id'] for patient in patients]
+
 
 # ~ 2 ~
 # GET ANALYSES BY PATIENT
-# For all patients defined in the previous step, extract all available analysis
-# information
+#
+# For all patient identifiers that were extracted in the previous step, return
+# all analysis identifiers. The analysis ID is required in order to retrieve the
+# molecular variant report identifier. Since we are are only interested in the
+# analysis ID, at this point anyways, every analysis ID are returned. If you
+# would like to get information for a specific analysis type, then apply
+# filters in the 'for' loop. If no analyses were found for patient, then they
+# aren't included in the remaining steps.
 
-# TODO: What is the name of patient- and analysis identifier attribute?
 analysesByPatient = []
-for patient in patients:
-    response = db.getPatientAnalyses(patientId=patient[''])
-    if response.get(''):
-        for analysis in response.get():
+for id in patientIdentifiers:
+    response = api.getPatientAnalyses(patientId=id)
+    if response:
+        for analysis in response:
             analysesByPatient.append({
-                'patientId': patient[''],
-                'analysisId': analysis['']
+                'patientId': id,
+                'analysisId': analysis['id']
             })
+
             
 # ~ 3 ~
 # GET VARIANT EXPORT IDs
+#
 # Using the patient-analysis identifier, get all variant export identifiers.
 # This step will create an object where each row is one patient, analysis, and
-# variant export (long format).
+# variant export (long format). I am not sure if an analysis can have more than
+# one export. I'm not sure if analyses of a patient can have more than one
+# export identifier (I just don't know how their database is structured), but
+# if the response is type list, the data can be handled accordingly.
+#
+# The reason for the try-except is that a patient may have a valid analysis
+# identifier but not records at the molecular export endpoint. If this is the
+# case, the server throws a 404 error. This is most likely the reason for the
+# error. Either way, the patient and analysis IDs are printed so you can
+# follow up with this. These patients-analyses aren't included in the
+# remaining steps.
 
-# TODO: what are the attribute names for patient and analysis identifier?
+
 variantExportsByAnalyses = []
-for analysis in analysesByPatient:
-    response = db.getPatientVariantExportId(analysisId=analysis['analysisId'])
+for row in analysesByPatient:
+    try:
+        response = api.getPatientVariantExportId(analysisId=row['analysisId'])
+    except requests.exceptions.HTTPError as error:
+        print(
+            'For patient',row['patientId'],', the analysisId',
+            row['analysisId'],'exists, but something went wrong.'
+        )
     if response:
-        for export in response:
+        if isinstance(response, dict):
             variantExportsByAnalyses.append({
-                'patientId': analysis.get('patientId'),
-                'analysisId': analysis.get('analysisId'),
-                'exportId': export.get('exportId')
+                'patientId': row['patientId'],
+                'analysisId': row['analysisId'],
+                'exportId': response['exportId']
             })
+        elif isinstance(response, list):
+            for record in response:
+                variantExportsByAnalyses.append({
+                    'patientId': row['patientId'],
+                    'analysisId': row['analysisId'],
+                    'exportId': record['exportId']
+                })
 
 # ~ 4 ~
 # GET VARIANT EXPORT REPORTS
@@ -86,13 +129,16 @@ for analysis in analysesByPatient:
 # to retrieve the variant export report for the patient and analysis.
 
 variantExport = []
-for variantExport in variantExportsByAnalyses:
-    response = db.getPatientVariantExportData(
-        analysisId=variantExport['analysisId'],
-        exportId=variantExport['exportId']
-    )
-    if response:
-        response['patientId'] = variantExport['patientId']
-        response['analysisId'] = variantExport['analysisId']
-        response['exportId'] = variantExport['exportId']
-        variantExport.append(response)
+for row in variantExportsByAnalyses[:2]:
+    try:
+        response = api.getPatientVariantExportData(
+            analysisId=row['analysisId'],
+            exportId=row['exportId']
+        )
+    except requests.exceptions.HTTPError as error:
+        print(
+            'For patient',row['patientId'],', the analysisId',
+            row['analysisId'],'and exportId exists, but something went wrong.'
+        )
+    
+    # do something here
