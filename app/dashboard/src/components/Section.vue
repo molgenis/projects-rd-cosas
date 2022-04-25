@@ -8,7 +8,7 @@
 
 <script>
 export default {
-  name: 'Section',
+  name: 'PageSection',
   props: ['id'],
   computed: {
     setidentifier () {
