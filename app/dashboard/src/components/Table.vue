@@ -66,7 +66,7 @@ export default {
         .text(cell => cell.value)
 
       tableCells.attr('class', cell => {
-        let css = 'data-value'
+        let css = `column-${cell.column} data-value`
         const type = typeof cell.value
         css += ` value-${type}`
         if (type === 'number') {
@@ -104,13 +104,12 @@ $text-default: #3f454b;
 
   .datatable {
     border-spacing: 0;
-    font-size: 13pt;
     
     .datatable-caption {
       caption-side: top;
       font-size: 14pt;
       margin: 12px 0;
-      font-size: 600;
+      font-weight: 600;
       color: $text-dark;
     }
     
@@ -131,6 +130,10 @@ $text-default: #3f454b;
       tr {
         td {
           padding: 16px 12px;
+          
+          &.value-number {
+            text-align: right;
+          }
         }
 
         &:nth-child(even) {
