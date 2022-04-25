@@ -7,9 +7,9 @@
       :imageSrc="images.dashboardImage"
     />
     <main class="dashboard-content">
-      <Section id="data-highlights">
+      <Section id="data-highlights" aria-labelledby="cosas-highlights-title">
         <DataHighlightContainer
-          id="cosas"
+          id="cosas-highlights"
           description="overview of the cosas database: the number of patients, samples, and experiments"
         >
           <DataHighlightBox
@@ -30,9 +30,9 @@
         </DataHighlightContainer>
         <p class="viz-note">Data was last updated on {{ mostRecentImport.date }}</p>
       </Section>
-      <Section id="viz">
+      <Section id="dashboard-cosas-summary" aria-labelledby="dashboard-cosas-summary-title">
         <div class="col-sm-12 col-md-10">
-          <h2>Database over the last 30 days</h2>
+          <h2 id="dashboard-cosas-summary-title">Database over the last 30 days</h2>
           <p>Data is imported into COSAS at regular intervals. The following table displays the change in values over the last 30 days. For more information, see the <a href="/menu/plugins/dataexplorer?entity=cosasreports_imports&hideselect=true">Daily Import</a> table to view the raw data.</p>
           <DataTable
             tableId="daily-import-summary"
@@ -41,6 +41,42 @@
             :columnOrder="['category','startingValue','finalValue', 'difference']"
           />
         </div>
+      </Section>
+      <Section id="dashboard-coverage-report" aria-labelledby="dashboard-coverage-report-title">
+        <h2 id="dashboard-coverage-report-title">COSAS Coverage Report</h2>
+        <p>How much of the COSAS database is used? COSAS has 6 primary tables, 7 secondary tables, and 24 reference tables. To understand how much data is in COSAS, the following tables provide a summary of the primary tables. This includes the columns that are used and how much data is stored in those columns. This data was updated on {{ dateAttributeSummaryDataUpdated }}.</p>
+        <div v-if="attributeSummaryData">
+          <DataTable
+            tableId="subject-attributes"
+            caption="Subject table attributes"
+            :data="attributeSummaryData.subjects"
+            :columnOrder="attributeSummaryColumnOrder"
+          />
+          <DataTable
+            tableId="clinical-attributes"
+            caption="Clinical table attributes"
+            :data="attributeSummaryData.clinical"
+            :columnOrder="attributeSummaryColumnOrder"
+          />
+          <DataTable
+            tableId="samples-attributes"
+            caption="Sample table attributes"
+            :data="attributeSummaryData.samples"
+            :columnOrder="attributeSummaryColumnOrder"
+          />
+          <DataTable
+            tableId="sampleprep-attributes"
+            caption="Sample Preparation table attributes"
+            :data="attributeSummaryData.samplePreparation"
+            :columnOrder="attributeSummaryColumnOrder"
+          />
+          <DataTable
+            tableId="sequencing-attributes"
+            caption="Sequencing table attributes"
+            :data="attributeSummaryData.sequencing"
+            :columnOrder="attributeSummaryColumnOrder"
+          />
+          </div>
       </Section>
     </main>
     <div id="dashboard-footer" class="bg-dark footer">
@@ -65,6 +101,16 @@ export default {
     return {
       dailyImportSummary: [],
       mostRecentImport: {},
+      attributeSummaryData: {},
+      dateAttributeSummaryDataUpdated: null,
+      attributeSummaryColumnOrder: [
+        'column',
+        'expected',
+        'actual',
+        'difference',
+        'complete',
+        'key.type'
+      ],
       images: {
         logo: require('../src/assets/Logo_Blue_Small.png'),
         dashboardImage: require('../src/assets/stairs.jpg')
@@ -120,14 +166,32 @@ export default {
         row.difference = row.finalValue - row.startingValue
         return row
       })
+    },
+    transformAttributeSummaryData (data) {
+      this.dateAttributeSummaryDataUpdated = data.items[0].dateLastUpdated
+      data.items.forEach(row => {
+        if (!this.attributeSummaryData[row.databaseTable]) {
+          this.attributeSummaryData[row.databaseTable] = []
+        }
+        this.attributeSummaryData[row.databaseTable].push({
+          column: row.databaseColumn,
+          actual: row.countOfValues,
+          expected: row.totalValues,
+          difference: row.differenceInValues,
+          complete: `${row.percentComplete * 100}%`,
+          'key.type': row.databaseKey !== undefined ? row.databaseKey.value : ''
+        })
+      })
     }
   },
   mounted () {
     Promise.all([
-      this.fetchData('/api/v2/cosasreports_imports?sort=date:desc&num=30')
-    ]).then((dailyImportData) => {
-      this.setMostRecentItem(dailyImportData[0])
-      this.transformImportData(dailyImportData[0])
+      this.fetchData('/api/v2/cosasreports_imports?sort=date:desc&num=30'),
+      this.fetchData('/api/v2/cosasreports_attributesummary?')
+    ]).then((result) => {
+      this.setMostRecentItem(result[0])
+      this.transformImportData(result[0])
+      this.transformAttributeSummaryData(result[1])
     })
   }
 }
@@ -168,6 +232,19 @@ export default {
 
 #viz-section {
   background: #f6f6f6;
+}
+
+#dashboard-coverage-report-section {
+  table {
+    thead {
+      font-size: 11ppt;
+    }
+    tbody {
+      td.column-complete {
+        text-align: right;
+      }
+    }
+  }
 }
 
 </style>
