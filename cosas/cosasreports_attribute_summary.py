@@ -2,9 +2,9 @@
 #' FILE: cosasreports_attribute_summary.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-04-19
-#' MODIFIED: 2022-04-20
+#' MODIFIED: 2022-04-29
 #' PURPOSE: generate a coverage report of all attributes in COSAS
-#' STATUS: experimental
+#' STATUS: stable
 #' PACKAGES: **see below**
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
