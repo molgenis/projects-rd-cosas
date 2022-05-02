@@ -11,9 +11,8 @@
 #'////////////////////////////////////////////////////////////////////////////
 
 name: cosasmappings
-label: COSAS mappings
+label: COSAS Mappings
 description: Mapping tables for processing raw data into unified model terminology
-parent: cosasportal
 version: 2.0.0
 date: 2022-05-02
 
@@ -47,27 +46,27 @@ entities:
         
   - name: genderidentity
     description: mappings for 'Gender identity'
-    extends: cosasportal_mappings_template
+    extends: cosasmappings_template
     
   - name: genderatbirth
     description: mappings for 'Gender at birth'
-    extends: cosasportal_mappings_template
+    extends: cosasmappings_template
     
   - name: biospecimentype
     description: mappings for 'Biospecimen type'
-    extends: cosasportal_mappings_template
+    extends: cosasmappings_template
 
   - name: samplereason
     description: mappings for 'Reason for sampling'
-    extends: cosasportal_mappings_template
+    extends: cosasmappings_template
 
   - name: sequencerinfo
     description: mappings for 'Sequencer information'
-    extends: cosasportal_mappings_template
+    extends: cosasmappings_template
     
   - name: genomebuild
     description: mappings for 'Genome build'
-    extends: cosasportal_mappings_template
+    extends: cosasmappings_template
       
     # @name: cosasportal_cineasmappings
   - name: cineasmappings
