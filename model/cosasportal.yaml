@@ -12,8 +12,8 @@
 name: cosasportal
 label: COSAS Portal
 description: Staging tables for raw data exports
-version: 1.6.0
-date: 2022-03-28
+version: 1.7.0
+date: 2022-05-02
 
 # define entity level defaults
 defaults:
@@ -236,21 +236,35 @@ entities:
       - name: observedPhenotype
         description: HPO terms provided by Cartagenia 
         dataType: text
-
-  # @name: cosasportal_cineasmappings
-  - name: cineasmappings
-    description: Cineas to HPO mappings
+  
+  # @name cosasportal_files
+  - name: files
+    description: Raw file metadata
     attributes:
-      - name: value
+      - name: id
+        description: auto generated identifier
         idAttribute: true
-        nillable: false
-        unique: true
+        auto: true
+      - name: umcgID
+        description: Internal patient identifier
         dataType: string
-      - name: description
-      
-      - name: codesystem
-      
-      - name: code
-      
-      - name: hpo
-      
+      - name: familyID
+        description: family identifier of the patient
+        dataType: string
+      - name: dnaID
+        description: sample identifier
+        dataType: string
+      - name: testID
+        description: test code that indicates the lab procedure
+        dataType: string
+      - name: filename
+        description: name of the file
+        dataType: string
+      - name: filepath
+        description: location of the file
+      - name: filetype
+        description: file format
+      - name: md5
+        description: checksum of the file
+      - name: dateCreated
+        description: date the file was created

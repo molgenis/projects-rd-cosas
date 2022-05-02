@@ -2,7 +2,7 @@
 #' FILE: cosasportal.yaml
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-12-10
-#' MODIFIED: 2022-04-04
+#' MODIFIED: 2022-05-02
 #' PURPOSE: EMX for COSAS staging tables
 #' STATUS: stable
 #' PACKAGES: NA
@@ -10,8 +10,6 @@
 #'    standard terminology (unified-fg model). 
 #'////////////////////////////////////////////////////////////////////////////
 
-
-# define package
 name: cosasmappings
 label: COSAS mappings
 description: Mapping tables for processing raw data into unified model terminology
@@ -19,7 +17,6 @@ parent: cosasportal
 version: 2.0.0
 date: 2022-05-02
 
-# define entity level defaults
 defaults:
   auto: false
   idAttribute: false
@@ -28,7 +25,6 @@ defaults:
   lookupAttribute: false
 
 entities:
-
   - name: template
     description: attribute template for mapping tables
     abstract: true
@@ -83,9 +79,6 @@ entities:
         unique: true
         dataType: string
       - name: description
-      
       - name: codesystem
-      
       - name: code
-      
       - name: hpo
