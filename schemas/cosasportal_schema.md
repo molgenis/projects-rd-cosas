@@ -4,8 +4,7 @@
 
 | Name | Description | Parent |
 |:---- |:-----------|:------|
-| cosasportal | Staging tables for raw data exports (v1.6.0, 2022-03-28) | - |
-| cosasportal_mappings | Mapping tables for processing raw data into UMDM terminology (v1.1.0, 2022-04-04) | cosasportal |
+| cosasportal | Staging tables for raw data exports (v1.7.0, 2022-05-02) | - |
 
 ## Entities
 
@@ -20,14 +19,7 @@
 | labs_ngs_adlas | Raw NGS data from ADLAS | cosasportal |
 | labs_ngs_darwin | Raw NSG metadata from Darwin | cosasportal |
 | cartagenia | Processed Cartagenia CNV bench data | cosasportal |
-| cineasmappings | Cineas to HPO mappings | cosasportal |
-| template | attribute template for mapping tables | cosasportal_mappings |
-| genderidentity | mappings for 'Gender identity' | cosasportal_mappings |
-| genderatbirth | mappings for 'Gender at birth' | cosasportal_mappings |
-| biospecimentype | mappings for 'Biospecimen type' | cosasportal_mappings |
-| samplereason | mappings for 'Reason for sampling' | cosasportal_mappings |
-| sequencerinfo | mappings for 'Sequencer information' | cosasportal_mappings |
-| genomebuild | mappings for 'Genome build' | cosasportal_mappings |
+| files | Raw file metadata | cosasportal |
 
 ## Attributes
 
@@ -203,27 +195,22 @@ Processed Cartagenia CNV bench data
 | alternativeIdentifiers | - | additional UMCG numbers detected in column 'id' | string |
 | observedPhenotype | - | HPO terms provided by Cartagenia | text |
 
-### Entity: cosasportal_cineasmappings
+### Entity: cosasportal_files
 
-Cineas to HPO mappings
-
-| Name | Label | Description | Data Type |
-|:---- |:-----|:-----------|:---------|
-| value&#8251; | - | - | string |
-| description | - | - | string |
-| codesystem | - | - | string |
-| code | - | - | string |
-| hpo | - | - | string |
-
-### Entity: cosasportal_mappings_template
-
-attribute template for mapping tables
+Raw file metadata
 
 | Name | Label | Description | Data Type |
 |:---- |:-----|:-----------|:---------|
-| from&#8251; | - | Used to indicate a specified place or time as a starting point; used to indicate a source, cause, agent, or instrument. | string |
-| to | - | Used as a function word to indicate direction, purpose, or movement. | string |
-| toAlternate | - | Available in place of something else. | string |
+| id&#8251; | - | auto generated identifier | string |
+| umcgID | - | Internal patient identifier | string |
+| familyID | - | family identifier of the patient | string |
+| dnaID | - | sample identifier | string |
+| testID | - | test code that indicates the lab procedure | string |
+| filename | - | name of the file | string |
+| filepath | - | location of the file | string |
+| filetype | - | file format | string |
+| md5 | - | checksum of the file | string |
+| dateCreated | - | date the file was created | string |
 
 Note: The symbol &#8251; denotes attributes that are primary keys
 

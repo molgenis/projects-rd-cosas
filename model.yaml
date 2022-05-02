@@ -2,7 +2,7 @@
 # FILE: model.yaml
 # AUTHOR: David Ruvolo
 # CREATED: 2022-03-29
-# UPDATED: 2022-04-20
+# UPDATED: 2022-05-02
 # PURPOSE: COSAS model build instructions
 # DEPENDENCES: **see index.py**
 # COMMENTS: The purpose of this script is to define how the COSAS model is
@@ -28,8 +28,13 @@ models:
   - name: cosasportal
     active: true
     files: [
-      "model/cosasportal.yaml",
-      "model/cosasportal_mappings.yaml"
+      "model/cosasportal.yaml"
+    ]
+    
+  - name: cosasmappings
+    active: true
+    files: [
+      "model/cosasmappings.yaml"
     ]
   
   - name: cosasreports
