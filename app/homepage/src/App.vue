@@ -12,9 +12,7 @@
         <div class="col-sm-8 m-auto">
           <h2 id="portal-welcome-title" class="text-center">Welcome</h2>
           <p>
-            Through the <strong>Genetica Diagnostics Portal</strong> you can
-            access a number of databases and systems available to members of the
-            genetica department....
+            Through the <strong>Genetica Diagnostics Portal</strong>! With this site, you can access a number of databases and systems available to members of the genetica department developed by the Molgenis team.
           </p>
         </div>
       </section>
@@ -33,45 +31,50 @@
         <div id="db-card-container" class="d-flex flex-wrap justify-content-md-center">
           <div class="card col-md-3">
             <div class="card-body">
-              <h3 class="cart-title">COSAS</h3>
+              <h3 class="card-title">COSAS</h3>
               <p class="card-text">
-                The Catalog of Sequences, Arrays, and Samples &mdash; or COSAS
-                &mdash; is an database for tracking patient metadata generated
-                by the genome diagnostic clinic at UMCG.
+                View the Catalog of Sequences, Arrays, and Samples.
               </p>
               <a href="/menu/main/navigator/umdm" class="btn btn-dark btn-block"
-                >View</a
+                >Sign in</a
               >
             </div>
           </div>
           <div class="card col-md-3">
             <div class="card-body">
-              <h3 class="cart-title">Unsolved Cases</h3>
+              <h3 class="card-title">Unsolved Cases</h3>
               <p class="card-text">
-                Amet dolore id commodo culpa ullamco nulla irure culpa officia
-                aute ea deserunt in eu. Ut labore quis nulla ad irure dolor
-                irure fugiat pariatur laborum in. Quis culpa in minim labore.
+                View and submit cases to the Unsolved Cases Portal.
               </p>
               <a href="/menu/main/navigator/ucu" class="btn btn-dark btn-block"
-                >View</a
+                >Sign in</a
               >
             </div>
           </div>
           <div class="card col-md-3">
             <div class="card-body">
-              <h3 class="cart-title">VariantDB</h3>
+              <h3 class="card-title">VariantDB</h3>
               <p class="card-text">
-                Amet dolore id commodo culpa ullamco nulla irure culpa officia
-                aute ea deserunt in eu. Ut labore quis nulla ad irure dolor
-                irure fugiat pariatur laborum in. Quis culpa in minim labore.
+                Find and explore variants in the Variants database.
               </p>
-              <a href="/menu/main/navigator/variantdb" class="btn btn-dark btn-block">View</a>
+              <a href="/menu/main/navigator/variantdb" class="btn btn-dark btn-block">Sign in</a>
             </div>
           </div>
         </div>
       </section>
+      <section id="portal-help" aria-labelledby="portal-help-title">
+        <div class="col-md-4 m-auto">
+          <h2 id="portal-help-title" class="text-center">
+            Get help
+          </h2>
+          <p>
+            Need help? Do you have a question about any of these systems? If so, please contact the support desk.
+          </p>
+          <a href="mailto:molgenis-support@umcg.nl" class="btn btn-dark btn-block">Contact Support</a>
+        </div>
+      </section>
     </main>
-    <div id="portal-footer" class="bg-dark footer">
+    <div id="portal-footer" class="footer">
       <img :src="MolgenisLogo" alt="molgenis open source data platform" class="molgenis-logo"/>
     </div>
   </div>
@@ -110,6 +113,10 @@ footer.footer {
 #portal {
   section, .footer {
     padding: 2em 1em;
+  }
+  
+  .footer {
+    background-color: #282d32;
   }
 }
   
@@ -166,5 +173,13 @@ footer.footer {
 
 #db-card-container {
   gap: 12px;
+  .card {
+    .card-title {
+      font-size: 11pt;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 2px;
+    }
+  }
 }
 </style>
