@@ -2,7 +2,7 @@
 #' FILE: mappings_cosas.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-10-05
-#' MODIFIED: 2022-04-06
+#' MODIFIED: 2022-05-02
 #' PURPOSE: primary mapping script for COSAS
 #' STATUS: stable
 #' PACKAGES: **see below**
@@ -535,13 +535,6 @@ raw_benchcnv = dt.Frame(
     )
 )
 
-cineasmappings = dt.Frame(
-    db.get(
-        entity = 'cosasportal_cineasmappings',
-        batch_size = 10000
-    )
-)
-
 # get samples data from the portal
 raw_samples = dt.Frame(
     db.get(
@@ -578,14 +571,6 @@ raw_ngs_darwin = dt.Frame(
     db.get(
         entity = 'cosasportal_labs_ngs_darwin',
         batch_size = 10000
-    )
-)
-
-# get labprocedures
-activeTestCodes = dt.Frame(
-    db.get(
-        entity='umdm_labProcedures',
-        attributes='code'
     )
 )
 
@@ -635,14 +620,14 @@ cosaslogs.currentStep['status'] = 'Success'
 cosaslogs.stopProcessingStepLog()
 
 # ~ 0b ~
-# Pull COSAS Portal Mappings
+# Pull COSAS Mapping Tables
 #
 # The following objects allow internal data to be mapped to the unified model
 # terminology. If you receive a message in this script stating "mapping value
 # not found". Add a new record in the corresponding table. Some tables may only
 # have a single mapping, but this may change in the future.
 
-status_msg('COSAS Portal: Pulling mapping tables...')
+status_msg('COSAS Mappings: Pulling mapping tables...')
 cosaslogs.startProcessingStepLog(
     type='Data retrieval',
     name='Fetch mapping tables',
@@ -650,35 +635,43 @@ cosaslogs.startProcessingStepLog(
 )
 
 genderMappings = cosastools.to_keypairs(
-    data = db.get('cosasportal_mappings_genderatbirth')
+    data = db.get('cosasmappings_genderatbirth')
 )
 
 biospecimenTypeMappings = cosastools.to_keypairs(
-    data = db.get('cosasportal_mappings_biospecimentype')
+    data = db.get('cosasmappings_biospecimentype')
 )
 
 sampleReasonMappings = cosastools.to_keypairs(
-    data = db.get('cosasportal_mappings_samplereason')
+    data = db.get('cosasmappings_samplereason')
 )
 
 sequencerPlatformMappings = cosastools.to_keypairs(
-    data = db.get('cosasportal_mappings_sequencerinfo')
+    data = db.get('cosasmappings_sequencerinfo')
 )
 
 sequencerInstrumentMappings = cosastools.to_keypairs(
-    data = db.get('cosasportal_mappings_sequencerinfo'),
+    data = db.get('cosasmappings_sequencerinfo'),
     keyAttr = 'from',
     valueAttr= 'toAlternate'
 )
 
 genomeBuildMappings = cosastools.to_keypairs(
-    data = db.get('cosasportal_mappings_genomebuild')
+    data = db.get('cosasmappings_genomebuild')
 )
 
 cineasHpoMappings = cosastools.to_keypairs(
-    data = db.get('cosasportal_cineasmappings', attributes='code,hpo'),
+    data = db.get('cosasmappings_cineasmappings', attributes='code,hpo'),
     keyAttr = 'code',
     valueAttr = 'hpo'
+)
+
+# get labprocedures
+activeTestCodes = dt.Frame(
+    db.get(
+        entity='umdm_labProcedures',
+        attributes='code'
+    )
 )
 
 cosaslogs.currentStep['status'] = 'Success'
@@ -1275,7 +1268,7 @@ cosaslogs.stopProcessingStepLog()
 # 
 # Transform and recode columns that require it. Add additional transformations
 # here. If you need additional mapping tables, consider putting the mapping
-# dataset in the 'cosasportal_mappings' package and importing the data in step 0.
+# dataset in the 'cosasmappings' package and importing the data in step 0.
 
 cosaslogs.startProcessingStepLog(
     type='Data Processing',

@@ -2,7 +2,7 @@
 #' FILE: cosasportal.yaml
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-12-10
-#' MODIFIED: 2022-04-04
+#' MODIFIED: 2022-05-02
 #' PURPOSE: EMX for COSAS staging tables
 #' STATUS: stable
 #' PACKAGES: NA
@@ -10,16 +10,12 @@
 #'    standard terminology (unified-fg model). 
 #'////////////////////////////////////////////////////////////////////////////
 
+name: cosasmappings
+label: COSAS Mappings
+description: Mapping tables for processing raw data into unified model terminology
+version: 2.0.0
+date: 2022-05-02
 
-# define package
-name: cosasportal_mappings
-label: COSAS mappings
-description: Mapping tables for processing raw data into UMDM terminology
-parent: cosasportal
-version: 1.1.0
-date: 2022-04-04
-
-# define entity level defaults
 defaults:
   auto: false
   idAttribute: false
@@ -28,7 +24,6 @@ defaults:
   lookupAttribute: false
 
 entities:
-
   - name: template
     description: attribute template for mapping tables
     abstract: true
@@ -51,25 +46,38 @@ entities:
         
   - name: genderidentity
     description: mappings for 'Gender identity'
-    extends: cosasportal_mappings_template
+    extends: cosasmappings_template
     
   - name: genderatbirth
     description: mappings for 'Gender at birth'
-    extends: cosasportal_mappings_template
+    extends: cosasmappings_template
     
   - name: biospecimentype
     description: mappings for 'Biospecimen type'
-    extends: cosasportal_mappings_template
+    extends: cosasmappings_template
 
   - name: samplereason
     description: mappings for 'Reason for sampling'
-    extends: cosasportal_mappings_template
+    extends: cosasmappings_template
 
   - name: sequencerinfo
     description: mappings for 'Sequencer information'
-    extends: cosasportal_mappings_template
+    extends: cosasmappings_template
     
   - name: genomebuild
     description: mappings for 'Genome build'
-    extends: cosasportal_mappings_template
+    extends: cosasmappings_template
       
+    # @name: cosasportal_cineasmappings
+  - name: cineasmappings
+    description: Cineas to HPO mappings
+    attributes:
+      - name: value
+        idAttribute: true
+        nillable: false
+        unique: true
+        dataType: string
+      - name: description
+      - name: codesystem
+      - name: code
+      - name: hpo
