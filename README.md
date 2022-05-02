@@ -6,7 +6,7 @@ All EMX models are located in `model` folder. These models are created at build 
 
 ## Get Started
 
-Sign in to your Molgenis instance or create a new one, and navigate to the scripts plugin. Copy the contents of the [setup.py](https://github.com/molgenis/molgenis-cosas/blob/main/cosas/main/setup_umdm.py) file into a new python script. Run the script. This will pull the EMX and all lookups from the GitHub repository into your Molgenis instance.
+Sign in to your Molgenis instance or create a new one, and navigate to the scripts plugin. Copy the contents of the [setup.py](https://github.com/molgenis/molgenis-cosas/blob/main/cosas/setup_umdm.py) file into a new python script. Run the script. This will pull the EMX and all lookups from the GitHub repository into your Molgenis instance.
 
 Once this has completed, a few more COSAS specific files will need to be imported. Use the [molgenis commander](https://github.com/molgenis/molgenis-tools-commander) to import the files.
 
@@ -14,19 +14,20 @@ Once this has completed, a few more COSAS specific files will need to be importe
 # add or set the url to your Molgenis instance
 mcmd config set host
 
-# import COSAS portal files
+# import COSAS EMX files
 mcmd import -p dist/cosasportal.xlsx
-mcmd import -p dist/cosasportal_mappings_biospecimentype.csv
-mcmd import -p dist/cosasportal_mappings_genderidentity.csv
-mcmd import -p dist/cosasportal_mappings_genomebuild.csv
-mcmd import -p dist/cosasportal_mappings_samplereason.csv
-mcmd import -p dist/cosasportal_mappings_sequencerinfo.csv
-
-# import COSAS extensions
-mcmd import -p dist/umdm_labProcedures.csv
-mcmd import -p dist/umdm_lookups_biospecimenType.csv
-mcmd import -p dist/umdm_organizations.csv
-
-# import COSAS reports module
+mcmd import -p dist/cosasmpapings.xlsx
 mcmd import -p dist/cosasreports.xlsx
+
+# import COSAS lookups and unified model extensions
+mcmd import -p lookups/cosasmappings_biospecimentype.csv
+mcmd import -p lookups/cosasmappings_cineasmappings.csv
+mcmd import -p lookups/cosasmappings_genderAtBirth.csv
+mcmd import -p lookups/cosasmappings_genderidentity.csv
+mcmd import -p lookups/cosasmappings_genomebuild.csv
+mcmd import -p lookups/cosasmappings_samplereason.csv
+mcmd import -p lookups/cosasmappings_sequencerinfo.csv
+mcmd import -p lookups/umdm_labProcedures.csv
+mcmd import -p lookups/umdm_lookups_biospecimenType.csv
+mcmd import -p lookups/umdm_organizations.csv
 ```
