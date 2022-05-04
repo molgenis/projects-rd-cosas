@@ -10,6 +10,7 @@
 #'////////////////////////////////////////////////////////////////////////////
 
 from urllib.parse import urlparse, urlunparse
+from cosas.utils.cli import cli
 from os import path
 import requests
 
@@ -20,52 +21,6 @@ def __clean__url__(url):
     urlNew = urlparse(url)
     urlNew = urlNew._replace(path = urlNew.path.replace('//','/'))
     return urlunparse(urlNew)
-
-
-class cli:
-    def __init__(self):
-        self._start = '\u001b'
-        self._stop = '\u001b[0m'
-        self._blue = '[34;1m'
-        self._green = '[32:1m'
-        self._red = '[31;1m'
-        self._white = '[37;1m'
-        self._yellow = '[33;1m'
-        
-        self.error = self.__setStatus__(self._red, '⨉')
-        self.success = self.__setStatus__(self._green, '✓')
-        self.warning = self.__setStatus__(self._yellow, '!')
-        
-    def __setStatus__(self, color, text):
-        return self._start + color + text + self._stop
-    
-    def alert_success(self, text):
-        """Print a success message"""
-        print(f'{self.success} {text}')
-
-    def alert_error(self, text):
-        """Print an error message"""
-        print(f'{self.error} {text}')
-
-    def alert_warning(self, text):
-        """Print a warning message"""
-        print(f'{self.warning} {text}')
-        
-    def text_value(self, text):
-        """Style text as a value"""
-        return self._start + self._blue + str(text) + self._stop
-    
-    def text_success(self, text):
-        """Style text as a success message"""
-        return self._start + self._green + str(text) + self._stop
-        
-    def text_error(self, text):
-        """Style text as an error message"""
-        return self._start + self._red + str(text) + self._stop
-    
-    def text_warning(self, text):
-        """Style text as an warning message"""
-        return self._start + self._yellow + str(text) + self._stop
 
 
 class Molgenis:
@@ -81,6 +36,9 @@ class Molgenis:
         self._url_db_graphql = f'{self._url_db}/graphql'
         self.session = requests.Session()
         self.cli = cli()
+        self.cli.alert_success(
+            f'Configured client for schema {self.cli.text_value(self.database)} at host {self.cli.text_value(self._url)}'
+        )
         
     def signin(self, email, password):
         """Signin
@@ -89,11 +47,8 @@ class Molgenis:
         @param password (str) : your password
         @return a status message
         """
-        
         self.user_email = email
-        self.user_info = f'{self.cli.text_value(self.database)} as {self.cli.text_value(email)}'
         variables = {'email': email, 'password': password}
-        
         query = """
             mutation($email:String, $password: String) {
                 signin(email: $email, password: $password) {
@@ -102,70 +57,37 @@ class Molgenis:
                 }
             }
         """
+        response = self.session.post(
+            url=self._url_signin,
+            json={
+                'query': query,
+                'variables': variables
+            }
+        )
+        response.raise_for_status()
+        msg = f'{self.cli.text_value(self.database)} as {self.cli.text_value(email)}'
+        status = response.json().get('data',{}).get('signin')
         
-        try:
-            response = self.session.post(
-                url = self._url_signin,
-                json = {'query': query, 'variables': variables}
+        if status.get('status') == 'SUCCESS':
+            self.cli.alert_success(f'signed into {msg}')
+        else:
+            self.cli.alert_error(
+                f'unable to sign into {msg}: {status.get("message")}'
             )
-
-            response.raise_for_status()
-            status = response.json().get('data').get('signin')
-            
-            if status.get('status') == 'SUCCESS':
-                self.cli.alert_success(f'signed into {self.user_info}')
-            else:
-                self.cli.alert_error(
-                    f'unable to sign into {self.user_info}: {status.get("message")}'
-                )
-
-        except requests.exceptions.HTTPError as error:
-            self.cli.alert_error(f'Unable to sign into {self.user_info}')
-            return SystemError(error)
          
    
-    def __postData__(self, table, data):
-        try:
-            response = self.session.post(
-                url = f'{self._url_db_api}/csv/{table}',
-                data = data
-            )
-            
-            if response.status_code == 200:
-                self.cli.alert_success(
-                    'imported data into {}/{}'.format(
-                        self.cli.text_value(self.database),
-                        self.cli.text_value(table)
-                    )
-                )
-            else:
-                self.cli.alert_error(
-                    'failed to import data into {}/{}:\n  {}'
-                    .format(
-                        self.cli.text_value(self.database),
-                        self.cli.text_value(table),
-                        response.json().get('errors')[0].get('message')
-                    )
-                )
-
-        except requests.exceptions.HTTPError as error:
-            self.cli.alert_error(
-                'failed to import data into {}/{}:'
-                .format(
-                    self.cli.text_value(self.database),
-                    self.cli.text_value(table),
-                )
-            )
-            raise SystemError(error)
-            
+    def POST(self, url, **kwargs):
+        response=self.session.post(url=url, **kwargs)
+        response.raise_for_status()
+        return response
         
-    def importCsvFile(self, table, filename):
+    def importCsvFile(self, table, file):
         """Import CSV File
         Import a csv file into a table
         
         Attributes:
-            table     : name of the table
-            filename  : location to a csv file
+            table : name of the table
+            file  : path to the location to a csv file
             
         Examples:
             ````
@@ -179,13 +101,17 @@ class Molgenis:
             db.importCsvFile(table = 'myTable', filename='data.csv')
             ````
         """
-        
-        if not path.isfile(filename):
-            raise ValueError('File does not exist')
-        
-        with open(filename, 'rb') as data:
-            self.__postData__(table = table, data = data)
+        url=f'{self._url_db_api}/csv/{table}'
+        with open(file, 'rb') as data:
+            dataBinary = data.read()
             data.close()
+        response=self.POST(url=url, data=dataBinary)
+
+        location=f"{self.cli.text_value(self.database)}::{self.cli.text_value(table)}"
+        if response.status_code == 200:
+            self.cli.alert_success(f'Imported data into {location}')
+        else:
+            self.cli.alert_error(f'Failed to import data into {location}')
                 
             
     def importData(self, table: str = None, data: str = None):
@@ -214,4 +140,10 @@ class Molgenis:
             
             ````
         """
-        self.__postData__(table = table, data = data)
+        url=f'{self._url_db_api}/csv/{table}'
+        response=self.POST(url, data=data)
+        location=f"{self.cli.text_value(self.database)}::{self.cli.text_value(table)}"
+        if response.status_code == 200:
+            self.cli.alert_success(f'Imported data into {location}')
+        else:
+            self.cli.alert_error(f'Failed to import data into {location}')
