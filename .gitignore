@@ -1,5 +1,4 @@
 .DS_STORE
-_data
 __pycache__
 _raw
 .env
