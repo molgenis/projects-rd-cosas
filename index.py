@@ -16,7 +16,9 @@ import yaml
 # load emx config 
 with open('model.yaml', 'r') as stream:
     emxConfig = yaml.safe_load(stream)
+    stream.close()
 
+emxOptions = emxConfig['config']
 
 # build EMX1 and EMX2 version of each model if the status is set to `true`
 for model in emxConfig.get('models'):
@@ -34,9 +36,28 @@ for model in emxConfig.get('models'):
     
         m.write(model['name'], format='xlsx',outDir=emxConfig['outputPaths'].get('main'))
         m.write_schema(path=f"{emxConfig['outputPaths'].get('schemas')}/{model['name']}_schema.md")
-    
-        for file in model.get('files'):
-            print('Generating EMX2 version')
-            m2 = yamlemxconvert.Convert2(file = file)
-            m2.convert()
+        
+        if emxOptions['buildEmx2']:
+            if model['name'] == 'ucu':
+                m2 = yamlemxconvert.Convert2(file=model['files'][0])
+                m2.convert()
+                
+                for row in m2.model.get('molgenis'):
+                    if isinstance(row['refSchema'], list):
+                        row['refSchema'] = row['refSchema'][0]
+                    
+                    if row['refSchema'] == 'sys':
+                        row['refSchema'] = ''
+                        row['refTable'] = ''
+                        
+                    if (row['required'] not in [True, False]) and (not emxOptions['includeExpressions']):
+                        row['required'] = ''
+
+            else:
+                for file in model.get('files'):
+                    print('Generating EMX2 version')
+                    m2 = yamlemxconvert.Convert2(file = file)
+                    m2.convert()
+
             m2.write(name=f"{model['name']}_emx2", outDir=emxConfig['outputPaths'].get('main'))
+                    

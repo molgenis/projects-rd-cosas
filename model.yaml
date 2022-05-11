@@ -13,6 +13,11 @@
 outputPaths:
   main: dist/
   schemas: schemas/
+  
+  
+config:
+  buildEmx2: true
+  includeExpressions: false
 
 
 # define models to build
@@ -26,20 +31,26 @@ outputPaths:
 #
 models:
   - name: cosasportal
-    active: true
+    active: false
     files: [
       "model/cosasportal.yaml"
     ]
     
   - name: cosasmappings
-    active: true
+    active: false
     files: [
       "model/cosasmappings.yaml"
     ]
   
   - name: cosasreports
-    active: true
+    active: false
     files: [
       "model/cosasreports.yaml",
       "model/cosasreports_refs.yaml"
+    ]
+
+  - name: ucu
+    active: true
+    files: [
+      "model/ucu.yaml"
     ]
