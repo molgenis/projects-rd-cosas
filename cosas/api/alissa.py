@@ -2,7 +2,7 @@
 # FILE: alissa.py
 # AUTHOR: David Ruvolo
 # CREATED: 2022-04-13
-# MODIFIED: 2022-04-22
+# MODIFIED: 2022-05-19
 # PURPOSE: custom Alissa public api client
 # STATUS: experimental
 # PACKAGES: requests
@@ -157,12 +157,14 @@ class Alissa:
     def getPatientVariantExportId(
         self,
         analysisId: int,
-        markedForReview: bool=False,
-        markedIncludeInReport: bool=False
+        markedForReview: bool=True,
+        markedIncludeInReport: bool=True
     ) -> dict:
         """Request Patient Molecular Variants Export
         Request an export of all variants. When filter criteria are provided,
-        the result is limited to the variants matching the criteria.
+        the result is limited to the variants matching the criteria. By default
+        the parameters `markedForReview` and `markedIncludeInReport` are set to
+        True. This will return all results that have been selected.
 
         @param analysisId ID of the analysis
         @param markedForReview Is the variant marked for review
