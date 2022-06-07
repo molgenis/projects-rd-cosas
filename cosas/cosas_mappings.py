@@ -2,7 +2,7 @@
 #' FILE: mappings_cosas.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-10-05
-#' MODIFIED: 2022-05-02
+#' MODIFIED: 2022-06-07
 #' PURPOSE: primary mapping script for COSAS
 #' STATUS: stable
 #' PACKAGES: **see below**
@@ -1691,8 +1691,8 @@ samplePreparation = sampleSequencingData[
 ]
 
 # rename columns and select distinct rows only
-samplePreparation.names={'sequencingID': 'sampleID'}
-samplePreparation = samplePreparation[:, first(f[:]), dt.by(f.sampleID)]
+samplePreparation.names={'sequencingID': 'samplePreparationID'}
+samplePreparation = samplePreparation[:, first(f[:]), dt.by(f.samplePreparationID)]
 
 status_msg('Sample Preparation: Processed {} new records'.format(samplePreparation.nrows))
 cosaslogs.currentStep['status'] = 'Success' if samplePreparation.nrows else 'Error'
