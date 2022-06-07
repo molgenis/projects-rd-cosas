@@ -22,7 +22,7 @@ mcmd import -p dist/cosasreports.xlsx
 # import COSAS lookups and unified model extensions
 mcmd import -p lookups/cosasmappings_biospecimentype.csv
 mcmd import -p lookups/cosasmappings_cineasmappings.csv
-mcmd import -p lookups/cosasmappings_genderAtBirth.csv
+mcmd import -p lookups/cosasmappings_genderatbirth.csv
 mcmd import -p lookups/cosasmappings_genderidentity.csv
 mcmd import -p lookups/cosasmappings_genomebuild.csv
 mcmd import -p lookups/cosasmappings_samplereason.csv
