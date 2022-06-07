@@ -2,7 +2,7 @@
 #' FILE: setup_umdm.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-02-15
-#' MODIFIED: 2022-03-03
+#' MODIFIED: 2022-06-07
 #' PURPOSE: import UMDM files
 #' STATUS: stable
 #' PACKAGES: molgenis.client, datetime, os, requests, pytz, re
@@ -105,17 +105,18 @@ class Molgenis(molgenis.Session):
         except requests.exceptions.HTTPError as e:
             raise SystemError(e)
 
+#//////////////////////////////////////////////////////////////////////////////
 
-# list available files at molgenis/molgenis-cosas/dist/umdm-emx1/
+
+# get files
 gh = github()
-availableFiles = gh.contents(
-    owner = 'molgenis',
-    repo = 'rd-datamodel',
-    path = 'dist/umdm-emx1'
+availableFiles= (
+    gh.contents(owner='molgenis', repo='rd-datamodel', path='dist/') +
+    gh.contents(owner='molgenis', repo='rd-datamodel', path='lookups/')
 )
 
 # pull relevant files based on pattern and update status
-pattern = re.compile('^(umdm.xlsx)') if updateOnly else re.compile('^(umdm.xlsx|umdm_lookups_)')
+pattern = re.compile('^(COSAS.xlsx|umdm_lookups_)')
 files = []
 for file in availableFiles:
     if re.search(pattern, file.get('name')):
@@ -123,7 +124,7 @@ for file in availableFiles:
             'name': file['name'],
             'download_url': file['download_url']
         })
-        
+
 
 # ~ 2 ~
 # Import
