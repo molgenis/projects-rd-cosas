@@ -2,7 +2,7 @@
 # FILE: alissa.py
 # AUTHOR: David Ruvolo
 # CREATED: 2022-04-19
-# MODIFIED: 2022-04-22
+# MODIFIED: 2022-05-19
 # PURPOSE: fetch data from alissa
 # STATUS: experimental
 # PACKAGES: cosas.api.alissa, dotenv, os, requests
@@ -39,7 +39,7 @@ load_dotenv()
 # username and password. This information can be generated if you have been
 # given admin rights in Alissa.
 #   
-api = Alissa(
+alissa = Alissa(
     host=environ['ALISSA_HOST'],
     clientId=environ['ALISSA_CLIENT_ID'],
     clientSecret=environ['ALISSA_CLIENT_SECRET'],
@@ -54,8 +54,16 @@ api = Alissa(
 # system. Add additional request paramaters as needed or filter data after
 # the request has completed.
 
-# for now, grab a subset patients using ISO 8601 date-time
-patients = api.getPatients(createdAfter="2022-03-01T00:00:00.000+00:00")
+# for now, grab a subset patients using ISO 8601 date-time. Make sure you pick
+# a datetime range far enough in the past so it wont effect current records.
+patients = alissa.getPatients(
+    createdAfter="2019-01-01T00:00:00.000+00:00",
+    createdBefore="2019-01-02T00:00:00.000+00:00"
+)
+
+# extract the identifiers. These values aren't the actual 'patient identifiers',
+# they are the internal record identifiers that Alissa generates. This is
+# required in order to retrieve any other information.
 patientIdentifiers=[patient['id'] for patient in patients]
 
 
@@ -72,7 +80,7 @@ patientIdentifiers=[patient['id'] for patient in patients]
 
 analysesByPatient = []
 for id in patientIdentifiers:
-    response = api.getPatientAnalyses(patientId=id)
+    response = alissa.getPatientAnalyses(patientId=id)
     if response:
         for analysis in response:
             analysesByPatient.append({
@@ -98,15 +106,18 @@ for id in patientIdentifiers:
 # follow up with this. These patients-analyses aren't included in the
 # remaining steps.
 
-
 variantExportsByAnalyses = []
 for row in analysesByPatient:
     try:
-        response = api.getPatientVariantExportId(analysisId=row['analysisId'])
+        response = alissa.getPatientVariantExportId(
+            analysisId=row['analysisId'],
+            markedForReview=True,
+            markedIncludeInReport=True
+        )
     except requests.exceptions.HTTPError as error:
         print(
             'For patient',row['patientId'],', the analysisId',
-            row['analysisId'],'exists, but something went wrong.'
+            row['analysisId'],'exists, but no information could be retrieved.'
         )
     if response:
         if isinstance(response, dict):
@@ -131,7 +142,7 @@ for row in analysesByPatient:
 variantExport = []
 for row in variantExportsByAnalyses[:2]:
     try:
-        response = api.getPatientVariantExportData(
+        response = alissa.getPatientVariantExportData(
             analysisId=row['analysisId'],
             exportId=row['exportId']
         )
@@ -141,4 +152,5 @@ for row in variantExportsByAnalyses[:2]:
             row['analysisId'],'and exportId exists, but something went wrong.'
         )
     
-    # do something here
+    if response:
+        variantExport.extend(response)
