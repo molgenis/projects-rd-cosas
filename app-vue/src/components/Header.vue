@@ -1,5 +1,9 @@
 <template>
-  <header :id="id" class="header" :style="imageSrc ? `background-image: url(${imageSrc})` : ''">
+  <header
+    :id="id"
+    :class="imageSrc ? 'header header-bg-image' : 'header'"
+    :style="imageSrc ? `background-image: url(${imageSrc})` : ''"
+  >
     <div class="header-content">
       <h1 :id="id + '-title'" class="header-title">
         {{ title }}

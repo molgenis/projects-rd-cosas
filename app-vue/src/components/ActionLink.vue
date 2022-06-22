@@ -42,6 +42,8 @@ $link-color: #0d65fc;
 $link-color-inverse: hsl(218, 98%, 98%);
 
 .action-link {
+  display: block;
+  width: 100%;
   text-align: center;
   color: $link-color;
   box-sizing: border-box;
@@ -49,6 +51,7 @@ $link-color-inverse: hsl(218, 98%, 98%);
   border: 1px solid $link-color;
   background-color: #ffffff;
   border-radius: 6px;
+  margin: auto;
   
   .link-icon {
     margin-left: 3px;

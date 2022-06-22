@@ -1,7 +1,9 @@
 <template>
   <form class="form" @submit="(e) => e.preventDefault()">
     <legend class="form__tile">{{ title }}</legend>
-    <slot></slot>
+    <div class="form__sections">
+      <slot></slot>
+    </div>
   </form>
 </template>
 
@@ -20,8 +22,8 @@ export default {
 <style lang="scss">
 .form {
   .form__section {
-    box-sizing: padding-box;
-    padding: 1em;
+    box-sizing: border-box;
+    padding: 1.25em;
     background-color: #fff;
     margin-bottom: 32px;
     border-radius: 8px;

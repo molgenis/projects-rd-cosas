@@ -5,15 +5,14 @@
       <span class="input__description" v-if="description">{{ description }}</span>
     </legend>
     <div class="radio__group__item" v-for="(value,index) in values" :key="value">
-      <input
-        type="radio"
-        :id="id + '-' + value"
-        :name="name"
-        :value="value"
-        v-model="selections"
-        @change="onChange"
-      />
       <label :for="id + '-' + value">
+        <input
+          type="radio"
+          :name="name"
+          :id="id + '-' + value"
+          :value="value"
+          @change="$emit('input', value)"
+        />
         {{ labels ? labels[index] : value }}
       </label>
     </div>
@@ -47,16 +46,6 @@ export default {
     labels: {
       type: Array,
       required: false
-    }
-  },
-  data () {
-    return {
-      selections: null
-    }
-  },
-  methods: {
-    onChange () {
-      this.$emit('change', this.selections)
     }
   }
 }

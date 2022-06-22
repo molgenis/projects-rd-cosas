@@ -52,18 +52,17 @@ $primary-color-inverse: hsl(218, 98%, 98%);
   background: none;
   border: none;
   padding: 6px 12px;
-  background-color: $primary-color;
+  background-color: $primary-color-inverse;
   border: 1px solid $primary-color;
-  color: $primary-color-inverse;
+  color: $primary-color;
   border-radius: 6px;
   
   .button__icon {
     margin-right: 6px;
   }
   
-  // &:hover, &:focus {
-  //   background-color: $primary-color;
-  //   color: $primary-color-inverse;
-  // }
+  &:hover, &:focus {
+    outline: 1px solid;
+  }
 }
 </style>

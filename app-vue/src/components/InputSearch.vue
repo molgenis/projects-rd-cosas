@@ -10,7 +10,7 @@
       type="search"
       class="input__search"
       v-model="value"
-      @submit="(event) => event.preventDefault()"
+      @submit.prevent
       @input="onSearch"
     />
   </div>

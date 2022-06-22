@@ -2,7 +2,14 @@
   <div class="info__card">
     <h3 class="card__title">{{ title }}</h3>
     <p class="card__text"> {{ text }}</p>
-    <ActionLink class="card__link" v-if="href">{{ hrefLabel ? hrefLabel : href }}</ActionLink>
+    <ActionLink
+      v-if="href"
+      class="card__link"
+      :href="href"
+    >
+      {{ hrefLabel ? hrefLabel : href }}
+    </ActionLink>
+    <slot></slot>
   </div>
 </template>
 

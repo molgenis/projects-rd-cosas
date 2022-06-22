@@ -3,8 +3,9 @@
     <div class="__pseudo__nav">
       <ul>
         <li><router-link to="/">Home</router-link></li>
-        <li><router-link to="/cosas-dashboard">COSAS Dashboard</router-link></li>
-        <li><router-link to="/variantdb-search">Variant DB Search</router-link></li>
+        <li><router-link to="/cosas">COSAS</router-link></li>
+        <li><router-link to="/unsolvedcases">UCU</router-link></li>
+        <li><router-link to="/variantdb">VariantDB</router-link></li>
       </ul>
     </div>
     <slot></slot>
@@ -27,6 +28,17 @@ export default {
 </script>
 
 <style lang="scss">
+.visually-hidden {
+  position: absolute;
+  clip: rect(1px 1px 1px 1px); /* IE6, IE7 */
+  clip: rect(1px, 1px, 1px, 1px);
+  overflow: hidden;
+  height: 1px;
+  width: 1px;
+  margin: -1px;
+  white-space: nowrap;
+}
+
 .mg-page,
 .mg-app,
 .container-fluid,
