@@ -1,37 +1,33 @@
 <template>
   <Page>
     <Header
-            id="variantdb-header"
-            title="Variant DB"
-            subtitle="Search for ...." />
-    <Section id="">
-      <h2>Search the Variant database</h2>
+      id="variantdb-header"
+      title="Variant DB"
+      subtitle="Search for ...." />
+    <Section id="variantdb-search" aria-labelledby="variantdb-search-title">
+      <h2 id="variantdb-search-title">Search the Variant database</h2>
       <p>Find specific records or filter for classified variants using any of the filters below.</p>
-      <Form id="variantdb-search-form" title="Search">
+      <Form id="variantdb-search-form" title="Search" class="flex">
         <FormSection>
           <SearchInput
             id="UMCGnr"
             label="Enter UMCGnr"
             description="Search for a patient by ID"
-            @search="(value) => onInput(value, 'umcg')"
+            @search="(value) => umcg = value"
           />
-          <SearchButton
-            id="search-id"
-            name="Search"
-            @click="() => onClick(['umcg'])"
-          />
+          <SearchButton id="search-id" @click="searchPatient" />
         </FormSection>
         <FormSection>
           <SearchInput
             id="gene"
             label="Search for a specific gene"
             description="e.g., TTN, ...."
-            @search="(value) => onInput(value, 'gene')"
+            @search="(value) => gene = value"
           />
           <CheckboxInput
             id="showVusPlus"
             label="Also search for VUS+?"
-            @change="() => { showVusPlus =! showVusPlus }"
+            @change="showVusPlus = !showVusPlus"
           />
           <RadioButtons
             v-show="showVusPlus"
@@ -41,12 +37,9 @@
             description="Select either True or False. Untick the checkbox to remove this option."
             :values="['true', 'false']"
             :labels="['True', 'False']"
-            @change="(value) => onInput(value, 'vusplus')"
+            @input="(value) => vusplus = value"
           />
-          <SearchButton
-            id="search-vusplus"
-            @click="() => onClick(['gene', 'vusplus'], 'vusplus', !showVusPlus)"
-          />
+          <SearchButton id="search-vusplus" @click="searchGene"/>
         </FormSection>
       </Form>
     </Section>
@@ -87,18 +80,25 @@ export default {
     }
   },
   methods: {
-    onInput (value, prop) {
-      this[prop] = value
+    searchPatient () {
+      const filters = [`umcg==${this.umcg}`]
+      this.windowReplaceUrl(filters)
     },
-    onClick (arrayOfPropNames, keyToRemove, keyToRemoveState) {
-      // const baseUrl = '/menu/plugins/dataexplorer?entity=variantdb_variant&mod=data&hideselect=true
-      let urlFilters = arrayOfPropNames
-      if (keyToRemoveState) {
-        urlFilters = arrayOfPropNames.filter(name => name !== keyToRemove)
+    searchGene () {
+      const filters = [`gene==${this.gene}`]
+      if (this.showVusPlus) {
+        filters.push(`vusplus==${this.vusplus}`)
       }
+      this.windowReplaceUrl(filters)
+    },
+    windowReplaceUrl (array) {
+      const filters = array.join(';')
+      const filtersEncoded = encodeURIComponent(filters)
       
-      const filters = urlFilters.map(filter => `${filter}==${this[filter]}`).join(';')
-      console.log(arrayOfPropNames, keyToRemoveState, filters)
+      const baseUrl = '/menu/plugins/dataexplorer?entity=variantdb_variant&mod=data&hideselect=true'
+      const url = baseUrl + '&filter=' + filtersEncoded
+      // window.location.replace(url)
+      console.log(url)
     }
   }
 }
@@ -115,11 +115,20 @@ export default {
   margin: 0 auto;
   max-width: 425px;
   
+  // .form__sections {
+  //   display: flex;
+  //   justify-content: center;
+  //   align-items: flex-start;
+  //   flex-direction: row;
+  //   flex-wrap: wrap;
+  //   gap: 32px;
+  // }
+  
   .form__section {
-    position: relative;
+    width: 350px;
     
     .search__button {
-      width: 125px;
+      // width: 125px;
       margin-top: 24px;
     }
   }

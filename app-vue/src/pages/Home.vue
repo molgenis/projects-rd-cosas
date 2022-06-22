@@ -24,27 +24,33 @@
           <InfoCard
             title="COSAS"
             text="View the Catalog of Sequences, Arrays, and Samples."
-            href="/menu/main/navigator/cosas"
-            hrefLabel="View"
-          />
+          >
+            <router-link to="/cosas" class="action-link">
+              View
+            </router-link>
+          </InfoCard>
           <InfoCard
             title="Unsolved Cases"
             text="View and submit cases to the Unsolved Cases Portal."
-            href="/menu/main/navigator/ucu"
-            hrefLabel="View"
-          />
+          >
+            <router-link to="unsolvedcases" class="action-link">
+              View
+            </router-link>
+          </InfoCard>
           <InfoCard
             title="VariantDB"
             text="Find and explore variants in the Variants database."
-            href="/menu/main/navigator/variantdb"
-            hrefLabel="View"
-          />
+          >
+            <router-link to="/variantdb" class="action-link">
+              View
+            </router-link>
+          </InfoCard>
         </div>
       </Section>
       <Section id="portal-help" aria-labelledby="portal-help-title" class="page__section__plain">
         <h2 id="portal-help-title">Get help</h2>
         <p>Need help? Do you have a question about any of these systems? If so, please contact the support desk.</p>
-        <ActionLink href="mailto:molgenis-support@umcg.nl">
+        <ActionLink href="mailto:molgenis-support@umcg.nl" style="width: 225px;">
           Contact Support
         </ActionLink>
       </Section>

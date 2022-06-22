@@ -1,20 +1,20 @@
 <template>
   <Page>
     <Header
-      id="dashboard"
+      id="dashboard-header"
       title="COSAS Dashboard"
       subtitle="Monitor and analyze daily imports"
       :imageSrc="images.dashboardImage"
     />
     <main>
-      <div v-if="requestHasFailed">
+      <Section id="error-failed-request" v-if="requestHasFailed">
         <h2>Error!</h2>
         <p>Unable to retrieve data. Please sign in or try again later.</p>
         {{ error }}
-      </div>
-      <div v-if="!requestHasFailed && loading">
+      </Section>
+      <Section id="message-loading" v-else-if="!requestHasFailed && loading">
         <p>Loading data....</p>
-      </div>
+      </Section>
       <template v-else>
         <Section id="data-highlights" aria-labelledby="cosas-highlights-title">
           <DataHighlightContainer
@@ -141,7 +141,7 @@ export default {
         'key.type'
       ],
       images: {
-        dashboardImage: require('@/assets/stairs.jpg')
+        dashboardImage: require('@/assets/cosas-dashboard-image.jpg')
       }
     }
   },
@@ -228,17 +228,6 @@ export default {
 </script>
 
 <style lang="scss">
-.visually-hidden {
-  position: absolute;
-  clip: rect(1px 1px 1px 1px); /* IE6, IE7 */
-  clip: rect(1px, 1px, 1px, 1px);
-  overflow: hidden;
-  height: 1px;
-  width: 1px;
-  margin: -1px;
-  white-space: nowrap;
-}
-
 .viz-note {
   margin-top: 12px;
   font-size: 11pt;
