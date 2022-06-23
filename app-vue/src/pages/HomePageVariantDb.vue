@@ -3,7 +3,9 @@
     <Header
       id="variantdb-header"
       title="Variant DB"
-      subtitle="Search for ...." />
+      subtitle="Search for ...."
+      :imageSrc="require('@/assets/header-bg-2.jpg')"
+    />
     <Section id="variantdb-search" aria-labelledby="variantdb-search-title">
       <h2 id="variantdb-search-title">Search the Variant database</h2>
       <p>Find specific records or filter for classified variants using any of the filters below.</p>
@@ -105,12 +107,6 @@ export default {
 </script>
 
 <style lang="scss">
-#variantdb-header {
-  background-image: url("~@/assets/header-bg-2.jpg");
-  background-position: 100% 0;
-  background-size: cover;
-}
-
 #variantdb-search-form {
   margin: 0 auto;
   max-width: 425px;

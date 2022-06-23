@@ -10,7 +10,7 @@
       <Section id="quick-links" style="text-align: center;" class="page__section__plain">
         <h2>Quick Links</h2>
         <p>Scroll down to learn more about COSAS or use the links below to view a specific page.</p>
-        <router-link to="/cosas-dashboard" class="action-link" style="width: 250px;">
+        <router-link :to="{name: 'cosasdashboard'}" class="action-link" style="width: 250px;">
           COSAS Dashboard
         </router-link>
       </Section>

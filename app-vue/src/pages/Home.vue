@@ -25,7 +25,7 @@
             title="COSAS"
             text="View the Catalog of Sequences, Arrays, and Samples."
           >
-            <router-link to="/cosas" class="action-link">
+            <router-link :to="{name: 'cosas'}" class="action-link">
               View
             </router-link>
           </InfoCard>
@@ -33,7 +33,7 @@
             title="Unsolved Cases"
             text="View and submit cases to the Unsolved Cases Portal."
           >
-            <router-link to="unsolvedcases" class="action-link">
+            <router-link :to="{name: 'ucu'}" class="action-link">
               View
             </router-link>
           </InfoCard>
@@ -41,7 +41,7 @@
             title="VariantDB"
             text="Find and explore variants in the Variants database."
           >
-            <router-link to="/variantdb" class="action-link">
+            <router-link :to="{name: 'variantdb'}" class="action-link">
               View
             </router-link>
           </InfoCard>
