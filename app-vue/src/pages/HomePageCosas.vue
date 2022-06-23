@@ -127,18 +127,16 @@ export default {
     onClick (table, column, value, filterType) {
       const input = value.replaceAll(' ', '')
       const urlFilter = (typeof filterType !== 'undefined') && (filterType === 'in')
-        ? `${column}==in=(${input})`
+        ? `${column}=in=(${input})`
         : `${column}==${input}`
 
       this.windowReplaceUrl(table, urlFilter)
     },
     windowReplaceUrl (table, array) {
       const filtersEncoded = encodeURIComponent(array)
-      
       const baseUrl = `/menu/plugins/dataexplorer?entity=${table}&mod=data&hideselect=true`
       const url = baseUrl + '&filter=' + filtersEncoded
-      // window.location.replace(url)
-      console.log(url)
+      window.location.replace(url)
     }
   }
 }

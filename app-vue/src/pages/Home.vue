@@ -4,6 +4,7 @@
       id="cosas-header"
       title="Genetica Diagnostics Portal"
       subtitle="Find, explore, and access data"
+      :imageSrc="require('@/assets/header-bg-2.jpg')"
     />
     <main>
       <Section id="portal-welcome" aria-labelledby="portal-welcome-title" class="page__section__plain">
@@ -78,12 +79,6 @@ export default {
 </script>
 
 <style>
-#cosas-header {
-  background-image: url("~@/assets/header-bg-2.jpg");
-  background-position: 100% 0;
-  background-size: cover;
-}
-
 #portal-databases {
   background-color: #f6f6f6;
 }

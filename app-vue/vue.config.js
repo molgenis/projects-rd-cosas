@@ -27,15 +27,12 @@ const htmlTemplate = () => {
 
 const PROXY_TARGET = 'https://cosas-acc.molgeniscloud.org'
 
-const publicPath = process.env.NODE_ENV === 'production'
-  ? '/plugin/app/' + packageJson.name
-  : '/'
-
-// transpileDependencies: ['@molgenis-ui/components-library'],
 module.exports = {
   runtimeCompiler: true,
   outputDir: 'dist',
-  publicPath: publicPath,
+  publicPath: process.env.NODE_ENV === 'production'
+    ? '/plugin/app/' + packageJson.name
+    : '/',
   chainWebpack: config => {
     config.resolve.symlinks(false)
     config

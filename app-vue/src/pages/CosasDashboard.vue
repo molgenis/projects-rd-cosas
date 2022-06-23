@@ -245,6 +245,7 @@ export default {
 }
 
 #dashboard-coverage-report {
+  background: #ffffff;
   table {
     thead {
       font-size: 11pt;

@@ -89,7 +89,7 @@ export default {
     searchGene () {
       const filters = [`gene==${this.gene}`]
       if (this.showVusPlus) {
-        filters.push(`vusplus==${this.vusplus}`)
+        filters.push(`vusPlus==${this.vusplus}`)
       }
       this.windowReplaceUrl(filters)
     },
@@ -99,8 +99,7 @@ export default {
       
       const baseUrl = '/menu/plugins/dataexplorer?entity=variantdb_variant&mod=data&hideselect=true'
       const url = baseUrl + '&filter=' + filtersEncoded
-      // window.location.replace(url)
-      console.log(url)
+      window.location.replace(url)
     }
   }
 }
