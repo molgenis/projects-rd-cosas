@@ -1,5 +1,5 @@
 <template>
-  <div :id="setidentifier" class="highlight-container">
+  <div :id="id" class="highlight-container">
     <span class="visually-hidden">{{ description }}</span>
     <slot></slot>
   </div>
@@ -7,26 +7,26 @@
 
 <script>
 export default {
-  name: 'DataHighlightContainer',
-  props: ['id', 'description'],
-  computed: {
-    setidentifier () {
-      return this.id.toLowerCase().replace(' ', '') + '-highlights-container'
+  name: 'data-highlight-container',
+  props: {
+    id: {
+      type: String,
+      required: true
+    },
+    description: {
+      type: String,
+      required: true
     }
   }
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .highlight-container {
   display: flex;
   justify-content: flex-start;
   align-items: center;
   gap: 12px;
   box-sizing: padding-box;
-  
-  .highlight-box {
-    flex-grow: 1;
-  }
 }
 </style>

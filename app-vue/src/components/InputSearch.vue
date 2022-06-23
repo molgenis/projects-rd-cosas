@@ -11,7 +11,7 @@
       class="input__search"
       v-model="value"
       @submit.prevent
-      @input="onSearch"
+      @input="$emit('search', value)"
     />
   </div>
 </template>
@@ -36,11 +36,6 @@ export default {
   data () {
     return {
       value: null
-    }
-  },
-  methods: {
-    onSearch () {
-      this.$emit('search', this.value)
     }
   }
 }

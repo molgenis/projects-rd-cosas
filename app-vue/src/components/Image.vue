@@ -4,7 +4,7 @@
 
 <script>
 export default {
-  name: 'PageImage',
+  name: 'page-image',
   props: {
     src: {
       type: String,

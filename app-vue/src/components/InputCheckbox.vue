@@ -4,7 +4,7 @@
       type="checkbox"
       :id="id"
       class="input__checkbox"
-      v-model="choice"
+      @input="$emit('input', value)"
     />
     <label :for="id" class="input__label">{{ label }}</label>
   </div>
@@ -21,16 +21,6 @@ export default {
     label: {
       type: String,
       required: true
-    }
-  },
-  data () {
-    return {
-      choice: null
-    }
-  },
-  methods: {
-    onInput () {
-      this.$emit('input', this.choice)
     }
   }
 }

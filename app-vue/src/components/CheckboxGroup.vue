@@ -1,4 +1,3 @@
-
 <template>
   <fieldset :id="id" class="checkbox-group">
     <legend class="checkbox-group-title">
@@ -7,7 +6,7 @@
     </legend>
     <div class="checkbox-group-options">
       <div class="group-option" v-for="option in options" :key="option">
-        <input 
+        <input
           type="checkbox"
           :id="option"
           :name="id"
@@ -41,22 +40,34 @@
 
 <script>
 export default {
-  name: "CheckboxGroup",
+  name: 'checkbox-group',
   props: {
-    id: String,
-    title: String,
-    caption: String,
-    options: Array,
+    id: {
+      type: String,
+      required: true
+    },
+    title: {
+      type: String,
+      required: true
+    },
+    caption: {
+      type: String,
+      required: true
+    },
+    options: {
+      type: Array,
+      required: true
+    }
   },
   data () {
     return {
       checkedOptions: []
     }
   }
-};
+}
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .checkbox-group {
   border: 0;
   padding: 0;

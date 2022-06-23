@@ -1,6 +1,6 @@
 <template>
-  <div :id="setidentifier" :aria-labelledby="setidentifier" class="highlight-box">
-    <h3 :id="setidentifier + '-title'" class="highlight-box-title">{{ title }}</h3>
+  <div :id="id" :aria-labelledby="id + '-title'" class="highlight-box">
+    <h3 :id="id + '-title'" class="highlight-box-title">{{ title }}</h3>
     <p class="highlight-box-value">{{ value }}</p>
   </div>
 </template>
@@ -8,24 +8,33 @@
 <script>
 export default {
   name: 'DataHighlight',
-  props: ['id', 'title', 'value'],
-  computed: {
-    setidentifier () {
-      return this.id.toLowerCase().replace(' ', '-')
+  props: {
+    id: {
+      type: String,
+      required: true
+    },
+    title: {
+      type: String,
+      required: true
+    },
+    value: {
+      type: String,
+      required: true
     }
   }
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .highlight-box {
   box-sizing: border-box;
   padding: 16px;
   border-radius: 8px;
   background-color: #7f332d;
+  flex-grow: 1;
   box-shadow: 0 0 5px 3px hsla(0, 0%, 0%, 0.2);
   
-  h3, p {
+  .highlight-box-title, .highlight-box-value {
     margin: 0;
   }
 

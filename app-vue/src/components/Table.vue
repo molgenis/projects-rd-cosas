@@ -33,11 +33,9 @@ export default {
   },
   methods: {
     renderTable () {
-      // select <table> element
       const tableId = this.$el.childNodes[0].id
       const table = d3.select(`#${tableId}`)
       
-      // create <thead> element
       const tableHeader = table.append('thead')
       tableHeader.append('tr')
         .selectAll('th')
@@ -47,14 +45,15 @@ export default {
         .attr('data-column-name', column => column)
         .text(column => column)
 
-      // create <tbody> element
       const tableBody = table.append('tbody')
       const tableRows = tableBody.selectAll('tr')
         .data(this.data)
         .enter()
         .append('tr')
-        
-      // for each row in the input data, create <td> element
+        .attr('class', (row, index) => {
+          return (index % 2) === 1 ? 'rows-odd' : 'rows-even'
+        })
+
       const tableCells = tableRows.selectAll('tr')
         .data(row => {
           return this.columnOrder.map(column => {
@@ -133,7 +132,7 @@ $text-default: #3f454b;
           }
         }
 
-        &:nth-child(even) {
+        &:nth-child(odd) {
           background-color: #f6f6f6;
         }
       }

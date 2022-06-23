@@ -86,7 +86,7 @@ export default {
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: hsla(0, 0%, 0%, 0.45);
+      background-color: hsla(0, 0%, 0%, 0.25);
     }
   }
 }
