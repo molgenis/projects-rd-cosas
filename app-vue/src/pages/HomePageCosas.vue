@@ -136,7 +136,7 @@ export default {
       const filtersEncoded = encodeURIComponent(array)
       const baseUrl = `/menu/plugins/dataexplorer?entity=${table}&mod=data&hideselect=true`
       const url = baseUrl + '&filter=' + filtersEncoded
-      window.location.replace(url)
+      window.open(url, '_blank')
     }
   }
 }

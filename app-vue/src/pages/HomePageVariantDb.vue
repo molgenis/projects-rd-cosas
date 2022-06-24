@@ -99,7 +99,7 @@ export default {
       
       const baseUrl = '/menu/plugins/dataexplorer?entity=variantdb_variant&mod=data&hideselect=true'
       const url = baseUrl + '&filter=' + filtersEncoded
-      window.location.replace(url)
+      window.open(url, '_blank')
     }
   }
 }
