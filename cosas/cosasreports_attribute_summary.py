@@ -2,7 +2,7 @@
 #' FILE: cosasreports_attribute_summary.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-04-19
-#' MODIFIED: 2022-04-29
+#' MODIFIED: 2022-06-27
 #' PURPOSE: generate a coverage report of all attributes in COSAS
 #' STATUS: stable
 #' PACKAGES: **see below**
@@ -75,7 +75,7 @@ cosasTables={
       'biospecimenType'  
     ],
     'samplePreparation': [
-        'sampleID',
+        'samplePreparationID',
         'belongsToSample',
         'belongsToLabProcedure',
         'belongsToRequest',
