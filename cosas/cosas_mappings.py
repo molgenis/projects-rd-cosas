@@ -2,7 +2,7 @@
 # FILE: mappings_cosas.py
 # AUTHOR: David Ruvolo
 # CREATED: 2021-10-05
-# MODIFIED: 2022-06-07
+# MODIFIED: 2022-06-28
 # PURPOSE: primary mapping script for COSAS
 # STATUS: stable
 # PACKAGES: **see below**
@@ -167,6 +167,9 @@ class Molgenis(molgenis.Session):
       self._apiUrl = self._url
     if '_api_url' in props:
       self._apiUrl = self._api_url
+      
+    host=self._apiUrl.replace('/api/','')
+    self._fileImportUrl=f"{host}/plugin/importwizard/importFile"
 
   def _checkResponseStatus(self, response, label):
     if (response.status_code // 100) != 2:
@@ -192,6 +195,31 @@ class Molgenis(molgenis.Session):
     )
     self._checkResponseStatus(response, label)
     response.raise_for_status()
+  
+  def _datatableToCsv(self, path, datatable):
+    """To CSV
+    Write datatable object as CSV file
+
+    @param path location to save the file
+    @param data datatable object
+    """
+    datatable.to_pandas().replace({np.nan: None}).to_csv(path, index=False, quoting=csv.QUOTE_ALL)
+  
+  def importDatatableAsCsv(self, filename: str, data, label: str):
+    with tempfile.TemporaryDirectory() as tmpdir:
+      filepath=f"{tmpdir}/{filename}"
+      self._datatableToCsv(filepath, data)
+      
+      response = self._session.post(
+        url=self._fileImportUrl,
+        headers = self._get_token_header(),
+        files={'file': open(filepath, 'rb')},
+        params = {
+          'action': 'add_update_existing',
+          'metadataAction': 'ignore'
+        }
+      )
+      self._checkResponseStatus(response, label)
 
   def importData(self, entity: str, data: list):
     """Import Data
@@ -468,15 +496,6 @@ class ArchiveWriter:
         filepath=f"{directory}/{filename}"
         self.toCsv(path=filepath, datatable=dataset)
         archive.write(filepath, filename)
-
-  def toCsv(self, path, datatable):
-    """To CSV
-    Write object as a CSV file at a specified path
-
-    @param path location to save the file
-    @param data datatable object
-    """
-    datatable.to_pandas().replace({np.nan: None}).to_csv(path, index=False, quoting=csv.QUOTE_NONNUMERIC)
   
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -1813,27 +1832,27 @@ cosaslogs.stopProcessingStepLog()
 # ~ 6b ~
 # Clear database tables
 # Before the data can be imported, clean up the existing COSAS tables.
-status_msg('Clearing COSAS tables....')
-cosaslogs.startProcessingStepLog(
-  type='Data Processing',
-  name='Clear COSAS tables',
-  tablename='COSAS'
-)
+# status_msg('Clearing COSAS tables....')
+# cosaslogs.startProcessingStepLog(
+#   type='Data Processing',
+#   name='Clear COSAS tables',
+#   tablename='COSAS'
+# )
 
-cosastables = [
-  'umdm_files',
-  'umdm_sequencing',
-  'umdm_samplePreparation',
-  'umdm_samples',
-  'umdm_clinical',
-  'umdm_subjects'
-]
+# cosastables = [
+#   'umdm_files',
+#   'umdm_sequencing',
+#   'umdm_samplePreparation',
+#   'umdm_samples',
+#   'umdm_clinical',
+#   'umdm_subjects'
+# ]
 
-for table in cosastables:
-  status_msg('Clearing', table)
-  db.delete(entity=table)
+# for table in cosastables:
+#   status_msg('Clearing', table)
+#   db.delete(entity=table)
 
-cosaslogs.stopProcessingStepLog()
+# cosaslogs.stopProcessingStepLog()
 
 
 # ~ 6c ~
@@ -1852,17 +1871,23 @@ cosaslogs.startProcessingStepLog(
   tablename='subjects'
 )
 
-umdm_subjects = cosastools.to_records(subjects)
-umdm_subject_ids = cosastools.to_records(
-  subjects[:, (f.subjectID, f.dateRecordCreated, f.recordCreatedBy)]
-)
+# umdm_subjects = cosastools.to_records(subjects)
+# umdm_subject_ids = cosastools.to_records(
+#   subjects[:, (f.subjectID, f.dateRecordCreated, f.recordCreatedBy)]
+# )
 
 # import subject identifiers first, and then update rows
-status_msg('Importing identifiers...')
-db.importData(entity='umdm_subjects', data=umdm_subject_ids)
+# status_msg('Importing identifiers...')
+# db.importData(entity='umdm_subjects', data=umdm_subject_ids)
 
-status_msg('Importing row data...')
-db.updateRows(entity='umdm_subjects', data=umdm_subjects)
+# status_msg('Importing row data...')
+# db.updateRows(entity='umdm_subjects', data=umdm_subjects)
+
+db.importDatatableAsCsv(
+  filename='umdm_subjects',
+  data = subjects,
+  label = 'umdm_subjects'
+)
 
 cosaslogs.stopProcessingStepLog()
 
@@ -1875,8 +1900,16 @@ cosaslogs.startProcessingStepLog(
   tablename='clinical'
 )
 
-umdm_clinical = cosastools.to_records(clinical)
-db.importData(entity='umdm_clinical', data=umdm_clinical)
+# umdm_clinical = cosastools.to_records(clinical)
+# db.importData(entity='umdm_clinical', data=umdm_clinical)
+
+db.importDatatableAsCsv(
+  filename = 'umdm_clinical',
+  data = clinical,
+  label = 'umdm_clinical'
+)
+
+cosaslogs.stopProcessingStepLog()
 
 # ~ 5b.ii ~
 # Import data into 'umdm_samples'
@@ -1888,8 +1921,14 @@ cosaslogs.startProcessingStepLog(
     tablename='samples'
 )
 
-umdm_samples = cosastools.to_records(samples)
-db.importData(entity='umdm_samples', data=umdm_samples)
+# umdm_samples = cosastools.to_records(samples)
+# db.importData(entity='umdm_samples', data=umdm_samples)
+
+db.importDatatableAsCsv(
+  filename = 'umdm_samples',
+  data = samples,
+  label = 'umdm_samples'
+)
 
 cosaslogs.stopProcessingStepLog()
 
@@ -1904,8 +1943,14 @@ cosaslogs.startProcessingStepLog(
   tablename='samplepreparation'
 )
 
-umdm_samplePreparation = cosastools.to_records(samplePreparation)
-db.importData(entity='umdm_samplePreparation', data=umdm_samplePreparation)
+# umdm_samplePreparation = cosastools.to_records(samplePreparation)
+# db.importData(entity='umdm_samplePreparation', data=umdm_samplePreparation)
+
+db.importDatatableAsCsv(
+  filename = 'umdm_samplePreparation',
+  data = samplePreparation,
+  label = 'umdm_samplePreparation'
+)
 
 cosaslogs.stopProcessingStepLog()
 
@@ -1919,8 +1964,14 @@ cosaslogs.startProcessingStepLog(
   tablename='sequencing'
 )
 
-umdm_sequencing = cosastools.to_records(sequencing)
-db.importData(entity='umdm_sequencing', data=umdm_sequencing)
+# umdm_sequencing = cosastools.to_records(sequencing)
+# db.importData(entity='umdm_sequencing', data=umdm_sequencing)
+
+db.importDatatableAsCsv(
+  filename = 'umdm_sequencing',
+  data = sequencing,
+  label = 'umdm_sequencing'
+)
 
 cosaslogs.stopProcessingStepLog()
 
