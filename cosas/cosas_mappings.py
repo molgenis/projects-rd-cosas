@@ -1,22 +1,24 @@
-#'////////////////////////////////////////////////////////////////////////////
-#' FILE: mappings_cosas.py
-#' AUTHOR: David Ruvolo
-#' CREATED: 2021-10-05
-#' MODIFIED: 2022-06-07
-#' PURPOSE: primary mapping script for COSAS
-#' STATUS: stable
-#' PACKAGES: **see below**
-#' COMMENTS: NA
-#'////////////////////////////////////////////////////////////////////////////
+#////////////////////////////////////////////////////////////////////////////
+# FILE: mappings_cosas.py
+# AUTHOR: David Ruvolo
+# CREATED: 2021-10-05
+# MODIFIED: 2022-06-07
+# PURPOSE: primary mapping script for COSAS
+# STATUS: stable
+# PACKAGES: **see below**
+# COMMENTS: NA
+#////////////////////////////////////////////////////////////////////////////
 
+from zipfile import ZipFile
 from datatable import dt, f, as_type, first
 import molgenis.client as molgenis
 from datetime import datetime
 import numpy as np
-import requests
 import json
 import pytz
 import re
+import tempfile
+import csv
 
 # uncomment when deployed
 host = 'http://localhost/api/'
@@ -28,464 +30,461 @@ createdBy = 'cosasbot'
 # from os import environ
 # load_dotenv()
 # host = environ['MOLGENIS_HOST_ACC']
-# token = environ['MOLGENIS_TOKEN_ACC'] 
+# token = environ['MOLGENIS_TOKEN_ACC']
 
 # generic status message with timestamp
 def status_msg(*args):
-    """Status Message
-    Print a log-style message, e.g., "[16:50:12.245] Hello world!"
+  """Status Message
+  Print a log-style message, e.g., "[16:50:12.245] Hello world!"
 
-    @param *args one or more strings containing a message to print
-    @return string
-    """
-    message = ' '.join(map(str, args))
-    time = datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime('%H:%M:%S.%f')[:-3]
-    print(f'[{time}] {message}')
+  @param *args one or more strings containing a message to print
+  @return string
+  """
+  message = ' '.join(map(str, args))
+  time = datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime('%H:%M:%S.%f')[:-3]
+  print(f'[{time}] {message}')
 
 
 # custom logs
 class cosasLogger:
-    def __init__(self, logname: str='cosas-daily-import', silent=False, printWithTime=True):
-        """Cosas Logger
-        Keep records of all processing steps and summarize the daily imports
-        
-        @param logname : name of the log
-        @param silent : If True, all messages will be disabled
-        @param printWithTime: If True and silent is False, all messages will be
-            printed with timestamps
-        """
-        self.silent = silent
-        self.logname = logname
-        self.log = {}
-        self.currentStep = {}
-        self.processingStepLogs = []
-        self._printWithTime = printWithTime
-    
-    def _now(self, strftime=None):
-        if strftime:
-            return datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime(strftime)
-        return datetime.now(tz=pytz.timezone('Europe/Amsterdam'))
-        
-    def _printMsg(self, message):
-        if not self.silent:
-            if self._printWithTime:
-                message = f"[{self._now(strftime='%H:%M:%S.%f')[:-3]}] {message}"
-            print(message)
-       
-    def __stoptime__(self, name):
-        timeFormat = '%Y-%m-%dT%H:%M:%SZ'
-        log = self.__getattribute__(name)
-        log['endTime'] = self._now()
-        log['elapsedTime'] = (log['endTime'] - log['startTime']).total_seconds()
-        log['endTime'] = log['endTime'].strftime(timeFormat)
-        log['startTime'] = log['startTime'].strftime(timeFormat)
-        self.__setattr__(name, log)
-       
-    def start(self):
-        """Start Log
-        Start logs for an entire job, script, action, etc.
-        """
-        self.log = {
-            'identifier': self._now(strftime='%Y-%m-%d'),
-            'name': self.logname,
-            'date': self._now(strftime='%Y-%m-%d'),
-            'databaseName': 'cosas',
-            'startTime': self._now(),
-            'endTime': None,
-            'elapsedTime': None,
-            'steps': [],
-            'comments': None
-        }
-        
-        self._printMsg(
-            '{}: log started at {}'
-            .format(self.logname, self.log['startTime'].strftime('%H:%M:%S'))
-        )
-       
-    def stop(self):
-        """Stop Log
-        End logging at the end of job, script, etc.
-        """
-        self.__stoptime__(name='log')
-        self.log['steps'] = ','.join(map(str, self.log['steps']))
-        self._printMsg(
-            'Logging stopped (elapsed time: {} seconds)'
-            .format(self.log['elapsedTime'])
-        )
+  def __init__(self, logname: str = 'cosas-daily-import', silent=False, printWithTime=True):
+    """Cosas Logger
+    Keep records of all processing steps and summarize the daily imports
 
-    def startProcessingStepLog(self, type: str=None, name: str=None, tablename: str=None):
-        """Start a new log for a processing step
-        Create a new logging object for an individual step such as transforming
-        data or importing data.
-        
-        @param type : data handling type (see lookups)
-        @param name : name of the current step (e.g., 'import-data', 'save-data')
-        @param tablename : database table the current step relates to
-        """
-        stepID = len(self.processingStepLogs) + 1
-        self.currentStep = {
-            'identifier': int(f"{self._now(strftime='%Y%m%d')}{stepID}"),
-            'date': self._now(strftime='%Y-%m-%d'),
-            'name': name,
-            'step': type,
-            'databaseTable': tablename,
-            'startTime': self._now(),
-            'endTime': None,
-            'elapsedTime': None,
-            'status': None,
-            'comment': None
-        }
-        
-        self._printMsg('{}: starting step {}'.format(self.logname, name))
-       
-    def stopProcessingStepLog(self):
-        """Stop a log for a processing step
-        Stop logging for the current step
-        
-        @return confirmation message
-        """
-        self.__stoptime__(name='currentStep')
-        self.log['steps'].append(self.currentStep['identifier'])
-        self.processingStepLogs.append(self.currentStep)
-        
-        self._printMsg(
-            '{}: finished step {} in {} seconds'
-            .format(
-                self.logname,
-                self.currentStep['name'],
-                self.currentStep['elapsedTime']
-            )
-        )
+    @param logname : name of the log
+    @param silent : If True, all messages will be disabled
+    @param printWithTime: If True and silent is False, all messages will be
+        printed with timestamps
+    """
+    self.silent = silent
+    self.logname = logname
+    self.log = {}
+    self.currentStep = {}
+    self.processingStepLogs = []
+    self._printWithTime = printWithTime
+    self.tz = 'Europe/Amsterdam'
+    self.hhmmss = '%H:%M:%S'
+    self.hhmmss_f = '%H:%M:%S.%f'
+    self.yyyymmdd_hhmmss = '%Y-%m-%dT%H:%M:%SZ'
+
+  def _now(self, strftime=None):
+    if strftime:
+      return datetime.now(tz=pytz.timezone(self.tz)).strftime(strftime)
+    return datetime.now(tz=pytz.timezone(self.tz))
+
+  def _printMsg(self, *message):
+    if not self.silent:
+      message = ' '.join(map(str, message))
+      if self._printWithTime:
+          message = f"[{self._now(strftime=self.hhmmss_f)[:-3]}] {message}"
+      print(message)
+
+  def __stoptime__(self, name):
+    log = self.__getattribute__(name)
+    log['endTime'] = self._now()
+    log['elapsedTime'] = (log['endTime'] - log['startTime']).total_seconds()
+    log['endTime'] = log['endTime'].strftime(self.yyyymmdd_hhmmss)
+    log['startTime'] = log['startTime'].strftime(self.yyyymmdd_hhmmss)
+    self.__setattr__(name, log)
+
+  def start(self):
+    """Start Log
+    Start logs for an entire job, script, action, etc.
+    """
+    self.log = {
+      'identifier': self._now(strftime='%Y-%m-%d'),
+      'name': self.logname,
+      'date': self._now(strftime='%Y-%m-%d'),
+      'databaseName': 'cosas',
+      'startTime': self._now(),
+      'endTime': None,
+      'elapsedTime': None,
+      'steps': [],
+      'comments': None
+    }
+
+    self._printMsg(self.logname,': log started at',self.log['startTime'].strftime(self.hhmmss))
+
+  def stop(self):
+    """Stop Log
+    End logging at the end of job, script, etc.
+    """
+    self.__stoptime__(name='log')
+    self.log['steps'] = ','.join(map(str, self.log['steps']))
+    self._printMsg('Logging stopped (elapsed time:', self.log['elapsedTime'], 'seconds')
+
+  def startProcessingStepLog(self, type: str = None, name: str = None, tablename: str = None):
+    """Start a new log for a processing step
+    Create a new logging object for an individual step such as transforming
+    data or importing data.
+
+    @param type : data handling type (see lookups)
+    @param name : name of the current step (e.g., 'import-data', 'save-data')
+    @param tablename : database table the current step relates to
+    """
+    stepID = len(self.processingStepLogs) + 1
+    self.currentStep = {
+      'identifier': int(f"{self._now(strftime='%Y%m%d')}{stepID}"),
+      'date': self._now(strftime='%Y-%m-%d'),
+      'name': name,
+      'step': type,
+      'databaseTable': tablename,
+      'startTime': self._now(),
+      'endTime': None,
+      'elapsedTime': None,
+      'status': None,
+      'comment': None
+    }
+
+    self._printMsg(self.logname, ': starting step', name)
+
+  def stopProcessingStepLog(self):
+    """Stop a log for a processing step
+    Stop logging for the current step
+
+    @return confirmation message
+    """
+    self.__stoptime__(name='currentStep')
+    self.log['steps'].append(self.currentStep['identifier'])
+    self.processingStepLogs.append(self.currentStep)
+    self._printMsg(
+      self.logname,
+      ': finished step',
+      self.currentStep['name'],'in',
+      self.currentStep['elapsedTime']
+    )
 
 # extend molgenis.Session class
 class Molgenis(molgenis.Session):
-    def __init__(self, *args, **kwargs):
-        super(Molgenis, self).__init__(*args, **kwargs)
-        self.__getApiUrl__()
-    
-    def __getApiUrl__(self):
-        """Find API endpoint regardless of version"""
-        props = list(self.__dict__.keys())
-        if '_url' in props:
-            self._apiUrl = self._url
-        if '_api_url' in props:
-            self._apiUrl = self._api_url
-    
-    def _checkResponseStatus(self, response, label):
-        if (response.status_code // 100) != 2:
-            err = response.json().get('errors')[0].get('message')
-            status_msg(f'Failed to import data into {label} ({response.status_code}): {err}')
-        else:
-            status_msg(f'Imported data into {label}')
-    
-    def _POST(self, url: str = None, data: list = None, label: str=None):
-        try:
-            response = self._session.post(
-                url = url,
-                headers = self._get_token_header_with_content_type(),
-                data = json.dumps({'entities': data})
-            )
-            
-            self._checkResponseStatus(response, label)
-            response.raise_for_status()
-            
-        except requests.exceptions.HTTPError as e:
-            raise SystemError(e)
-            
-    def _PUT(self, url: str=None, data: list=None, label: str=None):
-        try:
-            response = self._session.put(
-                url = url,
-                headers = self._get_token_header_with_content_type(),
-                data = json.dumps({'entities': data})
-            )
-            
-            self._checkResponseStatus(response, label)
-            response.raise_for_status()
+  def __init__(self, *args, **kwargs):
+    super(Molgenis, self).__init__(*args, **kwargs)
+    self.__getApiUrl__()
 
-        except requests.exceptions.HTTPError as e:
-            raise SystemError(e)
-            
-    
-    def importData(self, entity: str, data: list):
-        """Import Data
-        Import data into a table. The data must be a list of dictionaries that
-        contains the 'idAttribute' and one or more attributes that you wish
-        to import.
-        
-        @param entity (str) : name of the entity to import data into
-        @param data (list) : data to import (a list of dictionaries)
-        
-        @return a status message
-        """
-        url = '{}v2/{}'.format(self._apiUrl, entity)
-        # single push
-        if len(data) < 1000:
-            self._POST(url=url, data=data, label=str(entity))
-            
-        # batch push
-        if len(data) >= 1000:    
-            for d in range(0, len(data), 1000):
-                self._POST(
-                    url = url,
-                    data = data[d:d+1000],
-                    label = '{} (batch {})'.format(str(entity), str(d))
-                )
-    
-    
-    def updateRows(self, entity: str, data: list):
-        """Update Rows
-        Update rows in a table. The data must be a list of dictionaries that
-        contains the 'idAttribute' and must contain values for all attributes
-        in addition to the one that you wish to update. This is ideal for
-        updating rows. To update an attribute, use `updateColumn`.
-        
-        @param entity (str) : name of the entity to import data into
-        @param data (list) : data to import (list of dictionaries)
-        
-        @return a status message
-        """
-        url = '{}v2/{}'.format(self._apiUrl, entity)
-        # single push
-        if len(data) < 1000:
-            self._PUT(url=url, data=data, label=str(entity))
-            
-        # batch push
-        if len(data) >= 1000:    
-            for d in range(0, len(data), 1000):
-                self._PUT(
-                    url = url,
-                    data = data[d:d+1000],
-                    label = '{} (batch {})'.format(str(entity), str(d))
-                )
+  def __getApiUrl__(self):
+    """Find API endpoint regardless of version"""
+    props = list(self.__dict__.keys())
+    if '_url' in props:
+      self._apiUrl = self._url
+    if '_api_url' in props:
+      self._apiUrl = self._api_url
 
-    def updateColumn(self, entity: str, attr: str, data: list):
-        """Update Column
-        Update values of an single column in a table. The data must be a list of
-        dictionaries that contain the `idAttribute` and the value of the
-        attribute that you wish to update. As opposed to the `updateRows`, you
-        do not need to supply values for all columns.
-        
-        @param entity (str) : name of the entity to import data into
-        @param attr (str) : name of the attribute to update
-        @param data (list) : data to import (list of dictionaries)
-        
-        @retrun status message
-        """
-        url = '{}v2/{}/{}'.format(self._apiUrl, str(entity), str(attr))
-        
-        # single push
-        if len(data) < 1000:
-            self._PUT(url=url, data=data, label=f'{entity}/{attr}')
-        
-        # batch push
-        if len(data) >= 1000:
-            for d in range(0, len(data), 1000):
-                self._PUT(
-                    url = url,
-                    data = data[d:d+1000],
-                    label = '{}/{} (batch {})'.format(
-                        str(entity),
-                        str(attr),
-                        str(d)
-                    )
-                )
+  def _checkResponseStatus(self, response, label):
+    if (response.status_code // 100) != 2:
+      err = response.json().get('errors')[0].get('message')
+      status_msg(f'Failed to import data into {label} ({response.status_code}): {err}')
+    else:
+      status_msg(f'Imported data into {label}')
+
+  def _POST(self, url: str = None, data: list = None, label: str = None):
+    response = self._session.post(
+      url=url,
+      headers=self._get_token_header_with_content_type(),
+      data=json.dumps({'entities': data})
+    )
+    self._checkResponseStatus(response, label)
+    response.raise_for_status()
+
+  def _PUT(self, url: str = None, data: list = None, label: str = None):
+    response = self._session.put(
+      url=url,
+      headers=self._get_token_header_with_content_type(),
+      data=json.dumps({'entities': data})
+    )
+    self._checkResponseStatus(response, label)
+    response.raise_for_status()
+
+  def importData(self, entity: str, data: list):
+    """Import Data
+    Import data into a table. The data must be a list of dictionaries that
+    contains the 'idAttribute' and one or more attributes that you wish
+    to import.
+
+    @param entity (str) : name of the entity to import data into
+    @param data (list) : data to import (a list of dictionaries)
+
+    @return a status message
+    """
+    url = '{}v2/{}'.format(self._apiUrl, entity)
+    # single push
+    if len(data) < 1000:
+      self._POST(url=url, data=data, label=str(entity))
+
+    # batch push
+    if len(data) >= 1000:
+      for d in range(0, len(data), 1000):
+        self._POST(
+          url=url,
+          data=data[d:d+1000],
+          label='{} (batch {})'.format(str(entity), str(d))
+        )
+
+  def updateRows(self, entity: str, data: list):
+    """Update Rows
+    Update rows in a table. The data must be a list of dictionaries that
+    contains the 'idAttribute' and must contain values for all attributes
+    in addition to the one that you wish to update. This is ideal for
+    updating rows. To update an attribute, use `updateColumn`.
+
+    @param entity (str) : name of the entity to import data into
+    @param data (list) : data to import (list of dictionaries)
+
+    @return a status message
+    """
+    url = '{}v2/{}'.format(self._apiUrl, entity)
+    # single push
+    if len(data) < 1000:
+      self._PUT(url=url, data=data, label=str(entity))
+
+    # batch push
+    if len(data) >= 1000:
+      for d in range(0, len(data), 1000):
+        self._PUT(
+          url=url,
+          data=data[d:d+1000],
+          label='{} (batch {})'.format(str(entity), str(d))
+        )
+
+  def updateColumn(self, entity: str, attr: str, data: list):
+    """Update Column
+    Update values of an single column in a table. The data must be a list of
+    dictionaries that contain the `idAttribute` and the value of the
+    attribute that you wish to update. As opposed to the `updateRows`, you
+    do not need to supply values for all columns.
+
+    @param entity (str) : name of the entity to import data into
+    @param attr (str) : name of the attribute to update
+    @param data (list) : data to import (list of dictionaries)
+
+    @retrun status message
+    """
+    url = '{}v2/{}/{}'.format(self._apiUrl, str(entity), str(attr))
+
+    # single push
+    if len(data) < 1000:
+      self._PUT(url=url, data=data, label=f'{entity}/{attr}')
+
+    # batch push
+    if len(data) >= 1000:
+      for d in range(0, len(data), 1000):
+        self._PUT(
+          url=url,
+          data=data[d:d+1000],
+          label='{}/{} (batch {})'.format(str(entity),str(attr), str(d))
+        )
 
 
 # create class of methods used in the mappings
 class cosastools:
-    
-    @staticmethod
-    def calcAge(earliest: datetime.date=None, recent: datetime.date=None):
-        """Calculate Years of Age between two dates
-        
-        @param earliest: the earliest date (datetime: yyyy-mm-dd)
-        @param recent: the most recent date (datetime: yyyy-mm-dd)
-        @return int
-        """
-        if (earliest is None) or (recent is None):
-            return None
+  @staticmethod
+  def calcAge(earliest: datetime.date = None, recent: datetime.date = None):
+    """Calculate Years of Age between two dates
 
-        return round(((recent - earliest).days) / 365.25, 4)
-    
-    @staticmethod
-    def collapseFamilyIDs(value: str=None, valueToRemove: str=None):
-        """Collapse string of Family Member Identifiers
-        Format IDs as a comma separated string. Remove subject ID it exists in
-        the list of IDs as it isn't necessary to reference the subject here.
-        
-        @param value comma separated string containing one or more IDs
-        @param valueToRemove value to remove from the list of IDs
-        
-        @return comma separated string containing one ore more family IDs
-        """
-        if (str(value) in ['nan','-','']) or (value is None): return None
-        pattern = re.compile(f'((,)?({valueToRemove})(,)?)')
-        newString = re.sub(pattern, '', value).strip().replace(' ','')
-        return re.sub(r'([,]$)', '',newString)
-    
-    @staticmethod
-    def collapseHpoCodes(id, column):
-        """Collapse HPO Codes
-        In the COSAS clinical table, find all HPO codes by subject identifier,
-        collapse, get distinct values, and collapse into a string.
-        
-        @param id : identifier to search for
-        @param column : name of the column to search for (datatable f-expression)
-        
-        @return comma separated string containing one or more value
-        """
-        results = clinical[f.belongsToSubject == id, column]
-        if results.nrows == 0:
-            return None
-        return ','.join(list(set(filter(None, results.to_list()[0]))))
-        
-    
-    @staticmethod
-    def collapseTestCodes(subjectID, sampleID, requestID, column):
-        """Collapse Test Codes
-        In the COSAS samples table, find all matching alternative identifiers
-        by id (subject-, sample-, and request identifiers), get distinct
-        values, and collapse into a string
-        
-        @param subjectId (str) : subject ID to locate
-        @param sampleId  (str) : sample ID to locate
-        @param requestId (str) : specific request associated with a sample
-        @param column    (str) : name of the column where the codes are stored
-        
-        @return comma separated string containing one or more value
-        """
-        values = list(
-            filter(
-                None, 
-                samples[
-                    (f.belongsToSubject == subjectID) &
-                    (f.sampleID == sampleID) &
-                    (f.belongsToRequest == requestID),
-                    column
-                ]
-            )
-        )
-        unique = list(set(values))
-        return ','.join(unique)
-    
-    @staticmethod
-    def formatAsYear(date: datetime.date = None):
-        """Format Date as Year
-        @param date: a datetime object
-        @return datetime object formated as year
-        """
-        if date is None or str(date) == 'nan':
-            return None
+    @param earliest: the earliest date (datetime: yyyy-mm-dd)
+    @param recent: the most recent date (datetime: yyyy-mm-dd)
+    @return int
+    """
+    if (earliest is None) or (recent is None):
+      return None
+    return round(((recent - earliest).days) / 365.25, 4)
 
-        return date.strftime('%Y')
-    
-    @staticmethod
-    def formatAsDate(date=None, pattern='%Y-%m-%d %H:%M:%S', asString = False):
-        """Format Date String as yyyy-mm-dd
-        
-        @param string : date string
-        @param pattern : date format, default: %Y-%m-%d %H:%M:%S
-        @param asString : If True, the result will be returned as string
+  @staticmethod
+  def collapseFamilyIDs(value: str = None, valueToRemove: str = None):
+    """Collapse string of Family Member Identifiers
+    Format IDs as a comma separated string. Remove subject ID it exists in
+    the list of IDs as it isn't necessary to reference the subject here.
 
-        @return datetime or string
-        """
-        if not date or str(date) == 'nan':
-            return None
-            
-        x = date
-        if re.search(r'(T00:00)$', x):
-            x = re.sub(r'(T00:00)$', ' 00:00:00', x)
-        value = datetime.strptime(x, pattern).date()
+    @param value comma separated string containing one or more IDs
+    @param valueToRemove value to remove from the list of IDs
 
-        if asString:
-            value = str(value)
+    @return comma separated string containing one ore more family IDs
+    """
+    if (str(value) in ['nan', '-', '']) or (value is None):
+      return None
+    pattern = re.compile(f'((,)?({valueToRemove})(,)?)')
+    newString = re.sub(pattern, '', value).strip().replace(' ', '')
+    return re.sub(r'([,]$)', '', newString)
 
-        return value
-    
-    @staticmethod
-    def recodeValue(
-        mappings: None,
-        value: str=None,
-        label:str=None,
-        warn=True
-    ):
-        """Recode value
-        Recode values using new mappings. It is recommended to define all
-        mappings using lowercase letters and the the input for value should
-        also be lowered.
-        
-        @param mappings a datatable object containing where each key
-            corresponds to a new value
-        @param value string containing a value to recode
-        @param label string that indicates the mapping type for error messages
-        @param warn If True (default), a message will be displayed when a value
-            cannot be mapped
-        
-        @return string or NoneType
-        """
-        try:
-            return mappings[value]
-        except KeyError:
-            if bool(value) and warn:
-                status_msg('Error in {} recoding: "{}" not found'.format(label, value))
-            return None
-        except AttributeError:
-            if bool(value):
-                status_msg('Error in {} recoding: "{}" not found'.format(label, value))
-            return None
-    
-    @staticmethod
-    def mapCineasToHpo(value: str, refData):
-        """Recode Cineas Code to HPO
-        Find the HPO term to a corresponding Cineas
-        
-        @param value : a string containing a cineas code
-        @param refData : datatable object containing Cineas to HPO mappings
-        
-        @return string
-        """
-        if value is None:
-            return None
-        
-        return refData[f.value == value, f.hpo][0][0]
-    
-    @staticmethod
-    def timestamp():
-        """Return Generic timestamp as yyyy-mm-ddThh:mm:ssZ"""
-        return datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime('%Y-%m-%dT%H:%M:%SZ')
-        
-    @staticmethod
-    def to_keypairs(data, keyAttr='from', valueAttr='to'):
-        """To Key pairs
-        Convert a list of dictionaries into a key-value dictionary. This method
-        is useful for creating objects for mapping tables.
-        
-        @param data list of dictionaries that you wish to convert
-        @param keyAttr attribute that will be key
-        @param valueAttr attribute that contains the value
-        
-        @return a dictionary
-        """
-        maps = {}
-        for d in data:
-            maps[d[keyAttr]] = d.get(valueAttr)
-        return maps
-        
-    @staticmethod
-    def to_records(data):
-        """Datatable object to records
-        @param data : datatable object
-        @return list of dictionaries
-        """
-        return data.to_pandas().replace({np.nan: None}).to_dict('records')
+  @staticmethod
+  def collapseHpoCodes(id, column):
+    """Collapse HPO Codes
+    In the COSAS clinical table, find all HPO codes by subject identifier,
+    collapse, get distinct values, and collapse into a string.
+
+    @param id : identifier to search for
+    @param column : name of the column to search for (datatable f-expression)
+
+    @return comma separated string containing one or more value
+    """
+    results = clinical[f.belongsToSubject == id, column]
+    if results.nrows == 0:
+      return None
+    return ','.join(list(set(filter(None, results.to_list()[0]))))
+
+  @staticmethod
+  def collapseTestCodes(subjectID, sampleID, requestID, column):
+      """Collapse Test Codes
+      In the COSAS samples table, find all matching alternative identifiers
+      by id (subject-, sample-, and request identifiers), get distinct
+      values, and collapse into a string
+
+      @param subjectId (str) : subject ID to locate
+      @param sampleId  (str) : sample ID to locate
+      @param requestId (str) : specific request associated with a sample
+      @param column    (str) : name of the column where the codes are stored
+
+      @return comma separated string containing one or more value
+      """
+      values = list(filter(
+        None,
+        samples[
+            (f.belongsToSubject == subjectID) &
+            (f.sampleID == sampleID) &
+            (f.belongsToRequest == requestID),
+            column
+        ]
+      ))
+      unique = list(set(values))
+      return ','.join(unique)
+
+  @staticmethod
+  def formatAsYear(date: datetime.date = None):
+    """Format Date as Year
+    @param date: a datetime object
+    @return datetime object formated as year
+    """
+    if date is None or str(date) == 'nan':
+      return None
+    return date.strftime('%Y')
+
+  @staticmethod
+  def formatAsDate(date=None, pattern='%Y-%m-%d %H:%M:%S', asString=False):
+    """Format Date String as yyyy-mm-dd
+
+    @param string : date string
+    @param pattern : date format, default: %Y-%m-%d %H:%M:%S
+    @param asString : If True, the result will be returned as string
+
+    @return datetime or string
+    """
+    if not date or str(date) == 'nan':
+      return None
+
+    x = date
+    if re.search(r'(T00:00)$', x):
+      x = re.sub(r'(T00:00)$', ' 00:00:00', x)
+    value = datetime.strptime(x, pattern).date()
+
+    if asString:
+      value = str(value)
+    return value
+
+  @staticmethod
+  def recodeValue(
+      mappings: None,
+      value: str = None,
+      label: str = None,
+      warn=True
+  ):
+    """Recode value
+    Recode values using new mappings. It is recommended to define all
+    mappings using lowercase letters and the the input for value should
+    also be lowered.
+
+    @param mappings a datatable object containing where each key corresponds to a new value
+    @param value string containing a value to recode
+    @param label string that indicates the mapping type for error messages
+    @param warn If True (default), a message will be displayed when a value
+        cannot be mapped
+
+    @return string or NoneType
+    """
+    try:
+      return mappings[value]
+    except KeyError:
+      if bool(value) and warn:
+        status_msg('Error in {} recoding: "{}" not found'.format(label, value))
+        return None
+    except AttributeError:
+        if bool(value):
+          status_msg('Error in {} recoding: "{}" not found'.format(label, value))
+        return None
+
+  @staticmethod
+  def mapCineasToHpo(value: str, refData):
+    """Recode Cineas Code to HPO
+    Find the HPO term to a corresponding Cineas
+
+    @param value : a string containing a cineas code
+    @param refData : datatable object containing Cineas to HPO mappings
+
+    @return string
+    """
+    if value is None:
+      return None
+    return refData[f.value == value, f.hpo][0][0]
+
+  @staticmethod
+  def timestamp():
+      """Return Generic timestamp as yyyy-mm-ddThh:mm:ssZ"""
+      return datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+  @staticmethod
+  def to_keypairs(data, keyAttr='from', valueAttr='to'):
+    """To Key pairs
+    Convert a list of dictionaries into a key-value dictionary. This method
+    is useful for creating objects for mapping tables.
+
+    @param data list of dictionaries that you wish to convert
+    @param keyAttr attribute that will be key
+    @param valueAttr attribute that contains the value
+
+    @return a dictionary
+    """
+    maps = {}
+    for d in data:
+      maps[d[keyAttr]] = d.get(valueAttr)
+    return maps
+
+  @staticmethod
+  def to_records(data):
+      """Datatable object to records
+      @param data : datatable object
+      @return list of dictionaries
+      """
+      return data.to_pandas().replace({np.nan: None}).to_dict('records')
 
 
-#//////////////////////////////////////////////////////////////////////////////
+class ArchiveWriter:
+  def createArchive(self, directory, data):
+    """Create Archive
+    Create archive containing multiple datatable objects
+    
+    @param data dictionary containing one or more datatable objects
+    """
+    archivePath = f"{directory}/archive.zip"
+    with ZipFile(archivePath, 'w') as archive:
+      for dataset in data:
+        filename=f"{dataset}.csv"
+        filepath=f"{directory}/{filename}"
+        self.toCsv(path=filepath, datatable=dataset)
+        archive.write(filepath, filename)
+
+  def toCsv(self, path, datatable):
+    """To CSV
+    Write object as a CSV file at a specified path
+
+    @param path location to save the file
+    @param data datatable object
+    """
+    datatable.to_pandas().replace({np.nan: None}).to_csv(path, index=False, quoting=csv.QUOTE_NONNUMERIC)
+  
+
+# //////////////////////////////////////////////////////////////////////////////
 
 # ~ 99 ~
 # Initial Steps
 # Steps to run before starting the mapping steps
+
 
 # connect to db (token is generated on run)
 db = Molgenis(url=host, token=token)
@@ -493,9 +492,9 @@ db = Molgenis(url=host, token=token)
 # init logs
 status_msg('COSAS: starting job...')
 cosaslogs = cosasLogger(silent=True)
-cosaslogs.start()    
+cosaslogs.start()
 
-#////////////////////////////////////////////////////////////////////////////// 
+# //////////////////////////////////////////////////////////////////////////////
 
 # ~ 0 ~
 # Fetch data
@@ -507,71 +506,71 @@ cosaslogs.start()
 
 status_msg('COSAS Portal: Loading the latest data exports...')
 cosaslogs.startProcessingStepLog(
-    type='Data retrieval',
-    name='Fetch portal data',
-    tablename="cosasportal"
+  type='Data retrieval',
+  name='Fetch portal data',
+  tablename="cosasportal"
 )
 
 # get patients
 raw_subjects = dt.Frame(
-    db.get(
-        entity = 'cosasportal_patients',
-        batch_size = 10000
-    )
+  db.get(
+    entity='cosasportal_patients',
+    batch_size=10000
+  )
 )
 
 # get clinical and phenotying data (BenchCNV)
 raw_clinical = dt.Frame(
-    db.get(
-        entity = 'cosasportal_diagnoses',
-        batch_size = 10000
-    )
+  db.get(
+    entity='cosasportal_diagnoses',
+    batch_size=10000
+  )
 )
 
 raw_benchcnv = dt.Frame(
-    db.get(
-        entity = 'cosasportal_cartagenia',
-        batch_size = 10000
-    )
+  db.get(
+    entity='cosasportal_cartagenia',
+    batch_size=10000
+  )
 )
 
 # get samples data from the portal
 raw_samples = dt.Frame(
-    db.get(
-        entity = 'cosasportal_samples',
-        attributes = 'DNA_NUMMER,UMCG_NUMMER,ADVVRG_ID,MATERIAAL,TEST_CODE,TEST_OMS',
-        batch_size = 10000
-    )
+  db.get(
+    entity='cosasportal_samples',
+    attributes='DNA_NUMMER,UMCG_NUMMER,ADVVRG_ID,MATERIAAL,TEST_CODE,TEST_OMS',
+    batch_size=10000
+  )
 )
 
 # get array data from the portal (x2)
 raw_array_adlas = dt.Frame(
-    db.get(
-        entity = 'cosasportal_labs_array_adlas',
-        batch_size = 10000
-    )
+  db.get(
+    entity='cosasportal_labs_array_adlas',
+    batch_size=10000
+  )
 )
 
 raw_array_darwin = dt.Frame(
-    db.get(
-        entity = 'cosasportal_labs_array_darwin',
-        batch_size = 10000
-    )
+  db.get(
+    entity='cosasportal_labs_array_darwin',
+    batch_size=10000
+  )
 )
 
 # get ngs data from the portal (x2)
 raw_ngs_adlas = dt.Frame(
-    db.get(
-        entity = 'cosasportal_labs_ngs_adlas',
-        batch_size = 10000
-    )
+  db.get(
+    entity='cosasportal_labs_ngs_adlas',
+    batch_size=10000
+  )
 )
 
 raw_ngs_darwin = dt.Frame(
-    db.get(
-        entity = 'cosasportal_labs_ngs_darwin',
-        batch_size = 10000
-    )
+  db.get(
+    entity='cosasportal_labs_ngs_darwin',
+    batch_size=10000
+  )
 )
 
 # delete _href column (not necessary, but helpful for local dev)
@@ -591,28 +590,25 @@ raw_ngs_darwin = dt.Frame(
 # datasets are, then quit the job. It is likely that something failed during
 # the file import process.
 datasets = {
-    'subjects': raw_subjects,
-    'samples': raw_samples,
-    'clinical': raw_clinical,
-    'array_adlas': raw_array_adlas,
-    'array_darwin': raw_array_darwin,
-    'ngs_adlas': raw_ngs_adlas,
-    'ngs_darwin': raw_ngs_darwin
+  'subjects': raw_subjects,
+  'samples': raw_samples,
+  'clinical': raw_clinical,
+  'array_adlas': raw_array_adlas,
+  'array_darwin': raw_array_darwin,
+  'ngs_adlas': raw_ngs_adlas,
+  'ngs_darwin': raw_ngs_darwin
 }
 
 # test nrows: stop at first empty dataset
 for data in datasets:
-    if not datasets[data].nrows:
-
-        cosaslogs.currentStep['status'] = 'Source Data Not Available'
-        cosaslogs.currentStep['comment'] = f'Object {data} is empty'
-        cosaslogs.stopProcessingStepLog()
-        
-        cosaslogs.stop()
-        db.importData(entity='cosasreports_processingsteps',data=cosaslogs.processingStepLogs)
-        db.importData(entity='cosasreports_imports', data=[cosaslogs.log])
-        
-        raise SystemError(f'Source data cannot be found for {data}')
+  if not datasets[data].nrows:
+    cosaslogs.currentStep['status'] = 'Source Data Not Available'
+    cosaslogs.currentStep['comment'] = f'Object {data} is empty'
+    cosaslogs.stopProcessingStepLog()
+    cosaslogs.stop()
+    db.importData(entity='cosasreports_processingsteps',data=cosaslogs.processingStepLogs)
+    db.importData(entity='cosasreports_imports', data=[cosaslogs.log])
+    raise SystemError(f'Source data cannot be found for {data}')
 
 # continue
 del datasets
@@ -629,55 +625,55 @@ cosaslogs.stopProcessingStepLog()
 
 status_msg('COSAS Mappings: Pulling mapping tables...')
 cosaslogs.startProcessingStepLog(
-    type='Data retrieval',
-    name='Fetch mapping tables',
-    tablename='cosasportal'
+  type='Data retrieval',
+  name='Fetch mapping tables',
+  tablename='cosasportal'
 )
 
 genderMappings = cosastools.to_keypairs(
-    data = db.get('cosasmappings_genderatbirth')
+  data=db.get('cosasmappings_genderatbirth')
 )
 
 biospecimenTypeMappings = cosastools.to_keypairs(
-    data = db.get('cosasmappings_biospecimentype')
+  data=db.get('cosasmappings_biospecimentype')
 )
 
 sampleReasonMappings = cosastools.to_keypairs(
-    data = db.get('cosasmappings_samplereason')
+  data=db.get('cosasmappings_samplereason')
 )
 
 sequencerPlatformMappings = cosastools.to_keypairs(
-    data = db.get('cosasmappings_sequencerinfo')
+  data=db.get('cosasmappings_sequencerinfo')
 )
 
 sequencerInstrumentMappings = cosastools.to_keypairs(
-    data = db.get('cosasmappings_sequencerinfo'),
-    keyAttr = 'from',
-    valueAttr= 'toAlternate'
+  data=db.get('cosasmappings_sequencerinfo'),
+  keyAttr='from',
+  valueAttr='toAlternate'
 )
 
 genomeBuildMappings = cosastools.to_keypairs(
-    data = db.get('cosasmappings_genomebuild')
+  data=db.get('cosasmappings_genomebuild')
 )
 
 cineasHpoMappings = cosastools.to_keypairs(
-    data = db.get('cosasmappings_cineasmappings', attributes='code,hpo'),
-    keyAttr = 'code',
-    valueAttr = 'hpo'
+  data=db.get('cosasmappings_cineasmappings', attributes='code,hpo'),
+  keyAttr='code',
+  valueAttr='hpo'
 )
 
 # get labprocedures
 activeTestCodes = dt.Frame(
-    db.get(
-        entity='umdm_labProcedures',
-        attributes='code'
-    )
+  db.get(
+    entity='umdm_labProcedures',
+    attributes='code'
+  )
 )
 
 cosaslogs.currentStep['status'] = 'Success'
 cosaslogs.stopProcessingStepLog()
 
-#//////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
 
 # ~ 1 ~
 # Build Subjects Table
@@ -692,29 +688,27 @@ cosaslogs.stopProcessingStepLog()
 #
 status_msg('Subjects: building initial table structure...')
 cosaslogs.startProcessingStepLog(
-    type='Data Processing',
-    name='Build initial table structure',
-    tablename='subjects'
+  type='Data Processing',
+  name='Build initial table structure',
+  tablename='subjects'
 )
 
 # pull variables of interest from portal table
-subjects = raw_subjects[
-    :,{
-        'subjectID': f.UMCG_NUMBER,
-        'belongsToFamily': f.FAMILIENUMMER,
-        'belongsToMother': f.UMCG_MOEDER,
-        'belongsToFather': f.UMCG_VADER,
-        'belongsWithFamilyMembers': f.FAMILIELEDEN,
-        'dateOfBirth': f.GEBOORTEDATUM,
-        'yearOfBirth': None,
-        'dateOfDeath': f.OVERLIJDENSDATUM,
-        'yearOfDeath': None,
-        'ageAtDeath': None,
-        'genderAtBirth': f.GESLACHT,
-        'ageAtDeath': None,
-        'primaryOrganization': 'UMCG'
-    }
-][:, :, dt.sort(as_type(f.subjectID, int))]
+subjects = raw_subjects[:, {
+  'subjectID': f.UMCG_NUMBER,
+  'belongsToFamily': f.FAMILIENUMMER,
+  'belongsToMother': f.UMCG_MOEDER,
+  'belongsToFather': f.UMCG_VADER,
+  'belongsWithFamilyMembers': f.FAMILIELEDEN,
+  'dateOfBirth': f.GEBOORTEDATUM,
+  'yearOfBirth': None,
+  'dateOfDeath': f.OVERLIJDENSDATUM,
+  'yearOfDeath': None,
+  'ageAtDeath': None,
+  'genderAtBirth': f.GESLACHT,
+  'ageAtDeath': None,
+  'primaryOrganization': 'UMCG'
+}][:, :, dt.sort(as_type(f.subjectID, int))]
 
 # create a list of unique subject identifiers --- very important!!!!
 cosasSubjectIdList = list(set(subjects[:, 'subjectID'].to_list()[0]))
@@ -749,38 +743,36 @@ cosaslogs.stopProcessingStepLog()
 
 # belongsWithFamilyMembers = dt.Frame()
 # for entity in familyData:
-#     if not (entity[0] is None):
-#         ids = [d.strip() for d in entity[0].split(',') if not (d is None) or (d != '')]
-#         for el in ids:            
-#             # value must: not be blank, not equal to subjectID, and does not exist
-#             if (
-#                 (el != '') and
-#                 (el != entity[2]) and
-#                 (el not in cosasSubjectIdList) and
-#                 (el not in maternalIDs) and
-#                 (el not in paternalIDs)
-#             ):
-#                 belongsWithFamilyMembers.rbind(
-#                     dt.Frame([
-#                         {
-#                             'subjectID': el,
-#                             'belongsToFamily': entity[1],
-#                             'belongsWithFamilyMembers': entity[0],
-#                             'comments': 'manually registered in COSAS'
-#                         }
-#                     ])
-#                 )
-                
+#   if not (entity[0] is None):
+#     ids = [d.strip() for d in entity[0].split(',') if not (d is None) or (d != '')]
+#     for el in ids:
+#     # value must: not be blank, not equal to subjectID, and does not exist
+#       if (
+#         (el != '') and
+#         (el != entity[2]) and
+#         (el not in cosasSubjectIdList) and
+#         (el not in maternalIDs) and
+#         (el not in paternalIDs)
+#       ):
+#         belongsWithFamilyMembers.rbind(
+#           dt.Frame([{
+#             'subjectID': el,
+#             'belongsToFamily': entity[1],
+#             'belongsWithFamilyMembers': entity[0],
+#             'comments': 'manually registered in COSAS'
+#           }])
+#         )
+
 # del entity, ids, el
 
 # select unique subjects only
 # belongsWithFamilyMembers = belongsWithFamilyMembers[
-#     :, first(f[:]), dt.by('subjectID')
+#   :, first(f[:]), dt.by('subjectID')
 # ][:, :, dt.sort(as_type(f.subjectID, int))]
 
 # status_msg(
-#     "Identified {} family members that aren't in the export..."
-#     .format(belongsWithFamilyMembers.nrows)
+#   "Identified {} family members that aren't in the export..."
+#   .format(belongsWithFamilyMembers.nrows)
 # )
 
 
@@ -788,25 +780,25 @@ cosaslogs.stopProcessingStepLog()
 # Identify new material identifiers
 #
 # In the subjects dataset, check all values in the the column `belongsToMother`
-# to make sure the ID exists in the `subjectID` column. Rather than removing 
+# to make sure the ID exists in the `subjectID` column. Rather than removing
 # values from COSAS, unknown identifiers will be registered as new subjects.
 #
 status_msg('Subjects: Identifying new maternal identifiers...')
 cosaslogs.startProcessingStepLog(
-    type='Filtering',
-    name='Identify new maternalIDs',
-    tablename='subjects'
+  type='Filtering',
+  name='Identify new maternalIDs',
+  tablename='subjects'
 )
 
 belongsToMother = dt.Frame([
-    {
-        'subjectID': d[0],
-        'belongsToFamily': d[1],
-        'genderAtBirth': 'Vrouw',
-        'comments': 'manually registered in COSAS'
-    }
-    for d in subjects[:, (f.belongsToMother, f.belongsToFamily)].to_tuples()
-    if not (d[0] is None) and not (d[0] in cosasSubjectIdList)
+  {
+    'subjectID': d[0],
+    'belongsToFamily': d[1],
+    'genderAtBirth': 'Vrouw',
+    'comments': 'manually registered in COSAS'
+  }
+  for d in subjects[:, (f.belongsToMother, f.belongsToFamily)].to_tuples()
+  if not (d[0] is None) and not (d[0] in cosasSubjectIdList)
 ])
 
 # log number of cases found
@@ -824,24 +816,24 @@ cosaslogs.stopProcessingStepLog()
 
 status_msg('Subjects: Identifying new paternal identifiers...')
 cosaslogs.startProcessingStepLog(
-    type='Filtering',
-    name='Identify new paternalIDs',
-    tablename='subjects'
+  type='Filtering',
+  name='Identify new paternalIDs',
+  tablename='subjects'
 )
 
 belongsToFather = dt.Frame([
-    {
-        'subjectID': d[0],
-        'belongsToFamily': d[1],
-        'genderAtBirth': 'Man',
-        'comments': 'manually registered in COSAS'
-    }
-    for d in subjects[:, (f.belongsToFather, f.belongsToFamily)].to_tuples()
-    if not (d[0] is None) and not (d[0] in cosasSubjectIdList)
+  {
+    'subjectID': d[0],
+    'belongsToFamily': d[1],
+    'genderAtBirth': 'Man',
+    'comments': 'manually registered in COSAS'
+  }
+  for d in subjects[:, (f.belongsToFather, f.belongsToFamily)].to_tuples()
+  if not (d[0] is None) and not (d[0] in cosasSubjectIdList)
 ])
 
 # log number of cases found
-status_msg('Subjects: Identified {} new maternal IDs'.format(belongsToFather.nrows))
+status_msg('Subjects: Identified', belongsToFather.nrows, 'new maternal IDs')
 cosaslogs.currentStep['comment'] = f'New paternalIDs found: {belongsToFather.nrows}'
 cosaslogs.currentStep['status'] = 'Success'
 cosaslogs.stopProcessingStepLog()
@@ -858,16 +850,16 @@ cosaslogs.stopProcessingStepLog()
 #
 status_msg('Subjects: combining all new subjects to register...')
 cosaslogs.startProcessingStepLog(
-    type='Aggregation',
-    name='Merge new parental IDs',
-    tablename='subjects'
+  type='Aggregation',
+  name='Merge new parental IDs',
+  tablename='subjects'
 )
 
 # add `belongsWithFamilyMembers` if processed
 subjectsToRegister = dt.rbind(belongsToMother, belongsToFather, force=True)
 
 # log number of cases found
-status_msg('Subjects: Will register {} subjects'.format(subjectsToRegister.nrows))
+status_msg('Subjects: Will register', subjectsToRegister.nrows, 'subjects')
 cosaslogs.currentStep['comment'] = f'Added {subjectsToRegister.nrows} rows'
 cosaslogs.currentStep['status'] = 'Success'
 cosaslogs.stopProcessingStepLog()
@@ -895,13 +887,13 @@ del belongsToFather
 
 status_msg('Subjects: Binding subjects with new subjects...')
 cosaslogs.startProcessingStepLog(
-    type='Data Processing',
-    name='Combine all subjects',
-    tablename='subjects'
+  type='Data Processing',
+  name='Combine all subjects',
+  tablename='subjects'
 )
 
-subjects = dt.rbind(subjects, subjectsToRegister, force = True)[
-    :, first(f[:]), dt.by(f.subjectID)
+subjects = dt.rbind(subjects, subjectsToRegister, force=True)[
+  :, first(f[:]), dt.by(f.subjectID)
 ][:, :, dt.sort(as_type(f.subjectID, int))]
 
 
@@ -913,28 +905,28 @@ cosaslogs.stopProcessingStepLog()
 
 # transform variables
 cosaslogs.startProcessingStepLog(
-    type='Data Processing',
-    name='Transform columns',
-    tablename='subjects'
+  type='Data Processing',
+  name='Transform columns',
+  tablename='subjects'
 )
 
 # Format `belongsWithFamilyMembers`: trimws, remove subject ID
 status_msg('Subjects: Formating linked Family IDs...')
 subjects['belongsWithFamilyMembers'] = dt.Frame([
-    cosastools.collapseFamilyIDs(d[0],d[1])
-    for d in subjects[:, (f.belongsWithFamilyMembers, f.subjectID)].to_tuples()
+  cosastools.collapseFamilyIDs(d[0], d[1])
+  for d in subjects[:, (f.belongsWithFamilyMembers, f.subjectID)].to_tuples()
 ])
 
 
 # map gender values to `umdm_lookups_genderAtBirth`
 status_msg('Subjects: Recoding gender at birth...')
 subjects['genderAtBirth'] = dt.Frame([
-    cosastools.recodeValue(
-        mappings = genderMappings,
-        value = d,
-        label = 'genderAtBirth'
-    )
-    for d in subjects['genderAtBirth'].to_list()[0]
+  cosastools.recodeValue(
+    mappings=genderMappings,
+    value=d,
+    label='genderAtBirth'
+  )
+  for d in subjects['genderAtBirth'].to_list()[0]
 ])
 
 
@@ -943,52 +935,50 @@ status_msg('Subjects: formating date attributes...')
 
 # format `dateOfBirth` as yyyy-mm-dd
 subjects['dateOfBirth'] = dt.Frame([
-    cosastools.formatAsDate(date = d, pattern = '%d-%m-%Y')
-    for d in subjects['dateOfBirth'].to_list()[0]
+  cosastools.formatAsDate(date=d, pattern='%d-%m-%Y')
+  for d in subjects['dateOfBirth'].to_list()[0]
 ])
 
 # format `yearOfBirth` as yyyy
 subjects['yearOfBirth'] = dt.Frame([
-    cosastools.formatAsYear(d)
-    for d in subjects['dateOfBirth'].to_list()[0]
+  cosastools.formatAsYear(d)
+  for d in subjects['dateOfBirth'].to_list()[0]
 ])
 
 
 # format `dateOfDeath` as yyyy-mm-dd
 subjects['dateOfDeath'] = dt.Frame([
-    cosastools.formatAsDate(date = d, pattern = '%d-%m-%Y')
-    for d in subjects['dateOfDeath'].to_list()[0]
+  cosastools.formatAsDate(date=d, pattern='%d-%m-%Y')
+  for d in subjects['dateOfDeath'].to_list()[0]
 ])
 
 
 # format `yearOfDeath` as yyyy
 subjects['yearOfDeath'] = dt.Frame([
-    cosastools.formatAsYear(d) for d in subjects['dateOfDeath'].to_list()[0]
+  cosastools.formatAsYear(d) for d in subjects['dateOfDeath'].to_list()[0]
 ])
 
 # using `dateOfDeath` set `subjectStatus`
 subjects['subjectStatus'] = dt.Frame([
-    'Dead' if bool(d) else None
-    for d in subjects['dateOfDeath'].to_list()[0]
+  'Dead' if bool(d) else None
+  for d in subjects['dateOfDeath'].to_list()[0]
 ])
 
 # calcuate `ageAtDeath` if `dateOfDeath` is defined
 subjects['ageAtDeath'] = dt.Frame([
-    cosastools.calcAge(
-        earliest = d[0],
-        recent = d[1]
-    ) for d in subjects[:, (f.dateOfBirth, f.dateOfDeath)].to_tuples()
+  cosastools.calcAge(earliest=d[0], recent=d[1])
+  for d in subjects[:, (f.dateOfBirth, f.dateOfDeath)].to_tuples()
 ])
 
 
-# format dates as string now that age calcuations are complete. Otherwise, you 
+# format dates as string now that age calcuations are complete. Otherwise, you
 # will get an error when the data is imported.
 subjects['dateOfBirth'] = dt.Frame([
-    str(d) if bool(d) else None for d in subjects['dateOfBirth'].to_list()[0]
+  str(d) if bool(d) else None for d in subjects['dateOfBirth'].to_list()[0]
 ])
 
 subjects['dateOfDeath'] = dt.Frame([
-    str(d) if bool(d) else None for d in subjects['dateOfDeath'].to_list()[0]
+  str(d) if bool(d) else None for d in subjects['dateOfDeath'].to_list()[0]
 ])
 
 
@@ -999,27 +989,27 @@ cosaslogs.stopProcessingStepLog()
 
 del subjectsToRegister
 
-#//////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
 
 
 # ~ 2 ~
 # Build Phenotypic Data from workbench export
 #
 # This dataset provides historical records on observedPhenotypes for older cases.
-# This allows us to populate the COSAS Clinical table with extra information. 
+# This allows us to populate the COSAS Clinical table with extra information.
 
 status_msg('Clinical: mapping historical phenotypic data...')
 cosaslogs.startProcessingStepLog(
-    type='Data Processing',
-    name='Prepare phenotypic data',
-    tablename='clinical'
+  type='Data Processing',
+  name='Prepare phenotypic data',
+  tablename='clinical'
 )
 
 # Process data from external provider
-confirmedHpoDF = raw_benchcnv[:, {'clinicalID':f.subjectID, 'observedPhenotype': f.observedPhenotype}]
+confirmedHpoDF = raw_benchcnv[:, {'clinicalID': f.subjectID, 'observedPhenotype': f.observedPhenotype}]
 confirmedHpoDF['keep'] = dt.Frame([
-    d in cosasSubjectIdList
-    for d in confirmedHpoDF['clinicalID'].to_list()[0]
+  d in cosasSubjectIdList
+  for d in confirmedHpoDF['clinicalID'].to_list()[0]
 ])
 
 confirmedHpoDF = confirmedHpoDF[f.keep == True, :]
@@ -1040,7 +1030,7 @@ cosaslogs.stopProcessingStepLog()
 # attribute `certainty`. Values will be mapped into one of the phenotype
 # allowed in this table (at the moment). Use the reference table,
 # columns (observed, unobserved, or provisional).
-# 
+#
 # Only HPO codes are `cosasportal_cineasmappings` to map CINEAS codes to HPO.
 # This is was done to clean historical data to new clinical data management
 # practices (i.e., HPO integration) whereas data from other -- newer systems --
@@ -1053,24 +1043,24 @@ cosaslogs.stopProcessingStepLog()
 
 status_msg('Clinical: building base structure...')
 cosaslogs.startProcessingStepLog(
-    type='Data Processing',
-    name='Build initial table structure',
-    tablename='clinical'
+  type='Data Processing',
+  name='Build initial table structure',
+  tablename='clinical'
 )
 
 clinical = dt.rbind(
-    raw_clinical[:,{
-        'clinicalID': f.UMCG_NUMBER,
-        'belongsToSubject': f.UMCG_NUMBER,
-        'code': f.HOOFDDIAGNOSE,
-        'certainty': f.HOOFDDIAGNOSE_ZEKERHEID
-    }],
-    raw_clinical[:, {
-        'clinicalID': f.UMCG_NUMBER,
-        'belongsToSubject': f.UMCG_NUMBER,
-        'code': f.EXTRA_DIAGNOSE,
-        'certainty': f.EXTRA_DIAGNOSE_ZEKERHEID
-    }]
+  raw_clinical[:, {
+    'clinicalID': f.UMCG_NUMBER,
+    'belongsToSubject': f.UMCG_NUMBER,
+    'code': f.HOOFDDIAGNOSE,
+    'certainty': f.HOOFDDIAGNOSE_ZEKERHEID
+  }],
+  raw_clinical[:, {
+    'clinicalID': f.UMCG_NUMBER,
+    'belongsToSubject': f.UMCG_NUMBER,
+    'code': f.EXTRA_DIAGNOSE,
+    'certainty': f.EXTRA_DIAGNOSE_ZEKERHEID
+  }]
 )[f.code != '-', :]
 
 cosaslogs.currentStep['comment'] = f'Initial structure has {clinical.nrows} rows'
@@ -1083,24 +1073,24 @@ cosaslogs.stopProcessingStepLog()
 
 status_msg('Clinical: mapping CINEAS codes to HPO...')
 cosaslogs.startProcessingStepLog(
-    type='Data Processing',
-    name='Map CINEAS to HPO',
-    tablename='clinical'
+  type='Data Processing',
+  name='Map CINEAS to HPO',
+  tablename='clinical'
 )
 
 clinical['code'] = dt.Frame([
-    d.split(':')[0] if d else None
-    for d in clinical['code'].to_list()[0]
+  d.split(':')[0] if d else None
+  for d in clinical['code'].to_list()[0]
 ])
 
 clinical['hpo'] = dt.Frame([
-    cosastools.recodeValue(
-        mappings = cineasHpoMappings,
-        value = d,
-        label = 'Cineas-HPO',
-        warn = False
-    )
-    for d in clinical['code'].to_list()[0]
+  cosastools.recodeValue(
+    mappings=cineasHpoMappings,
+    value=d,
+    label='Cineas-HPO',
+    warn=False
+  )
+  for d in clinical['code'].to_list()[0]
 ])
 
 cosaslogs.stopProcessingStepLog()
@@ -1109,31 +1099,31 @@ cosaslogs.stopProcessingStepLog()
 # Process HPO codes based on certainty ratings
 # Certainty is used to determine which code is a provisional or an unobserved
 # phenotype code. Confirmed phenotype is only available in the Cartagenia
-# export. 
+# export.
 
 status_msg('Clinical: Formating certainty ratings and triaging HPO codes...')
 cosaslogs.startProcessingStepLog(
-    type='Data Processing',
-    name='Process codes based on certainty ratings',
-    tablename='clinical'
+  type='Data Processing',
+  name='Process codes based on certainty ratings',
+  tablename='clinical'
 )
 
 clinical['certainty'] = dt.Frame([
-    d.lower().replace(' ', '-') if (d != '-') and (d) else None
-    for d in clinical['certainty'].to_list()[0]
+  d.lower().replace(' ', '-') if (d != '-') and (d) else None
+  for d in clinical['certainty'].to_list()[0]
 ])
 
 # create `provisionalPhenotype`: uncertain, missing, or certain
-provisionalCertaintyRatings = ['zeker','niet-zeker','onzeker',None]
+provisionalCertaintyRatings = ['zeker', 'niet-zeker', 'onzeker', None]
 clinical['provisionalPhenotype'] = dt.Frame([
-    d[0] if (d[1] in provisionalCertaintyRatings) and (d[0]) else None
-    for d in clinical[:, (f.hpo, f.certainty)].to_tuples()
+  d[0] if (d[1] in provisionalCertaintyRatings) and (d[0]) else None
+  for d in clinical[:, (f.hpo, f.certainty)].to_tuples()
 ])
 
 # create `excludedPhenotype`: zeker-niet
 clinical['unobservedPhenotype'] = dt.Frame([
-    d[0] if d[1] in ['zeker-niet'] else None
-    for d in clinical[:, (f.hpo, f.certainty)].to_tuples()
+  d[0] if d[1] in ['zeker-niet'] else None
+  for d in clinical[:, (f.hpo, f.certainty)].to_tuples()
 ])
 
 cosaslogs.stopProcessingStepLog()
@@ -1151,25 +1141,25 @@ cosaslogs.stopProcessingStepLog()
 
 status_msg('Clinical: collapsing HPO columns...')
 cosaslogs.startProcessingStepLog(
-    type='Data Processing',
-    name='Collapsing HPO codes by subject',
-    tablename='clinical'
+  type='Data Processing',
+  name='Collapsing HPO codes by subject',
+  tablename='clinical'
 )
 
 # collapse all provisionalPhenotype codes by ID
 clinical['provisionalPhenotype'] = dt.Frame([
-    cosastools.collapseHpoCodes(id = d, column = 'provisionalPhenotype')
-    for d in clinical['belongsToSubject'].to_list()[0]
+  cosastools.collapseHpoCodes(id=d, column='provisionalPhenotype')
+  for d in clinical['belongsToSubject'].to_list()[0]
 ])
 
 # collapse all excludedPhenotype codes by ID
 clinical['unobservedPhenotype'] = dt.Frame([
-    cosastools.collapseHpoCodes(id = d, column = 'unobservedPhenotype')
-    for d in clinical['belongsToSubject'].to_list()[0]
+  cosastools.collapseHpoCodes(id=d, column='unobservedPhenotype')
+  for d in clinical['belongsToSubject'].to_list()[0]
 ])
 
 # update log
-del clinical[:, ['certainty','code','hpo']]
+del clinical[:, ['certainty', 'code', 'hpo']]
 cosaslogs.stopProcessingStepLog()
 
 # ~ 2e ~
@@ -1181,9 +1171,9 @@ cosaslogs.stopProcessingStepLog()
 
 status_msg('Clinical: Selecting distinct rows and merging HPO data...')
 cosaslogs.startProcessingStepLog(
-    type='Filtering',
-    name='Filtering data',
-    tablename='clinical'
+  type='Filtering',
+  name='Filtering data',
+  tablename='clinical'
 )
 
 # select distinct rows
@@ -1196,21 +1186,22 @@ clinical = clinical[:, :, dt.join(confirmedHpoDF)][:, :, dt.sort(as_type(f.clini
 
 # Check IDs: Make sure all IDs in the clinical dataset exist in subjects
 clinical['idExists'] = dt.Frame([
-    d in cosasSubjectIdList
-    for d in clinical['belongsToSubject'].to_list()[0]
+  d in cosasSubjectIdList
+  for d in clinical['belongsToSubject'].to_list()[0]
 ])
 
 # If there are unknown IDs, remove and log counts
-if clinical[f.idExists == False,:].nrows > 0:
-    status_msg(
-        'Clinical: ERROR Excepted 0 flagged cases, but found {}.'
-        .format(clinical[f.idExists == False,:].nrows)
-    )
-    cosaslogs.currentStep['comment'] = 'Rows removed {}'.format(
-        cosaslogs.currentStep['comment'], clinical[f.idExists == False,:].nrows
-    )
-    clinical = clinical[f.idExists, :]
-    
+if clinical[f.idExists == False, :].nrows > 0:
+  status_msg(
+    'Clinical: ERROR Excepted 0 flagged cases, but found',
+    clinical[f.idExists == False, :].nrows
+  )
+  cosaslogs.currentStep['comment'] = 'Rows removed {}'.format(
+    cosaslogs.currentStep['comment'],
+    clinical[f.idExists == False, :].nrows
+  )
+  clinical = clinical[f.idExists, :]
+
 
 status_msg('Clinical: processed {} new records'.format(clinical.nrows))
 cosaslogs.currentStep['status'] = 'Success' if clinical.nrows else 'Error'
@@ -1220,14 +1211,14 @@ del confirmedHpoDF
 
 cosaslogs.stopProcessingStepLog()
 
-#//////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
 
 # ~ 3 ~
 # Build umdm_samples
 #
 # Pull data from `cosasportal_samples` and map to the new samples table.
-# Information about the laboratory procedures will be mapped to the 
-# samplePreparation and the sequencing tables. The reasonse for 
+# Information about the laboratory procedures will be mapped to the
+# samplePreparation and the sequencing tables. The reasonse for
 # reason for the sampling will be populated from the laboratory data
 # exports (ADLAS and Darwin). Row level metadata will be added before import
 # into Molgenis.
@@ -1241,22 +1232,22 @@ cosaslogs.stopProcessingStepLog()
 # need to adjust this step.
 status_msg('Samples: building base structure...')
 cosaslogs.startProcessingStepLog(
-    type='Data Processing',
-    name='Build initial table structure',
-    tablename='samples'
+  type='Data Processing',
+  name='Build initial table structure',
+  tablename='samples'
 )
 
 # Pull attributes of interest
 # Add: 'belongsToRequest': f.ADVVRG_ID (if needed again)
-samples = raw_samples[:,{
-    'sampleID': f.DNA_NUMMER,
-    'belongsToSubject': f.UMCG_NUMMER,
-    'biospecimenType': f.MATERIAAL
+samples = raw_samples[:, {
+  'sampleID': f.DNA_NUMMER,
+  'belongsToSubject': f.UMCG_NUMMER,
+  'biospecimenType': f.MATERIAAL
 }]
 
 # pull unique rows only since codes were duplicated
 samples = samples[:, first(f[:]), dt.by(f.sampleID)][
-    :, :, dt.sort(as_type(f.belongsToSubject, int))
+  :, :, dt.sort(as_type(f.belongsToSubject, int))
 ]
 
 cosaslogs.currentStep['comment'] = f'Samples row count: {samples.nrows}'
@@ -1265,24 +1256,24 @@ cosaslogs.stopProcessingStepLog()
 
 # ~ 3b ~
 # Transform Columns
-# 
+#
 # Transform and recode columns that require it. Add additional transformations
 # here. If you need additional mapping tables, consider putting the mapping
 # dataset in the 'cosasmappings' package and importing the data in step 0.
 
 cosaslogs.startProcessingStepLog(
-    type='Data Processing',
-    name='Transform columns',
-    tablename='samples'
+  type='Data Processing',
+  name='Transform columns',
+  tablename='samples'
 )
 
 samples['biospecimenType'] = dt.Frame([
-    cosastools.recodeValue(
-        mappings = biospecimenTypeMappings,
-        value = d.lower(),
-        label = 'biospecimenType'
-    )
-    for d in samples['biospecimenType'].to_list()[0]
+  cosastools.recodeValue(
+    mappings=biospecimenTypeMappings,
+    value=d.lower(),
+    label='biospecimenType'
+  )
+  for d in samples['biospecimenType'].to_list()[0]
 ])
 
 cosaslogs.stopProcessingStepLog()
@@ -1295,20 +1286,20 @@ cosaslogs.stopProcessingStepLog()
 
 status_msg('Samples: Validating subject IDs in the samples dataset...')
 cosaslogs.startProcessingStepLog(
-    type='Filtering',
-    name='Filtering data',
-    tablename='samples'
+  type='Filtering',
+  name='Filtering data',
+  tablename='samples'
 )
 
 samples['idExists'] = dt.Frame([
-    d in cosasSubjectIdList
-    for d in samples['belongsToSubject'].to_list()[0]
+  d in cosasSubjectIdList
+  for d in samples['belongsToSubject'].to_list()[0]
 ])
 
-if samples[f.idExists == False,:].nrows > 0:
-    samples = samples[f.idExists, :]
-    status_msg('Samples: ERROR excepted 0 flagged cases, but found {}.'.format(samples.nrows))
-    cosaslogs.currentStep['comment'] = f'Rows removed {samples.nrows}'
+if samples[f.idExists == False, :].nrows > 0:
+  samples = samples[f.idExists, :]
+  status_msg('Samples: ERROR excepted 0 flagged cases, but found ',samples.nrows)
+  cosaslogs.currentStep['comment'] = f'Rows removed {samples.nrows}'
 
 
 status_msg('Samples: processed {} new records'.format(samples.nrows))
@@ -1319,7 +1310,7 @@ del samples['idExists']
 cosaslogs.stopProcessingStepLog()
 
 
-#//////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
 
 # ~ 4 ~
 # Build Sample Prepation and Sequencing Tables
@@ -1333,7 +1324,7 @@ cosaslogs.stopProcessingStepLog()
 #
 
 
-# ~ 4a ~ 
+# ~ 4a ~
 # Build Array Adlas dataset
 # Pull the required columns from the array-adlas dataset. The following
 # will further reduce the dataset by distinct rows only. This object will
@@ -1341,70 +1332,65 @@ cosaslogs.stopProcessingStepLog()
 
 status_msg('SamplePrep & Sequencing: building array dataset...')
 cosaslogs.startProcessingStepLog(
-    type='Data Processing',
-    name='Build array dataset',
-    tablename='samples-sampleprep-seq'
+  type='Data Processing',
+  name='Build array dataset',
+  tablename='samples-sampleprep-seq'
 )
 
 # ~ 4a.i ~
 # Build array-aldas data
 status_msg('SamplePrep & Sequencing: processing array-aldas data...')
-array_adlas = raw_array_adlas[
-    :, {
-        'belongsToSubject': f.UMCG_NUMBER,
-        'belongsToRequest': f.ADVVRG_ID,
-        'sampleID': f.DNA_NUMMER,
-        'belongsToSamplePreparation': f.DNA_NUMMER,
-        'belongsToLabProcedure': f.TEST_CODE
-    }
+array_adlas = raw_array_adlas[:, {
+    'belongsToSubject': f.UMCG_NUMBER,
+    'belongsToRequest': f.ADVVRG_ID,
+    'sampleID': f.DNA_NUMMER,
+    'belongsToSamplePreparation': f.DNA_NUMMER,
+    'belongsToLabProcedure': f.TEST_CODE
+  }
 ][
-    :,
-    first(f[:]),  # returns distinct records
-    dt.by(
-        f.belongsToSubject,
-        f.belongsToRequest,
-        f.sampleID,
-        f.belongsToLabProcedure
-    )
+  :, first(f[:]),  # returns distinct records
+  dt.by(
+    f.belongsToSubject,
+    f.belongsToRequest,
+    f.sampleID,
+    f.belongsToLabProcedure
+  )
 ][
-    :,
-    (
-        f.belongsToSubject,
-        f.belongsToRequest,
-        f.sampleID,
-        f.belongsToLabProcedure
-    ),
-    dt.sort(as_type(f.belongsToSubject, int))
+  :,
+  (
+    f.belongsToSubject,
+    f.belongsToRequest,
+    f.sampleID,
+    f.belongsToLabProcedure
+  ),
+  dt.sort(as_type(f.belongsToSubject, int))
 ]
 
 # ~ 4a.ii ~
 # Build array-darwin data
 status_msg('SamplePrep & Sequencing: processing array-darwin data...')
-array_darwin = raw_array_darwin[
-    :, {
-        'belongsToSubject': f.UmcgNr,
-        'belongsToLabProcedure': f.TestId, # codes are written into ID
-        'sequencingDate': f.TestDatum, # recode date
-        'reasonForSequencing': f.Indicatie, # format lab indication
-        'sequencingMethod': None,
-    }
-][
-    # get distinct rows only
-    :, first(f[:]), dt.by(f.belongsToSubject, f.belongsToLabProcedure)
-][
-    :, (
-        f.belongsToSubject,
-        f.belongsToLabProcedure,
-        f.sequencingDate,
-        f.reasonForSequencing
-    ),
-    dt.sort(as_type(f.belongsToSubject, int))
+array_darwin = raw_array_darwin[:, {
+    'belongsToSubject': f.UmcgNr,
+    'belongsToLabProcedure': f.TestId,  # codes are written into ID
+    'sequencingDate': f.TestDatum,  # recode date
+    'reasonForSequencing': f.Indicatie,  # format lab indication
+    'sequencingMethod': None,
+}][
+  # get distinct rows only
+  :, first(f[:]), dt.by(f.belongsToSubject, f.belongsToLabProcedure)
+][:, (
+    f.belongsToSubject,
+    f.belongsToLabProcedure,
+    f.sequencingDate,
+    f.reasonForSequencing
+  ),
+  dt.sort(as_type(f.belongsToSubject, int))
 ]
 
 # ~ 4a.iii ~
 # Create full arrayData object
 status_msg('SamplePrep & Sequencing: joining array objects...')
-array_darwin.key = ['belongsToSubject','belongsToLabProcedure']
+array_darwin.key = ['belongsToSubject', 'belongsToLabProcedure']
 arrayData = array_adlas[:, :, dt.join(array_darwin)]
 
 # save logs
@@ -1425,61 +1411,56 @@ del array_darwin, array_adlas
 
 status_msg('SamplePrep & Sequencing: building NGS dataset...')
 cosaslogs.startProcessingStepLog(
-    type='Data Processing',
-    name='Build NGS dataset',
-    tablename='samples-sampleprep-seq'
+  type='Data Processing',
+  name='Build NGS dataset',
+  tablename='samples-sampleprep-seq'
 )
 
 
 # ~ 4b.i ~
 # Process ngs-aldas data
 status_msg('SamplePrep & Sequencing: processing ngs-adlas data...')
-ngs_adlas = raw_ngs_adlas[
-    :, {
-        'belongsToSubject': f.UMCG_NUMBER,
-        'belongsToRequest': f.ADVVRG_ID,
-        'sampleID': f.DNA_NUMMER,
-        'belongsToSamplePreparation': f.DNA_NUMMER,
-        'belongsToLabProcedure': f.TEST_CODE
-    }
+ngs_adlas = raw_ngs_adlas[:, {
+    'belongsToSubject': f.UMCG_NUMBER,
+    'belongsToRequest': f.ADVVRG_ID,
+    'sampleID': f.DNA_NUMMER,
+    'belongsToSamplePreparation': f.DNA_NUMMER,
+    'belongsToLabProcedure': f.TEST_CODE
+}][
+  :, first(f[:]),
+  dt.by(
+    f.belongsToSubject,
+    f.belongsToRequest,
+    f.sampleID,
+    f.belongsToLabProcedure
+  )
 ][
-    :, first(f[:]),
-    dt.by(
-        f.belongsToSubject,
-        f.belongsToRequest,
-        f.sampleID,
-        f.belongsToLabProcedure
-    )
-][
-    :,
-    (
-        f.belongsToSubject,
-        f.belongsToRequest,
-        f.sampleID,
-        f.belongsToLabProcedure
-    ),
-    dt.sort(as_type(f.belongsToSubject, int))
+  :, (
+    f.belongsToSubject,
+    f.belongsToRequest,
+    f.sampleID,
+    f.belongsToLabProcedure
+  ),
+  dt.sort(as_type(f.belongsToSubject, int))
 ]
 
 # ~ 4b.ii ~
 # reshape: NGS data from Darwin
 status_msg('SamplePrep & Sequencing: processing ngs-darwin data...')
-ngs_darwin = raw_ngs_darwin[
-    :, {
-        'belongsToSubject': f.UmcgNr,
-        'belongsToLabProcedure': f.TestId,
-        'sequencingDate': f.TestDatum,
-        'reasonForSequencing': f.Indicatie,
-        'sequencingPlatform': f.Sequencer,
-        'sequencingInstrumentModel': f.Sequencer,
-        'sequencingMethod': None,
-        'belongsToBatch': f.BatchNaam,
-        'referenceGenomeUsed': f.GenomeBuild
-    }
+ngs_darwin = raw_ngs_darwin[:, {
+  'belongsToSubject': f.UmcgNr,
+  'belongsToLabProcedure': f.TestId,
+  'sequencingDate': f.TestDatum,
+  'reasonForSequencing': f.Indicatie,
+  'sequencingPlatform': f.Sequencer,
+  'sequencingInstrumentModel': f.Sequencer,
+  'sequencingMethod': None,
+  'belongsToBatch': f.BatchNaam,
+  'referenceGenomeUsed': f.GenomeBuild
+}][
+  :, first(f[:]), dt.by(f.belongsToSubject, f.belongsToLabProcedure)
 ][
-    :, first(f[:]), dt.by(f.belongsToSubject, f.belongsToLabProcedure)
-][
-    :, :, dt.sort(as_type(f.belongsToSubject, int))
+  :, :, dt.sort(as_type(f.belongsToSubject, int))
 ]
 
 # ~ 4b.iii ~
@@ -1502,7 +1483,7 @@ del ngs_darwin, ngs_adlas
 # Using the arrayData and ngsData objects created in the previous steps,
 # create the main sample+labs dataset that will be used to create the
 # sampleprep and sequencing tables.
-# 
+#
 # NOTES:
 #   - Some of the column `sampleID` is repeated for ease of mapping. It is
 #       easier to process these values in this step rather than independently.
@@ -1512,17 +1493,17 @@ del ngs_darwin, ngs_adlas
 
 status_msg('SamplePrep & Sequencing: merging ngs and array datasets...')
 cosaslogs.startProcessingStepLog(
-    type='Data Processing',
-    name='Combine Array and NGS data',
-    tablename='samples-sampleprep-seq'
+  type='Data Processing',
+  name='Combine Array and NGS data',
+  tablename='samples-sampleprep-seq'
 )
 
 sampleSequencingData = dt.rbind(arrayData, ngsData, force=True)
 
 # duplicate IDs for later
 sampleSequencingData[:, dt.update(
-        belongsToSample = f.sampleID,
-        belongsToSamplePreparation = f.sampleID
+  belongsToSample=f.sampleID,
+  belongsToSamplePreparation=f.sampleID
 )]
 
 del arrayData, ngsData
@@ -1542,32 +1523,32 @@ cosaslogs.stopProcessingStepLog()
 
 status_msg('SamplePrep & Sequencing: filtering data for known samples...')
 cosaslogs.startProcessingStepLog(
-    type='Filtering',
-    name='Filtering data',
-    tablename='samples-sampleprep-seq'
+  type='Filtering',
+  name='Filtering data',
+  tablename='samples-sampleprep-seq'
 )
 
 registeredSamples = samples['sampleID'].to_list()[0]
 sampleSequencingData['idExists'] = dt.Frame([
-    d in registeredSamples
-    for d in sampleSequencingData['belongsToSample'].to_list()[0]
+  d in registeredSamples
+  for d in sampleSequencingData['belongsToSample'].to_list()[0]
 ])
 
 
 if sampleSequencingData[f.idExists == False, :].nrows > 0:
-    status_msg(
-        "SamplePrep & Sequencing: ERROR expected 0 flagged cases, but found {}"
-        .format(sampleSequencingData[f.idExists == False, :].nrows)
-    )
-    cosaslogs.currentStep['comment'] = 'Rows removed {}'.format(
-        sampleSequencingData[f.idExists == False, :].nrows
-    )
-    sampleSequencingData = sampleSequencingData[f.idExists, :]
+  status_msg(
+    "SamplePrep & Sequencing: ERROR expected 0 flagged cases, but found",
+    sampleSequencingData[f.idExists == False, :].nrows
+  )
+  cosaslogs.currentStep['comment'] = 'Rows removed {}'.format(
+    sampleSequencingData[f.idExists == False, :].nrows
+  )
+  sampleSequencingData = sampleSequencingData[f.idExists, :]
 
 # log new row count
 cosaslogs.currentStep['status'] = 'Success' if sampleSequencingData.nrows else 'Error'
 cosaslogs.stopProcessingStepLog()
-    
+
 
 # ~ 4c.iii ~
 # Prepare data
@@ -1580,40 +1561,40 @@ cosaslogs.stopProcessingStepLog()
 
 status_msg('SamplePrep & Sequencing: Setting unqiue identifiers (primary key)...')
 cosaslogs.startProcessingStepLog(
-    type='Data Processing',
-    name='Transform columns',
-    tablename='samples-sampleprep-seq'
+  type='Data Processing',
+  name='Transform columns',
+  tablename='samples-sampleprep-seq'
 )
 
 # create unique identifier: sampleID + request + belongsToLabProcedure (i.e., test code)
 # create IDs for multiple tables
-sampleSequencingData[['belongsToSamplePreparation','sequencingID']] = dt.Frame([
-    f'{d[0]}_{d[1]}_{d[2]}' for d in sampleSequencingData[
-        :, (f.belongsToSample,f.belongsToRequest, f.belongsToLabProcedure)
-    ].to_tuples()
+sampleSequencingData[['belongsToSamplePreparation', 'sequencingID']] = dt.Frame([
+  f'{d[0]}_{d[1]}_{d[2]}' for d in sampleSequencingData[
+    :, (f.belongsToSample, f.belongsToRequest, f.belongsToLabProcedure)
+  ].to_tuples()
 ])
 
 # format `sequencingDate` as yyyy-mm-dd
 status_msg('SamplePrep & Sequencing: Formatting sequencing date...')
 sampleSequencingData['sequencingDate'] = dt.Frame([
-    cosastools.formatAsDate(
-        date = d,
-        pattern = '%d-%m-%Y %H:%M:%S',
-        asString = True
-    )
-    for d in sampleSequencingData['sequencingDate'].to_list()[0]
+  cosastools.formatAsDate(
+    date=d,
+    pattern='%d-%m-%Y %H:%M:%S',
+    asString=True
+  )
+  for d in sampleSequencingData['sequencingDate'].to_list()[0]
 ])
 
 
 # format `labIndication`: use urdm_lookups_samplingReason
 status_msg('SamplePrep & Sequencing: recoding "reason for sequencing"...')
 sampleSequencingData['reasonForSequencing'] = dt.Frame([
-    cosastools.recodeValue(
-        mappings = sampleReasonMappings,
-        value = d.lower(),
-        label = 'reasonForSequencing'
-    ) if bool(d) else None
-    for d in sampleSequencingData['reasonForSequencing'].to_list()[0]
+  cosastools.recodeValue(
+    mappings=sampleReasonMappings,
+    value=d.lower(),
+    label='reasonForSequencing'
+  ) if bool(d) else None
+  for d in sampleSequencingData['reasonForSequencing'].to_list()[0]
 ])
 
 # set facility (links with umdm_organizations)
@@ -1622,39 +1603,39 @@ sampleSequencingData['sequencingFacilityOrganization'] = 'UMCG'
 # recode `sequencingPlatform`
 status_msg('SamplePrep & Sequencing: recoding sequencing platform...')
 sampleSequencingData['sequencingPlatform'] = dt.Frame([
-    cosastools.recodeValue(
-        mappings = sequencerPlatformMappings,
-        value = d,
-        label = 'sequencingPlatform'
-    )
-    for d in sampleSequencingData['sequencingPlatform'].to_list()[0]
+  cosastools.recodeValue(
+    mappings=sequencerPlatformMappings,
+    value=d,
+    label='sequencingPlatform'
+  )
+  for d in sampleSequencingData['sequencingPlatform'].to_list()[0]
 ])
 
 # recode `sequencingInstrumentModel`
 status_msg('SamplePrep & Sequencing: recoding sequencing instrument model...')
 sampleSequencingData['sequencingInstrumentModel'] = dt.Frame([
-    cosastools.recodeValue(
-        mappings = sequencerInstrumentMappings,
-        value = d,
-        label = 'sequencing instrument'
-    ) for d in sampleSequencingData['sequencingInstrumentModel'].to_list()[0]
+  cosastools.recodeValue(
+    mappings=sequencerInstrumentMappings,
+    value=d,
+    label='sequencing instrument'
+  ) for d in sampleSequencingData['sequencingInstrumentModel'].to_list()[0]
 ])
 
 # recode `genomeBuild`
 status_msg('SamplePrep & Sequencing: recoding reference genome...')
 sampleSequencingData['referenceGenomeUsed'] = dt.Frame([
-    cosastools.recodeValue(
-        mappings = genomeBuildMappings,
-        value = d,
-        label = 'genome build'
-    )
-    for d in sampleSequencingData['referenceGenomeUsed'].to_list()[0]
+  cosastools.recodeValue(
+    mappings=genomeBuildMappings,
+    value=d,
+    label='genome build'
+  )
+  for d in sampleSequencingData['referenceGenomeUsed'].to_list()[0]
 ])
 
 
 cosaslogs.stopProcessingStepLog()
 
-#//////////////////////////////////////
+# //////////////////////////////////////
 
 # ~ 4d ~
 # Create SamplePreparation and Sequencing tables
@@ -1671,63 +1652,59 @@ cosaslogs.stopProcessingStepLog()
 
 status_msg('Sample Preparation: Selecting relevant columns...')
 cosaslogs.startProcessingStepLog(
-    type='Data Processing',
-    name='Finalize table',
-    tablename='sample-preparation'
+  type='Data Processing',
+  name='Finalize table',
+  tablename='sample-preparation'
 )
 
 # create: sampleprepation
 # Use sequencing ID for table key so that refs can be made with other tables
-samplePreparation = sampleSequencingData[
-    :, (
-        f.sequencingID,
-        f.belongsToLabProcedure,
-        f.belongsToSample,
-        f.belongsToRequest,
-        # f.libraryPreparationKit,
-        # f.targetEnrichmentKit,
-        f.belongsToBatch
-    )
-]
+samplePreparation = sampleSequencingData[:, (
+  f.sequencingID,
+  f.belongsToLabProcedure,
+  f.belongsToSample,
+  f.belongsToRequest,
+  # f.libraryPreparationKit,
+  # f.targetEnrichmentKit,
+  f.belongsToBatch
+)]
 
 # rename columns and select distinct rows only
-samplePreparation.names={'sequencingID': 'samplePreparationID'}
+samplePreparation.names = {'sequencingID': 'samplePreparationID'}
 samplePreparation = samplePreparation[:, first(f[:]), dt.by(f.samplePreparationID)]
 
-status_msg('Sample Preparation: Processed {} new records'.format(samplePreparation.nrows))
+status_msg('Sample Preparation: Processed',samplePreparation.nrows,'new records')
 cosaslogs.currentStep['status'] = 'Success' if samplePreparation.nrows else 'Error'
 cosaslogs.stopProcessingStepLog()
- 
+
 
 # create sequencing table
 status_msg('Sequencing: Selecting relevant columns...')
 cosaslogs.startProcessingStepLog(
-    type='Data Processing',
-    name='Finalize table',
-    tablename='sequencing'
+  type='Data Processing',
+  name='Finalize table',
+  tablename='sequencing'
 )
 
-sequencing = sampleSequencingData[
-    :, (
-        f.sequencingID,
-        f.belongsToLabProcedure,
-        f.belongsToSamplePreparation,
-        f.reasonForSequencing,
-        f.sequencingDate,
-        f.sequencingFacilityOrganization,
-        f.sequencingPlatform,
-        f.sequencingInstrumentModel,
-        # f.sequencingMethod,
-        f.referenceGenomeUsed
-    )
-]
+sequencing = sampleSequencingData[:, (
+  f.sequencingID,
+  f.belongsToLabProcedure,
+  f.belongsToSamplePreparation,
+  f.reasonForSequencing,
+  f.sequencingDate,
+  f.sequencingFacilityOrganization,
+  f.sequencingPlatform,
+  f.sequencingInstrumentModel,
+  # f.sequencingMethod,
+  f.referenceGenomeUsed
+)]
 
 status_msg('Sequencing: Processed {} new records'.format(sequencing.nrows))
 cosaslogs.currentStep['status'] = 'Success' if sequencing.nrows else 'Error'
 
 cosaslogs.stopProcessingStepLog()
 
-#//////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
 
 # ~ 5 ~
 # Process Active Test Codes
@@ -1740,45 +1717,44 @@ cosaslogs.stopProcessingStepLog()
 
 status_msg('Validation: checking test codes')
 cosaslogs.startProcessingStepLog(
-    type = 'Filtering',
-    name = 'Identify new test codes',
-    tablename='lab-procedures'
+  type='Filtering',
+  name='Identify new test codes',
+  tablename='lab-procedures'
 )
 
 # bind all testcodes
 testcodes = dt.rbind(
-    raw_samples[:, ['TEST_CODE','TEST_OMS']],
-    raw_array_adlas[:, ['TEST_CODE','TEST_OMS']],
-    raw_ngs_adlas[:, ['TEST_CODE','TEST_OMS']],
-    raw_array_darwin[:, {'TEST_CODE': f.TestId}],
-    raw_ngs_darwin[:, {'TEST_CODE': f.TestId}],
-    force = True
+  raw_samples[:, ['TEST_CODE', 'TEST_OMS']],
+  raw_array_adlas[:, ['TEST_CODE', 'TEST_OMS']],
+  raw_ngs_adlas[:, ['TEST_CODE', 'TEST_OMS']],
+  raw_array_darwin[:, {'TEST_CODE': f.TestId}],
+  raw_ngs_darwin[:, {'TEST_CODE': f.TestId}],
+  force=True
 )[:, first(f[:]), dt.by('TEST_CODE')]
 
 # test code: is it active?
 testcodes['codeExists'] = dt.Frame([
-    d in activeTestCodes['code'].to_list()[0]
-    for d in testcodes['TEST_CODE'].to_list()[0]
+  d in activeTestCodes['code'].to_list()[0]
+  for d in testcodes['TEST_CODE'].to_list()[0]
 ])
 
 # select new cases
 if testcodes[f.codeExists == False, :].nrows:
-    newTestCodes = testcodes[
-        f.codeExists == False,
-        {'code': f.TEST_CODE, 'description': f.TEST_OMS}
-    ]
-    
-    status_msg('Validation: Identified {} new codes'.format(newTestCodes.nrows))
-    cosaslogs.currentStep['comment'] = 'Identified {} new codes'.format(newTestCodes.nrows)
-    
-    status_msg('Validation: Importing new testcodes')    
-    db.importData(entity='umdm_labProcedures', data=cosastools.to_records(newTestCodes))
-    del newTestCodes
+  newTestCodes = testcodes[
+    f.codeExists == False,
+    {'code': f.TEST_CODE, 'description': f.TEST_OMS}
+  ]
+
+  status_msg('Validation: Identified {} new codes'.format(newTestCodes.nrows))
+  cosaslogs.currentStep['comment'] = 'Identified {} new codes'.format(newTestCodes.nrows)
+  status_msg('Validation: Importing new testcodes')
+  db.importData(entity='umdm_labProcedures', data=cosastools.to_records(newTestCodes))
+  del newTestCodes
 
 else:
     status_msg('Validation: all testcodes passed')
 
-#//////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
 
 # ~ 6 ~
 # Prep data and import
@@ -1786,7 +1762,7 @@ else:
 # All primary data tables will be written to csv, and then import via a
 # secondary script. Before writing to files, we will need to set a few
 # of the row-level metadata attributes.
-# 
+#
 status_msg('COSAS Import: Preparing to import data...')
 
 # ~ 6a ~
@@ -1795,34 +1771,34 @@ status_msg('COSAS Import: Preparing to import data...')
 
 status_msg('COSAS Import: setting row-level metadata...')
 cosaslogs.startProcessingStepLog(
-    type='Data Processing',
-    name='setting-row-metadata',
-    tablename='all'
+  type='Data Processing',
+  name='setting-row-metadata',
+  tablename='all'
 )
 
 subjects[:, dt.update(
-    dateRecordCreated=cosastools.timestamp(),
-    recordCreatedBy=createdBy
+  dateRecordCreated=cosastools.timestamp(),
+  recordCreatedBy=createdBy
 )]
 
 clinical[:, dt.update(
-    dateRecordCreated=cosastools.timestamp(),
-    recordCreatedBy=createdBy
+  dateRecordCreated=cosastools.timestamp(),
+  recordCreatedBy=createdBy
 )]
 
 samples[:, dt.update(
-    dateRecordCreated=cosastools.timestamp(),
-    recordCreatedBy=createdBy
+  dateRecordCreated=cosastools.timestamp(),
+  recordCreatedBy=createdBy
 )]
 
 samplePreparation[:, dt.update(
-    dateRecordCreated = cosastools.timestamp(),
-    recordCreatedBy=createdBy
+  dateRecordCreated=cosastools.timestamp(),
+  recordCreatedBy=createdBy
 )]
 
 sequencing[:, dt.update(
-    dateRecordCreated=cosastools.timestamp(),
-    recordCreatedBy=createdBy
+  dateRecordCreated=cosastools.timestamp(),
+  recordCreatedBy=createdBy
 )]
 
 # update row counts in the log
@@ -1839,24 +1815,24 @@ cosaslogs.stopProcessingStepLog()
 # Before the data can be imported, clean up the existing COSAS tables.
 status_msg('Clearing COSAS tables....')
 cosaslogs.startProcessingStepLog(
-    type = 'Data Processing',
-    name = 'Clear COSAS tables',
-    tablename = 'COSAS'
+  type='Data Processing',
+  name='Clear COSAS tables',
+  tablename='COSAS'
 )
 
 cosastables = [
-    'umdm_files',
-    'umdm_sequencing',
-    'umdm_samplePreparation',
-    'umdm_samples',
-    'umdm_clinical',
-    'umdm_subjects'
+  'umdm_files',
+  'umdm_sequencing',
+  'umdm_samplePreparation',
+  'umdm_samples',
+  'umdm_clinical',
+  'umdm_subjects'
 ]
 
 for table in cosastables:
-    status_msg('Clearing', table)
-    db.delete(entity = table)
-    
+  status_msg('Clearing', table)
+  db.delete(entity=table)
+
 cosaslogs.stopProcessingStepLog()
 
 
@@ -1871,14 +1847,14 @@ status_msg('COSAS Import: Importing data...')
 # Import data into `umdm_subjects`
 # Run in two steps: 1) subject identifiers, 2) the rest of the data
 cosaslogs.startProcessingStepLog(
-    type='Import',
-    name='import-subjects',
-    tablename='subjects'
+  type='Import',
+  name='import-subjects',
+  tablename='subjects'
 )
 
 umdm_subjects = cosastools.to_records(subjects)
 umdm_subject_ids = cosastools.to_records(
-    subjects[:,(f.subjectID, f.dateRecordCreated,f.recordCreatedBy)]
+  subjects[:, (f.subjectID, f.dateRecordCreated, f.recordCreatedBy)]
 )
 
 # import subject identifiers first, and then update rows
@@ -1894,9 +1870,9 @@ cosaslogs.stopProcessingStepLog()
 # Import data into 'umdm_clinical'
 # This table has an xref with umdm_subjects
 cosaslogs.startProcessingStepLog(
-    type='Import',
-    name='import-clinical',
-    tablename='clinical'
+  type='Import',
+  name='import-clinical',
+  tablename='clinical'
 )
 
 umdm_clinical = cosastools.to_records(clinical)
@@ -1913,23 +1889,23 @@ cosaslogs.startProcessingStepLog(
 )
 
 umdm_samples = cosastools.to_records(samples)
-db.importData(entity='umdm_samples', data = umdm_samples)
+db.importData(entity='umdm_samples', data=umdm_samples)
 
 cosaslogs.stopProcessingStepLog()
 
 # ~ 5b.iii
 # Import data into umdm_samplePreparation
 # This table has an xref with `umdm_samples`. All sample IDs and subject IDs
-# must be imported and exist before importing. This should already have been 
+# must be imported and exist before importing. This should already have been
 # handled in step 4.
 cosaslogs.startProcessingStepLog(
-    type='Import',
-    name='import-samplepreparation',
-    tablename='samplepreparation'
+  type='Import',
+  name='import-samplepreparation',
+  tablename='samplepreparation'
 )
 
 umdm_samplePreparation = cosastools.to_records(samplePreparation)
-db.importData(entity = 'umdm_samplePreparation', data=umdm_samplePreparation)
+db.importData(entity='umdm_samplePreparation', data=umdm_samplePreparation)
 
 cosaslogs.stopProcessingStepLog()
 
@@ -1938,9 +1914,9 @@ cosaslogs.stopProcessingStepLog()
 # This table has an xref with `umdm_samplePreparation`. All sample IDs should
 # have been validated (see step 4).
 cosaslogs.startProcessingStepLog(
-    type='Import',
-    name='import-sequencing',
-    tablename='sequencing'
+  type='Import',
+  name='import-sequencing',
+  tablename='sequencing'
 )
 
 umdm_sequencing = cosastools.to_records(sequencing)
@@ -1952,11 +1928,11 @@ cosaslogs.stopProcessingStepLog()
 # ~ 5b.v ~
 # import logs
 cosaslogs.stop()
-status_msg(
-    'Mapping completed in {} minutes'
-    .format(round(cosaslogs.log['elapsedTime'] / 60,3))
-)
+status_msg('Mapping completed in',round(cosaslogs.log['elapsedTime'] / 60, 3),'minutes')
 
 status_msg('Importing logs...')
-db.importData(entity='cosasreports_processingsteps',data=cosaslogs.processingStepLogs)
+db.importData(
+  entity='cosasreports_processingsteps',
+  data=cosaslogs.processingStepLogs
+)
 db.importData(entity='cosasreports_imports', data=[cosaslogs.log])
