@@ -1,9 +1,6 @@
 <template>
   <div>
-    <label :for="id" class="input__label">
-      {{ label }}
-      <span class="input__description" v-if="description">{{ description }}</span>
-    </label>
+    <InputLabel :id="id" :label="label" :description="description" />
     <input
       :id="id"
       name="query"
@@ -17,8 +14,13 @@
 </template>
 
 <script>
+import InputLabel from './InputSearch.vue'
+
 export default {
   name: 'input-search',
+  components: {
+    InputLabel
+  },
   props: {
     id: {
       type: String,

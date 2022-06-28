@@ -1,6 +1,9 @@
 <template>
   <form class="form" @submit="(e) => e.preventDefault()">
-    <legend class="form__tile">{{ title }}</legend>
+    <legend class="form__title">
+      <span>{{ title }}</span>
+      <span class="form__description" v-if="description">{{ description }}</span>
+    </legend>
     <div class="form__sections">
       <slot></slot>
     </div>
@@ -14,30 +17,29 @@ export default {
     title: {
       type: String,
       required: true
+    },
+    description: {
+      type: String,
+      required: false
     }
   }
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .form {
-  .form__section {
-    box-sizing: border-box;
-    padding: 1.25em;
-    background-color: #fff;
-    margin-bottom: 32px;
-    border-radius: 8px;
-    box-shadow: 0 0 5px 3px hsla(0, 0%, 0%, 0.08);
-  }
+  box-sizing: padding-box;
+  background-color: #ffffff;
+  padding: 2em;
   
-  .input__label {
+  .form__title {
     display: block;
-    color: #252525;
-    
-    .input__description {
+    margin-bottom: 16px;
+    line-height: 1.6;
+    .form__description {
       display: block;
       font-size: 11pt;
-      color: #616365;
+      line-height: 1.3;
     }
   }
 }

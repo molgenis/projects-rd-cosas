@@ -9,7 +9,7 @@
     <Section id="variantdb-search" aria-labelledby="variantdb-search-title">
       <h2 id="variantdb-search-title">Search the Variant database</h2>
       <p>Find specific records or filter for classified variants using any of the filters below.</p>
-      <Form id="variantdb-search-form" title="Search" class="flex">
+      <Form id="variantdb-search-form" title="Search" description="Ex adipisicing occaecat duis sint enim aliqua fugiat reprehenderit officia commodo nisi.">
         <FormSection>
           <SearchInput
             id="UMCGnr"
@@ -108,7 +108,7 @@ export default {
 <style lang="scss">
 #variantdb-search-form {
   margin: 0 auto;
-  max-width: 425px;
+  // max-width: 425px;
   
   // .form__sections {
   //   display: flex;
@@ -120,7 +120,7 @@ export default {
   // }
   
   .form__section {
-    width: 350px;
+    // width: 350px;
     
     .search__button {
       // width: 125px;
