@@ -2,14 +2,14 @@
 #' FILE: emx.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-10-05
-#' MODIFIED: 2022-04-20
+#' MODIFIED: 2022-06-29
 #' PURPOSE: generate emx files for COSAS
 #' STATUS: stable
 #' PACKAGES: emxconvert
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
-from cosas.utils.emxbuildtools import buildEmxTags
+from cosas.utils.emxbuildtools import buildEmxTags, extractTagId
 import yamlemxconvert
 import yaml
 
@@ -33,6 +33,10 @@ for model in emxConfig.get('models'):
         tags.extend(buildEmxTags(m.attributes))
         tags = list({d['identifier']: d for d in tags}.values())
         m.tags = sorted(tags, key = lambda d: d['identifier'])
+        
+        extractTagId(m.packages)
+        extractTagId(m.entities)
+        extractTagId(m.attributes)
     
         m.write(model['name'], format='xlsx',outDir=emxConfig['outputPaths'].get('main'))
         m.write_schema(path=f"{emxConfig['outputPaths'].get('schemas')}/{model['name']}_schema.md")
