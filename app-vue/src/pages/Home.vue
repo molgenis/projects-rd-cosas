@@ -75,7 +75,7 @@ export default {
 }
 </script>
 
-<style>
+<style lang="scss" scoped>
 #portal-databases {
   background-color: #f6f6f6;
 }
