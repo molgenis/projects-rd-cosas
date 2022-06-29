@@ -4,7 +4,7 @@
 
 | Name | Description | Parent |
 |:---- |:-----------|:------|
-| cosasreports | Reports on COSAS jobs, imports, and processing (v1.4.0, 2022-04-19) | - |
+| cosasreports | Reports on COSAS jobs, imports, and processing (v1.5.0, 2022-06-29) | - |
 | cosasreports_refs | Reference tables for COSAS Reports | cosasreports |
 
 ## Entities
@@ -30,6 +30,7 @@ Historical records of daily COSAS imports
 | identifier&#8251; | - | One or more characters used to identify, name, or characterize the nature, properties, or contents of a thing. | string |
 | name | - | The words or language units by which a thing is known. | string |
 | databaseName | - | The name of a biological or bioinformatics database. | string |
+| hasCompleted | - | completed is that status of a process that successfully unfolds. | bool |
 | date | - | The particular day, month and year an event has happened or will happen. | date |
 | startTime | - | The time at which something is to start or did start. | datetime |
 | endTime | - | The time when an event has ceased. | datetime |
