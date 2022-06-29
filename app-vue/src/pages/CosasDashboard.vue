@@ -198,7 +198,7 @@ export default {
   },
   mounted () {
     Promise.all([
-      this.fetchData('/api/v2/cosasreports_imports?sort=date:desc&num=30'),
+      this.fetchData('/api/v2/cosasreports_imports?sort=date:desc&num=30&q=hasCompleted==true'),
       this.fetchData('/api/v2/cosasreports_attributesummary?')
     ]).then((result) => {
       const dailyImportReports = result[0]
