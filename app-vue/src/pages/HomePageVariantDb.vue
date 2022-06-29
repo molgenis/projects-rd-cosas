@@ -7,29 +7,40 @@
       :imageSrc="require('@/assets/header-bg-2.jpg')"
     />
     <Section id="variantdb-search" aria-labelledby="variantdb-search-title">
-      <h2 id="variantdb-search-title">Search the Variant database</h2>
-      <p>Find specific records or filter for classified variants using any of the filters below.</p>
-      <Form id="variantdb-search-form" title="Search" description="Ex adipisicing occaecat duis sint enim aliqua fugiat reprehenderit officia commodo nisi.">
+      <!-- <h2 id="variantdb-search-title">Search the Variant database</h2>
+      <p>Find specific records or filter for classified variants using any of the filters below.</p> -->
+      <Form
+        id="variantdb-search-form"
+        title="Search the variant database"
+        description="Find specific records using one or more of the filters below. You can also search for multiple values at a time. To do so, format the values with a comma e.g., 'value 1, value 2, ...'."
+      >
         <FormSection>
           <SearchInput
             id="UMCGnr"
             label="Enter UMCGnr"
             description="Search for a patient by ID"
-            @search="(value) => umcg = value"
+            @search="(value) => filters.umcg = value"
           />
-          <SearchButton id="search-id" @click="searchPatient" />
+        </FormSection>
+        <FormSection>
+          <SearchInput
+            id="DNAnumr"
+            label="Enter DNA nummer"
+            description="Search for a sample ID"
+            @search="(value) => filters.belongsToSample = value"
+          />
         </FormSection>
         <FormSection>
           <SearchInput
             id="gene"
             label="Search for a specific gene"
             description="e.g., TTN, ...."
-            @search="(value) => gene = value"
+            @search="(value) => filters.gene = value"
           />
           <CheckboxInput
             id="showVusPlus"
-            label="Also search for VUS+?"
-            @change="showVusPlus = !showVusPlus"
+            label="Would you also like to limit results by VUS+?"
+            @change="updateVusPlus"
           />
           <RadioButtons
             v-show="showVusPlus"
@@ -39,10 +50,17 @@
             description="Select either True or False. Untick the checkbox to remove this option."
             :values="['true', 'false']"
             :labels="['True', 'False']"
-            @input="(value) => vusplus = value"
+            @input="(value) => filters.vusplus = value"
           />
-          <SearchButton id="search-vusplus" @click="searchGene"/>
         </FormSection>
+        <!-- <FormSection>
+          <SearchInput
+            id="chromosome"
+            label="Search for a chromosome"
+            description="Enter either 1,2,3,4,etc."
+          />
+        </FormSection> -->
+        <SearchButton id="variantdb-search" @click="search" />
       </Form>
     </Section>
   </Page>
@@ -60,6 +78,8 @@ import SearchInput from '../components/InputSearch.vue'
 import RadioButtons from '../components/InputRadioButtons.vue'
 import CheckboxInput from '../components/InputCheckbox.vue'
 
+import { removeNullObjectKeys, objectToUrlFilterArray } from '../utils/search.js'
+
 export default {
   name: 'variantdb-search',
   components: {
@@ -75,31 +95,27 @@ export default {
   },
   data () {
     return {
-      umcg: null,
-      gene: null,
-      vusplus: null,
+      filters: {
+        umcg: null,
+        belongsToSample: null,
+        gene: null,
+        vusplus: null
+      },
       showVusPlus: false
     }
   },
   methods: {
-    searchPatient () {
-      const filters = [`umcg==${this.umcg}`]
-      this.windowReplaceUrl(filters)
-    },
-    searchGene () {
-      const filters = [`gene==${this.gene}`]
-      if (this.showVusPlus) {
-        filters.push(`vusPlus==${this.vusplus}`)
+    updateVusPlus () {
+      this.showVusPlus = !this.showVusPlus
+      if (!this.showVusPlus) {
+        this.filters.vusplus = null
       }
-      this.windowReplaceUrl(filters)
     },
-    windowReplaceUrl (array) {
-      const filters = array.join(';')
-      const filtersEncoded = encodeURIComponent(filters)
-      
-      const baseUrl = '/menu/plugins/dataexplorer?entity=variantdb_variant&mod=data&hideselect=true'
-      const url = baseUrl + '&filter=' + filtersEncoded
-      window.open(url, '_blank')
+    search () {
+      const userInput = removeNullObjectKeys(this.filters)
+      const filterUrl = objectToUrlFilterArray(userInput)
+      console.log(filterUrl)
+      // this.windowReplaceUrl(filterUrl)
     }
   }
 }
@@ -107,25 +123,6 @@ export default {
 
 <style lang="scss">
 #variantdb-search-form {
-  margin: 0 auto;
-  // max-width: 425px;
-  
-  // .form__sections {
-  //   display: flex;
-  //   justify-content: center;
-  //   align-items: flex-start;
-  //   flex-direction: row;
-  //   flex-wrap: wrap;
-  //   gap: 32px;
-  // }
-  
-  .form__section {
-    // width: 350px;
-    
-    .search__button {
-      // width: 125px;
-      margin-top: 24px;
-    }
-  }
+  border-top-color: #A4031F;
 }
 </style>
