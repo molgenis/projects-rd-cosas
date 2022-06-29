@@ -37,7 +37,12 @@ const routes = [
 
 const router = createRouter({
   history: createWebHistory(window.location.pathname),
-  routes
+  routes,
+  scrollBehavior (to, from, savedPosition) {
+    return {
+      top: 0
+    }
+  }
 })
 
 const app = createApp(App)
