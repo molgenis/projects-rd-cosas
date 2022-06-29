@@ -12,14 +12,11 @@
           <p>Through the <strong>Genetica Diagnostics Portal</strong>! With this site, you can access a number of databases and systems available to members of the genetica department developed by the Molgenis team.</p>
       </Section>
       <Section id="portal-databases" aria-labelledby="portal-databases-title">
-        <h2 id="portal-databases-title" class="text-center">View Databases</h2>
+        <h2 id="portal-databases-title" class="text-center">Search</h2>
         <p>
           Sign in to any of the following databases using your UMCG
           credentials. If you have been given access to a system and it isn't
-          in the list below, contact
-          <a href="mailto:molgenis-support@umcg.nl"
-            >molgenis-support@umcg.nl</a
-          >.
+          in the list below, contact <a href="mailto:molgenis-support@umcg.nl">molgenis-support@umcg.nl</a>.
         </p>
         <div id="database-cards">
           <InfoCard
