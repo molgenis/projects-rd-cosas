@@ -2,7 +2,7 @@
 #' FILE: cosasreports.yaml
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-02-14
-#' MODIFIED: 2022-02-14
+#' MODIFIED: 2022-06-29
 #' PURPOSE: EMX for reporting
 #' STATUS: stable
 #' PACKAGES: NA
@@ -13,9 +13,9 @@
 name: cosasreports
 label: COSAS Reports
 description: Reports on COSAS jobs, imports, and processing
-tags: http://purl.obolibrary.org/obo/NCIT_C82964
-version: 1.4.0
-date: 2022-04-19
+tags: NCIT_C82964 http://purl.obolibrary.org/obo/NCIT_C82964
+version: 1.5.0
+date: 2022-06-29
 
 # set defaults
 defaults:
@@ -31,42 +31,47 @@ entities:
   - name: imports
     label: COSAS Daily Imports
     description: Historical records of daily COSAS imports
-    tags: http://purl.obolibrary.org/obo/NCIT_C73599
+    tags: NCIT_C73599 http://purl.obolibrary.org/obo/NCIT_C73599
     attributes: 
     
       - name: identifier
         description: One or more characters used to identify, name, or characterize the nature, properties, or contents of a thing.
-        tags: http://purl.obolibrary.org/obo/NCIT_C25364
+        tags: NCIT_C25364 http://purl.obolibrary.org/obo/NCIT_C25364
         dataType: string
         idAttribute: true
         nillable: false
         
       - name: name
         description: The words or language units by which a thing is known.
-        tags: http://purl.obolibrary.org/obo/NCIT_C42614
+        tags: NCIT_C42614 http://purl.obolibrary.org/obo/NCIT_C42614
         
       - name: databaseName
         description: The name of a biological or bioinformatics database.
-        tags: http://edamontology.org/data_1056
+        tags: data_1056 http://edamontology.org/data_1056
+        
+      - name: hasCompleted
+        description: completed is that status of a process that successfully unfolds.
+        tags: SIO_000034 http://semanticscience.org/resource/SIO_000034
+        dataType: bool
         
       - name: date
         description: The particular day, month and year an event has happened or will happen.
-        tags: http://purl.obolibrary.org/obo/NCIT_C25164
+        tags: NCIT_C25164 http://purl.obolibrary.org/obo/NCIT_C25164
         dataType: date
         
       - name: startTime
         description: The time at which something is to start or did start.
-        tags: http://purl.obolibrary.org/obo/NCIT_C78441
+        tags: NCIT_C78441 http://purl.obolibrary.org/obo/NCIT_C78441
         dataType: datetime
       
       - name: endTime
         description: The time when an event has ceased.
-        tags: http://purl.obolibrary.org/obo/NCIT_C82573
+        tags: NCIT_C82573 http://purl.obolibrary.org/obo/NCIT_C82573
         dataType: datetime
         
       - name: elapsedTime
         description: The interval between two reference points in time. (in seconds)
-        tags: http://purl.obolibrary.org/obo/NCIT_C82572
+        tags: NCIT_C82572 http://purl.obolibrary.org/obo/NCIT_C82572
         dataType: decimal
         
       - name: numberOfRowsAdded
@@ -76,161 +81,160 @@ entities:
         
       - name: subjects
         description: Number of rows added to umdm_subjects
-        tags: http://purl.obolibrary.org/obo/NCIT_C25463
+        tags: NCIT_C25463 http://purl.obolibrary.org/obo/NCIT_C25463
         dataType: int
         partOfAttribute: numberOfRowsAdded
       
       - name: clinical
         description: Number of rows added to umdm_clinical
-        tags: http://purl.obolibrary.org/obo/NCIT_C25463
+        tags: NCIT_C25463 http://purl.obolibrary.org/obo/NCIT_C25463
         dataType: int
         partOfAttribute: numberOfRowsAdded
       
       - name: samples
         description: Number of rows added to umdm_samples
-        tags: http://purl.obolibrary.org/obo/NCIT_C25463
+        tags: NCIT_C25463 http://purl.obolibrary.org/obo/NCIT_C25463
         dataType: int
         partOfAttribute: numberOfRowsAdded
       
       - name: samplePreparation
         description: Number of rows added to umdm_samplePreparation
-        tags: http://purl.obolibrary.org/obo/NCIT_C25463
+        tags: NCIT_C25463 http://purl.obolibrary.org/obo/NCIT_C25463
         dataType: int
         partOfAttribute: numberOfRowsAdded
       
       - name: sequencing
         description: Number of rows added to umdm_sequencing
-        tags: http://purl.obolibrary.org/obo/NCIT_C25463
+        tags: NCIT_C25463 http://purl.obolibrary.org/obo/NCIT_C25463
         dataType: int
         partOfAttribute: numberOfRowsAdded
       
       - name: files
         description: Number of rows added to umdm_files
-        tags: http://purl.obolibrary.org/obo/NCIT_C25463
+        tags: NCIT_C25463 http://purl.obolibrary.org/obo/NCIT_C25463
         dataType: int
         partOfAttribute: numberOfRowsAdded
         
       - name: steps
         description: A specific stage of progression through a sequential process.
-        tags: http://purl.obolibrary.org/obo/NCIT_C48176
+        tags: NCIT_C48176 http://purl.obolibrary.org/obo/NCIT_C48176
         dataType: mref
         refEntity: cosasreports_processingsteps
         
       - name: comment
         description: A written explanation, observation or criticism added to textual material.
-        tags: http://purl.obolibrary.org/obo/NCIT_C25393
+        tags: NCIT_C25393 http://purl.obolibrary.org/obo/NCIT_C25393
         dataType: text
   
   # @name cosasrepeports_processingsteps
   - name: processingsteps
     label: COSAS Processing Steps
     description: Historical records of steps involved in the processing of daily cosas jobs
-    tags: http://purl.obolibrary.org/obo/NCIT_C45279
+    tags: NCIT_C45279 http://purl.obolibrary.org/obo/NCIT_C45279
     attributes:
     
       - name: identifier
         description: One or more characters used to identify, name, or characterize the nature, properties, or contents of a thing.
-        tags: http://purl.obolibrary.org/obo/NCIT_C25364
+        tags: NCIT_C25364 http://purl.obolibrary.org/obo/NCIT_C25364
         dataType: int
         idAttribute: true
         nillable: false
       
       - name: date
         description: The particular day, month and year an event has happened or will happen.
-        tags: http://purl.obolibrary.org/obo/NCIT_C25164
+        tags: NCIT_C25164 http://purl.obolibrary.org/obo/NCIT_C25164
         dataType: date
         
       - name: name
         description: The words or language units by which a thing is known.
-        tags: http://purl.obolibrary.org/obo/NCIT_C42614
+        tags: NCIT_C42614 http://purl.obolibrary.org/obo/NCIT_C42614
         
       - name: step
         description: A specific stage of progression through a sequential process.
-        tags: http://purl.obolibrary.org/obo/NCIT_C48176
+        tags: NCIT_C48176 http://purl.obolibrary.org/obo/NCIT_C48176
         dataType: categorical
         refEntity: cosasreports_refs_datahandling
         
       - name: databaseTable
         description: A database table is a set of named columns with zero or more rows composed of cells that contain column values and is part of a database.
-        tags: http://semanticscience.org/resource/SIO_000754
+        tags: SIO_000754 http://semanticscience.org/resource/SIO_000754
         
       - name: startTime
         description: The time at which something is to start or did start.
-        tags: http://purl.obolibrary.org/obo/NCIT_C78441
+        tags: NCIT_C78441 http://purl.obolibrary.org/obo/NCIT_C78441
         dataType: datetime
       
       - name: endTime
         description: The time when an event has ceased.
-        tags: http://purl.obolibrary.org/obo/NCIT_C82573
+        tags: NCIT_C82573 http://purl.obolibrary.org/obo/NCIT_C82573
         dataType: datetime
         
       - name: elapsedTime
         description: The interval between two reference points in time. (in milliseconds)
-        tags: http://purl.obolibrary.org/obo/NCIT_C82572
+        tags: NCIT_C82572 http://purl.obolibrary.org/obo/NCIT_C82572
         dataType: decimal
       
       - name: status
         description: A condition or state at a particular time.
-        tags: http://purl.obolibrary.org/obo/NCIT_C25688
+        tags: NCIT_C25688 http://purl.obolibrary.org/obo/NCIT_C25688
         dataType: xref
         refEntity: cosasreports_refs_status
         
       - name: comment
         description: A written explanation, observation or criticism added to textual material.
-        tags: http://purl.obolibrary.org/obo/NCIT_C25393
+        tags: NCIT_C25393 http://purl.obolibrary.org/obo/NCIT_C25393
         dataType: text
   
   - name: attributesummary
     label: COSAS Attribute Summary
     description: Summary of attributes used by COSAS table and the percentage of available data
-    tags: http://purl.allotrope.org/ontologies/result#AFR_0001213
+    tags: AFR_0001213 http://purl.allotrope.org/ontologies/result#AFR_0001213
     attributes:
       
       - name: identifier
         description: One or more characters used to identify, name, or characterize the nature, properties, or contents of a thing.
-        tags: http://purl.obolibrary.org/obo/NCIT_C25364
+        tags: NCIT_C25364 http://purl.obolibrary.org/obo/NCIT_C25364
         dataType: string
         idAttribute: true
         nillable: false
       
       - name: dateLastUpdated
         description: A data item that indicates the time when data about the sample collection was last updated in a database.
-        tags: http://purl.obolibrary.org/obo/OBIB_0000681
+        tags: OBIB_0000681 http://purl.obolibrary.org/obo/OBIB_0000681
         dataType: date
         
       - name: databaseTable
         description: A database table is a set of named columns with zero or more rows composed of cells that contain column values and is part of a database.
-        tags: http://semanticscience.org/resource/SIO_000754
+        tags: SIO_000754 http://semanticscience.org/resource/SIO_000754
         dataType: string
       
       - name: databaseColumn
         description: A database collumn is a column in a database table.
-        tags: http://semanticscience.org/resource/SIO_000757
+        tags: SIO_000757 http://semanticscience.org/resource/SIO_000757
         dataType: string
         
       - name: databaseKey
         description: A database key is an informational entity whose value is constructed from one or more database columns.
-        tags: http://semanticscience.org/resource/SIO_000762
+        tags: SIO_000762 http://semanticscience.org/resource/SIO_000762
         dataType: xref
         refEntity: cosasreports_refs_keytypes
         
       - name: countOfValues
         description: Determining the number or amount of something.
-        tags: http://purl.obolibrary.org/obo/NCIT_C25463
+        tags: NCIT_C25463 http://purl.obolibrary.org/obo/NCIT_C25463
         dataType: int
         
       - name: totalValues
         description: Pertaining to an entirety or whole, also constituting the full quantity or extent; complete; derived by addition.
-        tags: http://purl.obolibrary.org/obo/NCIT_C25304
+        tags: NCIT_C25304 http://purl.obolibrary.org/obo/NCIT_C25304
         dataType: int
         
       - name: differenceInValues
         description: The quality of being unlike or dissimilar.
-        tags: http://purl.obolibrary.org/obo/NCIT_C46003
+        tags: NCIT_C46003 http://purl.obolibrary.org/obo/NCIT_C46003
         dataType: int
         
       - name: percentComplete
         description: A fraction or ratio with 100 understood as the denominator.
-        tags: http://purl.obolibrary.org/obo/NCIT_C25613
+        tags: NCIT_C25613 http://purl.obolibrary.org/obo/NCIT_C25613
         dataType: decimal
-    

@@ -16,7 +16,7 @@ outputPaths:
   
   
 config:
-  buildEmx2: true
+  buildEmx2: false
   includeExpressions: false
 
 
@@ -43,14 +43,14 @@ models:
     ]
   
   - name: cosasreports
-    active: false
+    active: true
     files: [
       "model/cosasreports.yaml",
       "model/cosasreports_refs.yaml"
     ]
 
   - name: ucu
-    active: true
+    active: false
     files: [
       "model/ucu.yaml"
     ]

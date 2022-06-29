@@ -27,7 +27,7 @@ entities:
 
   # @name cosasreports_lookups_template
   - name: template
-    tags: http://purl.obolibrary.org/obo/NCIT_C45677
+    tags: NCIT_C45677 http://purl.obolibrary.org/obo/NCIT_C45677
     abstract: true
     attributes:
     
@@ -36,31 +36,31 @@ entities:
         nillable: false
         lookupAttribute: true
         labelAttribute: true
-        tags: http://purl.obolibrary.org/obo/NCIT_C49100
+        tags: NCIT_C49100 http://purl.obolibrary.org/obo/NCIT_C49100
         description: The information contained in a data field. It may represent a numeric quantity, a textual characterization, a date or time measurement, or some other state, depending on the nature of the attribute.
         
       - name: description
         dataType: text
-        tags: http://purl.obolibrary.org/obo/NCIT_C25365
+        tags: NCIT_C25365 http://purl.obolibrary.org/obo/NCIT_C25365
         description: A written or verbal account, representation, statement, or explanation of something
       
       - name: codesystem
-        tags: http://purl.obolibrary.org/obo/NCIT_C70895
+        tags: NCIT_C70895 http://purl.obolibrary.org/obo/NCIT_C70895
         description: A systematized collection of concepts that define corresponding codes.
       
       - name: code
-        tags: http://purl.obolibrary.org/obo/NCIT_C25162
+        tags: NCIT_C25162 http://purl.obolibrary.org/obo/NCIT_C25162
         description: A symbol or combination of symbols which is assigned to the members of a collection.
       
       - name: iri
         dataType: hyperlink
-        tags: http://purl.obolibrary.org/obo/NCIT_C165071
+        tags: NCIT_C165071 http://purl.obolibrary.org/obo/NCIT_C165071
         description: A unique symbol that establishes identity of the resource.
         
   # @name cosasreports_lookups_datahandling
   - name: datahandling
     description: Basic (non-analytical) operations of some data, either a file or equivalent entity in memory, such that the same basic type of data is consumed as input and generated as output.
-    tags: http://edamontology.org/operation_2409
+    tags: operation_2409 http://edamontology.org/operation_2409
     extends: cosasreports_refs_template
     data:
 
@@ -205,7 +205,7 @@ entities:
   # @name cosasreports_lookups_status
   - name: status
     description: A condition or state at a particular time.
-    tags: http://purl.obolibrary.org/obo/NCIT_C25688
+    tags: NCIT_C25688 http://purl.obolibrary.org/obo/NCIT_C25688
     extends: cosasreports_refs_template
     data:
     
@@ -253,7 +253,7 @@ entities:
         
   - name: keytypes
     description: A database key is an informational entity whose value is constructed from one or more database columns.
-    tags: http://semanticscience.org/resource/SIO_000762
+    tags: SIO_000762 http://semanticscience.org/resource/SIO_000762
     extends: cosasreports_refs_template
     data: 
       - value: foreign database key
