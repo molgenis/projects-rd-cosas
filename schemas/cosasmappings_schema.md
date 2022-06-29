@@ -4,7 +4,7 @@
 
 | Name | Description | Parent |
 |:---- |:-----------|:------|
-| cosasmappings | Mapping tables for processing raw data into unified model terminology (v2.0.0, 2022-05-02) | - |
+| cosasmappings | Mapping tables for processing raw data into unified model terminology (v2.1.0, 2022-06-29) | - |
 
 ## Entities
 
