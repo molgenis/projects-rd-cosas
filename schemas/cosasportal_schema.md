@@ -4,7 +4,7 @@
 
 | Name | Description | Parent |
 |:---- |:-----------|:------|
-| cosasportal | Staging tables for raw data exports (v1.7.0, 2022-05-02) | - |
+| cosasportal | Staging tables for raw data exports (v1.8.0, 2022-06-29) | - |
 
 ## Entities
 
@@ -177,6 +177,7 @@ Raw NSG metadata from Darwin
 | SeqType | - | - | string |
 | CapturingKit | - | - | string |
 | BatchNaam | - | - | string |
+| Project_Name | - | - | string |
 | GenomeBuild | - | - | string |
 | CallRate | - | - | string |
 | StandaardDeviatie | - | - | string |
