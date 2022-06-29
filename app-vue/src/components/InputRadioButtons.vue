@@ -56,5 +56,11 @@ export default {
   display: block;
   color: #252525;
   font-size: 12pt;
+  
+  .input__description {
+    display: block;
+    font-size: 11pt;
+    color: #616365;
+  }
 }
 </style>

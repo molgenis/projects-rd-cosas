@@ -14,7 +14,7 @@
 </template>
 
 <script>
-import InputLabel from './InputSearch.vue'
+import InputLabel from './InputLabel.vue'
 
 export default {
   name: 'input-search',

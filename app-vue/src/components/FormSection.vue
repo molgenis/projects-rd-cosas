@@ -12,6 +12,8 @@ export default {
 
 <style lang="scss" scoped>
 .form__section {
-  margin-bottom: 1.5em;
+  box-sizing: border-box;
+  padding: 1em 0;
+  border-top: 1px solid #e6e6e6;
 }
 </style>

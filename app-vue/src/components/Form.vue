@@ -31,6 +31,13 @@ export default {
   box-sizing: padding-box;
   background-color: #ffffff;
   padding: 2em;
+  border-radius: 6px;
+  box-shadow: 0 0 4px 3px hsla(0, 0%, 0%, 0.11);
+  border-top: 5px solid #282d32;
+  border-radius: 0 0 6px 6px;
+  max-width: 600px;
+  margin: 0 auto;
+  margin-bottom: 2em;
   
   .form__title {
     display: block;
