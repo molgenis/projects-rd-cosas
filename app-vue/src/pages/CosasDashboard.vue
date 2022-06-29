@@ -4,7 +4,7 @@
       id="dashboard-header"
       title="COSAS Dashboard"
       subtitle="Monitor and analyze daily imports"
-      :imageSrc="images.dashboardImage"
+      :imageSrc="require('@/assets/cosas-dashboard-image.jpg')"
     />
     <main>
       <Section id="error-failed-request" v-if="requestHasFailed">
@@ -139,10 +139,7 @@ export default {
         'difference',
         'complete',
         'key.type'
-      ],
-      images: {
-        dashboardImage: require('@/assets/cosas-dashboard-image.jpg')
-      }
+      ]
     }
   },
   methods: {
@@ -244,7 +241,7 @@ export default {
   background: hsl(0, 0%, 86%);
 }
 
-#dashboard-coverage-report {
+.cosas-data-table {
   background: #ffffff;
   table {
     thead {
