@@ -2,7 +2,7 @@
 #' FILE: cosasportal.yaml
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-12-10
-#' MODIFIED: 2022-05-02
+#' MODIFIED: 2022-06-29
 #' PURPOSE: EMX for COSAS staging tables
 #' STATUS: stable
 #' PACKAGES: NA
@@ -13,8 +13,8 @@
 name: cosasmappings
 label: COSAS Mappings
 description: Mapping tables for processing raw data into unified model terminology
-version: 2.0.0
-date: 2022-05-02
+version: 2.1.0
+date: 2022-06-29
 
 defaults:
   auto: false
@@ -34,15 +34,15 @@ entities:
         nillable: false
         lookupAttribute: true
         unique: true
-        tags: http://purl.obolibrary.org/obo/NCIT_C25516
+        tags: NCIT_C25516 http://purl.obolibrary.org/obo/NCIT_C25516
         
       - name: to
         description: Used as a function word to indicate direction, purpose, or movement.
-        tags: http://purl.obolibrary.org/obo/NCIT_C65107
+        tags: NCIT_C65107 http://purl.obolibrary.org/obo/NCIT_C65107
         
       - name: toAlternate
         description: Available in place of something else.
-        tags: http://purl.obolibrary.org/obo/NCIT_C25415
+        tags: NCIT_C25415 http://purl.obolibrary.org/obo/NCIT_C25415
         
   - name: genderidentity
     description: mappings for 'Gender identity'
