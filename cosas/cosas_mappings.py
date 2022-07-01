@@ -2,7 +2,7 @@
 # FILE: mappings_cosas.py
 # AUTHOR: David Ruvolo
 # CREATED: 2021-10-05
-# MODIFIED: 2022-06-28
+# MODIFIED: 2022-07-01
 # PURPOSE: primary mapping script for COSAS
 # STATUS: stable
 # PACKAGES: **see below**
@@ -219,7 +219,7 @@ class Molgenis(molgenis.Session):
           'metadataAction': 'ignore'
         }
       )
-      self._checkResponseStatus(response, label)
+      print(response)
 
   def importData(self, entity: str, data: list):
     """Import Data
@@ -1871,18 +1871,6 @@ cosaslogs.startProcessingStepLog(
   tablename='subjects'
 )
 
-# umdm_subjects = cosastools.to_records(subjects)
-# umdm_subject_ids = cosastools.to_records(
-#   subjects[:, (f.subjectID, f.dateRecordCreated, f.recordCreatedBy)]
-# )
-
-# import subject identifiers first, and then update rows
-# status_msg('Importing identifiers...')
-# db.importData(entity='umdm_subjects', data=umdm_subject_ids)
-
-# status_msg('Importing row data...')
-# db.updateRows(entity='umdm_subjects', data=umdm_subjects)
-
 db.importDatatableAsCsv(
   filename='umdm_subjects',
   data = subjects,
@@ -1899,9 +1887,6 @@ cosaslogs.startProcessingStepLog(
   name='import-clinical',
   tablename='clinical'
 )
-
-# umdm_clinical = cosastools.to_records(clinical)
-# db.importData(entity='umdm_clinical', data=umdm_clinical)
 
 db.importDatatableAsCsv(
   filename = 'umdm_clinical',
@@ -1920,9 +1905,6 @@ cosaslogs.startProcessingStepLog(
     name='import-samples',
     tablename='samples'
 )
-
-# umdm_samples = cosastools.to_records(samples)
-# db.importData(entity='umdm_samples', data=umdm_samples)
 
 db.importDatatableAsCsv(
   filename = 'umdm_samples',
@@ -1943,9 +1925,6 @@ cosaslogs.startProcessingStepLog(
   tablename='samplepreparation'
 )
 
-# umdm_samplePreparation = cosastools.to_records(samplePreparation)
-# db.importData(entity='umdm_samplePreparation', data=umdm_samplePreparation)
-
 db.importDatatableAsCsv(
   filename = 'umdm_samplePreparation',
   data = samplePreparation,
@@ -1963,9 +1942,6 @@ cosaslogs.startProcessingStepLog(
   name='import-sequencing',
   tablename='sequencing'
 )
-
-# umdm_sequencing = cosastools.to_records(sequencing)
-# db.importData(entity='umdm_sequencing', data=umdm_sequencing)
 
 db.importDatatableAsCsv(
   filename = 'umdm_sequencing',
@@ -1986,4 +1962,5 @@ db.importData(
   entity='cosasreports_processingsteps',
   data=cosaslogs.processingStepLogs
 )
+cosaslogs.log['hasCompleted'] = True
 db.importData(entity='cosasreports_imports', data=[cosaslogs.log])
