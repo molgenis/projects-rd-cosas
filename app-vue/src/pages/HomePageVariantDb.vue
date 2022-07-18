@@ -76,7 +76,7 @@ import FormSection from '../components/FormSection.vue'
 import SearchButton from '../components/ButtonSearch.vue'
 import SearchInput from '../components/InputSearch.vue'
 import RadioButtons from '../components/InputRadioButtons.vue'
-import CheckboxInput from '../components/InputCheckbox.vue'
+import CheckboxInput from '../components/CheckboxInput.vue'
 
 import { removeNullObjectKeys, objectToUrlFilterArray } from '../utils/search.js'
 
@@ -115,7 +115,7 @@ export default {
       const userInput = removeNullObjectKeys(this.filters)
       const filterUrl = objectToUrlFilterArray(userInput)
       console.log(filterUrl)
-      // this.windowReplaceUrl(filterUrl)
+      // this.windowReplaceUrl('variantdb_variant',filterUrl)
     }
   }
 }

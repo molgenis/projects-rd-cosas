@@ -39,6 +39,27 @@
               @search="(value) => fileFilters.belongsWithFamilyMembers = value"
             />
           </FormSection>
+          <FormSection>
+            <legend class="form__legend">
+              Search for file types
+              <span class="form__legend__caption">Select one or more file types</span>
+            </legend>
+            <div class="checkbox__group">
+              <div class="checkbox" v-for="filetype in filetypes" :key="filetype.value">
+                <input
+                  :id="filetype.value"
+                  type="checkbox"
+                  :value="filetype.value"
+                  class="checkbox__input"
+                  v-model="selectedFileTypes"
+                  @change="updateFileFormats"
+                />
+                <label :for="filetype.value" class="checkbox__label">
+                  {{ filetype.label }}
+                </label>
+              </div>
+            </div>
+          </FormSection>
           <SearchButton id="search-subjects" @click="searchFiles"/>
         </Form>
         <Form
@@ -70,16 +91,14 @@
 </template>
 
 <script>
-import Page from '../components/Page.vue'
-import Header from '../components/Header.vue'
-import Section from '../components/Section.vue'
-
-import Form from '../components/Form.vue'
-import FormSection from '../components/FormSection.vue'
-import SearchButton from '../components/ButtonSearch.vue'
-import SearchInput from '../components/InputSearch.vue'
-
-import { removeNullObjectKeys, objectToUrlFilterArray } from '../utils/search.js'
+import Page from '@/components/Page.vue'
+import Header from '@/components/Header.vue'
+import Section from '@/components/Section.vue'
+import Form from '@/components/Form.vue'
+import FormSection from '@/components/FormSection.vue'
+import SearchButton from '@/components/ButtonSearch.vue'
+import SearchInput from '@/components/InputSearch.vue'
+import { removeNullObjectKeys, objectToUrlFilterArray } from '@/utils/search.js'
 
 export default {
   name: 'cosas-homepage',
@@ -96,14 +115,24 @@ export default {
     return {
       fileFilters: {
         subjectID: null,
-        belongsWithFamilyMembers: null
-      }
+        belongsWithFamilyMembers: null,
+        fileFormat: null
+      },
+      filetypes: [
+        { value: 'fastq', label: 'FastQ' },
+        { value: 'bam', label: 'Bam' }
+      ],
+      selectedFileTypes: []
     }
   },
   methods: {
+    updateFileFormats () {
+      this.fileFilters.fileFormat = this.selectedFileTypes.join()
+    },
     searchFiles () {
       const filters = removeNullObjectKeys(this.fileFilters)
       const filterUrl = objectToUrlFilterArray(filters)
+      // windowReplaceUrl('umdm_files', filterUrl)
       console.log(filterUrl)
     }
   }
@@ -113,5 +142,31 @@ export default {
 <style lang="scss" scoped>
 .cosas-search-form {
   border-top-color: #7EA172;
+}
+
+.form__legend {
+  font-size: 12pt;
+  color: #252525;
+  
+  .form__legend__caption {
+    display: block;
+    font-size: 11pt;
+    color: #616365;
+  }
+}
+
+.checkbox__group {
+  .checkbox {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    .checkbox__input {
+      margin-top: -3px;
+      margin-right: 6px;
+    }
+    .checkbox__label {
+      line-height: 1.4;
+    }
+  }
 }
 </style>
