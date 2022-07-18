@@ -1,26 +1,42 @@
 <template>
   <div class="checkbox">
     <input
-      type="checkbox"
       :id="id"
-      class="input__checkbox"
-      @input="$emit('input', value)"
+      type="checkbox"
+      class="checkbox__input"
+      v-model="selection"
     />
-    <label :for="id" class="input__label">{{ label }}</label>
+    <label :for="id" class="checkbox__label">
+      {{ label }}
+    </label>
   </div>
 </template>
 
 <script>
 export default {
-  name: 'input-checkbox',
+  name: 'checkbox-input',
   props: {
     id: {
       type: String,
       required: true
     },
+    value: {
+      type: Boolean,
+      default: () => false
+    },
     label: {
       type: String,
       required: true
+    }
+  },
+  computed: {
+    selection: {
+      get () {
+        return this.value
+      },
+      set (value) {
+        this.$emit('input', value)
+      }
     }
   }
 }
@@ -31,12 +47,11 @@ export default {
   display: flex;
   flex-direction: row;
   align-items: center;
-  .input__checkbox {
+  .checkbox__input {
     margin-top: -3px;
     margin-right: 6px;
   }
-  
-  .input__label {
+  .checkbox__label {
     line-height: 1.4;
   }
 }
