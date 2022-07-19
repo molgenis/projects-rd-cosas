@@ -81,17 +81,17 @@ class Molgenis(molgenis.Session):
     data = datatable.to_pandas().replace({np.nan: None})
     data.to_csv(path, index=False, quoting=csv.QUOTE_ALL)
   
-  def importDatatableAsCsv(self, filename: str, data, label: str):
+  def importDatatableAsCsv(self, pkg_entity: str, data):
     """Import Datatable As CSV
     Save a datatable object to as csv file and import into MOLGENIS using the
     importFile api.
     
-    @param filename name of the file (minus the file format)
+    @param pkg_entity table identifier in emx format: package_entity
     @param data a datatable object
     @param label a description to print (e.g., table name)
     """
     with tempfile.TemporaryDirectory() as tmpdir:
-      filepath=f"{tmpdir}/{filename}.csv"
+      filepath=f"{tmpdir}/{pkg_entity}.csv"
       self._datatableToCsv(filepath, data)
       with open(abspath(filepath),'r') as file:
         response = self._session.post(
@@ -100,7 +100,7 @@ class Molgenis(molgenis.Session):
           files={'file': file},
           params = {'action': 'add_update_existing', 'metadataAction': 'ignore'}
         )
-        self._checkResponseStatus(response, label)
+        self._checkResponseStatus(response, pkg_entity)
 
   def importData(self, entity: str, data: list):
     """Import Data
