@@ -67,18 +67,22 @@
 </template>
 
 <script>
-import Page from '../components/Page.vue'
-import Header from '../components/Header.vue'
-import Section from '../components/Section.vue'
-import Form from '../components/Form.vue'
-import FormSection from '../components/FormSection.vue'
+import Page from '@/components/Page.vue'
+import Header from '@/components/Header.vue'
+import Section from '@/components/Section.vue'
+import Form from '@/components/Form.vue'
+import FormSection from '@/components/FormSection.vue'
 
-import SearchButton from '../components/ButtonSearch.vue'
-import SearchInput from '../components/InputSearch.vue'
-import RadioButtons from '../components/InputRadioButtons.vue'
-import CheckboxInput from '../components/CheckboxInput.vue'
+import SearchButton from '@/components/ButtonSearch.vue'
+import SearchInput from '@/components/InputSearch.vue'
+import RadioButtons from '@/components/InputRadioButtons.vue'
+import CheckboxInput from '@/components/CheckboxInput.vue'
 
-import { removeNullObjectKeys, objectToUrlFilterArray } from '../utils/search.js'
+import {
+  removeNullObjectKeys,
+  objectToUrlFilterArray,
+  windowReplaceUrl
+} from '@/utils/search.js'
 
 export default {
   name: 'variantdb-search',
@@ -114,8 +118,8 @@ export default {
     search () {
       const userInput = removeNullObjectKeys(this.filters)
       const filterUrl = objectToUrlFilterArray(userInput)
-      console.log(filterUrl)
-      // this.windowReplaceUrl('variantdb_variant',filterUrl)
+      windowReplaceUrl('variantdb_variant', filterUrl)
+      // console.log(filterUrl)
     }
   }
 }

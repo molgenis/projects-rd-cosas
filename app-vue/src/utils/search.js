@@ -52,18 +52,27 @@ const objectToUrlFilterArray = function (object) {
     if (value[value.length - 1] === ',') {
       value = value.slice(0, value.length - 1)
     }
-    if (value.includes(',')) {
-      filter = `${key}=in=(${value})`
+    if (key.includes('.')) {
+      if (value.includes(',')) {
+        const indexFilters = value.split(',').map(val => `${key}=q=${val}`)
+        filter = `(${indexFilters})`
+      } else {
+        filter = `${key}=q=${value}`
+      }
     } else {
-      filter = `${key}==${value}`
+      if (value.includes(',')) {
+        filter = `${key}=in=%28${value}%29`
+      } else {
+        filter = `${key}==${value}`
+      }
     }
     urlFilter.push(filter)
   })
   return urlFilter
 }
 
-// Window Replace Url
-// Open desired database table in a new tab and apply filters
+// setDataExplorerUrl
+// Create full URL with filters
 //
 // @param entity EMX table location as <package>_<entity>
 // @param array an array of filters (i.e., output of objectToUrlFilterArray)
@@ -77,18 +86,29 @@ const objectToUrlFilterArray = function (object) {
 // }
 // const filters = removeNullObjectKeys(userInputs)
 // const filterArray = objectToUrlFilterArray(filters)
-// windowReplaceUrl('database_table', filterArray)
+// setDataExplorerUrl('database_table', filterArray)
 
-const windowReplaceUrl = function (entity, array) {
+const setDataExplorerUrl = function (entity, array) {
   const filters = array.join(';')
   const filtersEncoded = encodeURIComponent(filters)
   const baseUrl = `/menu/plugins/dataexplorer?entity=${entity}&mod=data&hideselect=true`
   const url = baseUrl + '&filter=' + filtersEncoded
+  return url
+}
+
+// windowReplaceUrl
+// Open table in database
+//
+// @param url URL to open
+//
+
+const windowReplaceUrl = function (url) {
   window.open(url, '_blank')
 }
 
 module.exports = {
   removeNullObjectKeys,
   objectToUrlFilterArray,
+  setDataExplorerUrl,
   windowReplaceUrl
 }

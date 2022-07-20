@@ -27,14 +27,14 @@
               View
             </router-link>
           </InfoCard>
-          <InfoCard
+          <!-- <InfoCard
             title="Unsolved Cases"
             text="View and submit cases to the Unsolved Cases Portal."
           >
             <router-link :to="{name: 'ucu'}" class="action-link">
               View
             </router-link>
-          </InfoCard>
+          </InfoCard> -->
           <InfoCard
             title="VariantDB"
             text="Find and explore variants in the Variants database."

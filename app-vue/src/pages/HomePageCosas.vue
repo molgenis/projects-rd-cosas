@@ -7,16 +7,7 @@
       :imageSrc="require('@/assets/header-bg-2.jpg')"
     />
     <main>
-      <Section id="quick-links" style="text-align: center;" class="page__section__plain">
-        <h2>Quick Links</h2>
-        <p>Scroll down to learn more about COSAS or use the links below to view a specific page.</p>
-        <router-link :to="{name: 'cosasdashboard'}" class="action-link" style="width: 250px;">
-          COSAS Dashboard
-        </router-link>
-      </Section>
       <Section id="cosas-search-form">
-        <!-- <h2>Search the COSAS Database</h2>
-        <p>Search for specific records or apply filters to create subsets of the data.</p> -->
         <Form
           id="cosas-files-search-form"
           class="cosas-search-form"
@@ -28,7 +19,7 @@
               id="subjectID"
               label="Search for patients"
               description="Enter MDN/UMCGnr"
-              @search="(value) => fileFilters.subjectID = value"
+              @search="(value) => fileFilters.belongsToSubject = value"
             />
           </FormSection>
           <FormSection>
@@ -36,7 +27,7 @@
               id="belongsWithFamilyMembers"
               label="Search for family members"
               description="Enter MDN/UMCGnr of the patient's mother, father, siblings, etc."
-              @search="(value) => fileFilters.belongsWithFamilyMembers = value"
+              @search="(value) => fileFilters['belongsToSubject.belongsWithFamilyMembers'] = value"
             />
           </FormSection>
           <FormSection>
@@ -72,7 +63,7 @@
               id="clinicalSubjectID"
               label="UMCGnummer"
               description="Search for a particular UMCGnr"
-              @search="(value) => clinicalBelongsToSubject = value"
+              @search="(value) => clinicalFilters.belongsToSubject = value"
             />
           </FormSection>
           <FormSection>
@@ -80,10 +71,10 @@
               id="clinicalObservedPhenotype"
               label="Klinisch Fenotype (HPO)"
               description="Enter one or more HPO codes, e.g., 'HP:0001270,HP:0001638'"
-              @search="(value) => clinicalObservedPhenotype = value"
+              @search="(value) => clinicalFilters.observedPhenotype = value"
             />
           </FormSection>
-          <SearchButton id="search-clinical" />
+          <SearchButton id="search-clinical" @click="searchClinical"/>
         </Form>
       </Section>
     </main>
@@ -98,7 +89,12 @@ import Form from '@/components/Form.vue'
 import FormSection from '@/components/FormSection.vue'
 import SearchButton from '@/components/ButtonSearch.vue'
 import SearchInput from '@/components/InputSearch.vue'
-import { removeNullObjectKeys, objectToUrlFilterArray } from '@/utils/search.js'
+import {
+  removeNullObjectKeys,
+  objectToUrlFilterArray,
+  setDataExplorerUrl,
+  windowReplaceUrl
+} from '@/utils/search.js'
 
 export default {
   name: 'cosas-homepage',
@@ -113,12 +109,17 @@ export default {
   },
   data () {
     return {
+      clinicalFilters: {
+        belongsToSubject: null,
+        observedPhenotype: null
+      },
       fileFilters: {
-        subjectID: null,
-        belongsWithFamilyMembers: null,
+        belongsToSubject: null,
+        'belongsToSubject.belongsWithFamilyMembers': null,
         fileFormat: null
       },
       filetypes: [
+        { value: 'gVCF', label: 'gVCF' },
         { value: 'fastq', label: 'FastQ' },
         { value: 'bam', label: 'Bam' }
       ],
@@ -131,9 +132,15 @@ export default {
     },
     searchFiles () {
       const filters = removeNullObjectKeys(this.fileFilters)
-      const filterUrl = objectToUrlFilterArray(filters)
-      // windowReplaceUrl('umdm_files', filterUrl)
-      console.log(filterUrl)
+      const filtersAsUrlParams = objectToUrlFilterArray(filters)
+      const url = setDataExplorerUrl('umdm_files', filtersAsUrlParams)
+      windowReplaceUrl(url)
+    },
+    searchClinical () {
+      const filters = removeNullObjectKeys(this.clinicalFilters)
+      const filtersAsUrlParams = objectToUrlFilterArray(filters)
+      const url = setDataExplorerUrl('umdm_clinical', filtersAsUrlParams)
+      windowReplaceUrl(url)
     }
   }
 }
