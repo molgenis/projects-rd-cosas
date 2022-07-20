@@ -68,8 +68,8 @@ cosas.importDatatableAsCsv('cosasportal_files', finalData, 'cosasportal_files')
 # ~ 1a ~
 # pull file metadata and prep
 filedata = dt.Frame(cosas.get('cosasportal_files', batch_size=10000))
-del filedata[:, ['_href', 'id', 'familyID']]
 
+del filedata[:, ['_href', 'id', 'familyID']]
 
 filedata['belongsToSample'] = dt.Frame([
   re.sub(r'^(DNA)', 'DNA-', d)
@@ -86,28 +86,23 @@ filedata['fileFormat'] = dt.Frame([
   for d in filedata['filename'].to_list()[0]
 ])
 
+filedata['fileID'] = dt.Frame([
+  ''.join(d)
+  for d in filedata[:, ['filename', 'filepath']].to_tuples()
+])
+
+if dt.unique(filedata['fileID']).nrows != filedata.nrows:
+  raise SystemError('Number of unique file IDs must equal total possible rows')
+
 # ~ 1b ~
 # get a list of all current patient identifiers (i.e., UmcgNr)
-patients = dt.Frame(cosas.get(
-  entity = 'umdm_subjects',
-  attributes = 'subjectID',
-  batch_size=10000
-))
-
+patients = dt.Frame(cosas.get('umdm_subjects', attributes='subjectID', batch_size=10000))
 patientIDs = patients['subjectID'].to_list()[0]
 
 # ~ 1c ~
 # get a list of all current sample identifiers (i.e., dnaNr)
-samples = dt.Frame(
-  cosas.get(
-    entity = 'umdm_samples',
-    attributes = 'sampleID',
-    batch_size = 10000
-  )
-)
-
+samples = dt.Frame(cosas.get('umdm_samples', attributes='sampleID', batch_size=10000))
 sampleIDs = samples['sampleID'].to_list()[0]
-
 
 # ~ 1d ~
 # Compute coverage of identifiers
@@ -137,6 +132,7 @@ del umdm_files[:, ['dnaID', 'patientIdExists', 'sampleIdExists', 'filetype']]
 # rename columns
 umdm_files.names = {
   'umcgID': 'belongsToSubject',
+  'filename': 'fileName',
   'filepath': 'filePath',
   'dateCreated': 'dateFileCreated'
 }
