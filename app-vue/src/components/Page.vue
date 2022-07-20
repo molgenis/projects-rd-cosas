@@ -1,13 +1,5 @@
 <template>
   <div class="page">
-    <div class="__pseudo__nav">
-      <ul>
-        <li><router-link to="/">Home</router-link></li>
-        <li><router-link to="/cosas">COSAS</router-link></li>
-        <li><router-link to="/unsolvedcases">UCU</router-link></li>
-        <li><router-link to="/variantdb">VariantDB</router-link></li>
-      </ul>
-    </div>
     <slot></slot>
     <div class="page__footer">
       <img :src="MolgenisLogo" alt="molgenis open source data platform" class="molgenis_logo"/>
@@ -73,25 +65,4 @@ footer.footer {
     }
   }
 }
-
-.__pseudo__nav {
-  ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    
-    li {
-      box-sizing: content-box;
-      padding: 0.5em 1em;
-      
-      a {
-        text-decoration: underline;
-      }
-    }
-  }
-}
-
 </style>

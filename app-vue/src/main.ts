@@ -1,10 +1,11 @@
 import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
+
 import App from './App.vue'
 import Home from './pages/Home.vue'
 import Cosas from './pages/HomePageCosas.vue'
 import CosasDashboard from './pages/CosasDashboard.vue'
-import Ucu from './pages/HomePageUnsolvedCases.vue'
+// import Ucu from './pages/HomePageUnsolvedCases.vue'
 import VariantDb from './pages/HomePageVariantDb.vue'
 
 const routes = [
@@ -23,11 +24,11 @@ const routes = [
     path: '/cosas-dashboard',
     component: CosasDashboard
   },
-  {
-    name: 'ucu',
-    path: '/unsolvedcases',
-    component: Ucu
-  },
+  // {
+  //   name: 'ucu',
+  //   path: '/unsolvedcases',
+  //   component: Ucu
+  // },
   {
     name: 'variantdb',
     path: '/variantdb',
@@ -36,7 +37,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(window.location.pathname),
+  history: createWebHistory('/menu/main/app-gcc'),
   routes,
   scrollBehavior (to, from, savedPosition) {
     return {
