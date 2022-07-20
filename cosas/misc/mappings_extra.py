@@ -2,12 +2,66 @@
 #' FILE: mappings_extra.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-02-17
-#' MODIFIED: 2022-03-02
+#' MODIFIED: 2022-07-14
 #' PURPOSE: extra mappings that were once part of the main mapping script
 #' STATUS: stable
 #' PACKAGES: NA
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
+
+
+# ~ 1a ~
+# Identify new linked family members
+#
+# In the new data, find subjects that do not exist in the following columns:
+# `belongsWithFamilyMembers`. These IDs are import to keep, but it throws
+# an error because the referenced IDs do not exist in the column `subjectID`.
+# Instead of removing the IDs, it is better to register these cases as new
+# COSAS subjects.
+#
+# The following code identifies missing IDs, creates a new COSAS record, and
+# appends them to the main subject dataset.
+#
+# status_msg('Identifying unregistered family member identifiers...')
+
+# maternalIDs = subjects['belongsToMother'].to_list()[0]
+# paternalIDs = subjects['belongsToFather'].to_list()[0]
+# familyData = subjects[:, (f.belongsWithFamilyMembers, f.belongsToFamily,f.subjectID)].to_tuples()
+
+# belongsWithFamilyMembers = dt.Frame()
+# for entity in familyData:
+#   if not (entity[0] is None):
+#     ids = [d.strip() for d in entity[0].split(',') if not (d is None) or (d != '')]
+#     for el in ids:
+#     # value must: not be blank, not equal to subjectID, and does not exist
+#       if (
+#         (el != '') and
+#         (el != entity[2]) and
+#         (el not in cosasSubjectIdList) and
+#         (el not in maternalIDs) and
+#         (el not in paternalIDs)
+#       ):
+#         belongsWithFamilyMembers.rbind(
+#           dt.Frame([{
+#             'subjectID': el,
+#             'belongsToFamily': entity[1],
+#             'belongsWithFamilyMembers': entity[0],
+#             'comments': 'manually registered in COSAS'
+#           }])
+#         )
+
+# del entity, ids, el
+
+# select unique subjects only
+# belongsWithFamilyMembers = belongsWithFamilyMembers[
+#   :, first(f[:]), dt.by('subjectID')
+# ][:, :, dt.sort(as_type(f.subjectID, int))]
+
+# status_msg(
+#   "Identified {} family members that aren't in the export..."
+#   .format(belongsWithFamilyMembers.nrows)
+# )
+
 
 # 
 # cosasportal_samples -> umdm_samples
