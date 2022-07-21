@@ -4,7 +4,7 @@
 
 | Name | Description | Parent |
 |:---- |:-----------|:------|
-| cosasportal | Staging tables for raw data exports (v1.8.0, 2022-06-29) | - |
+| cosasportal | Staging tables for raw data exports (v1.9.0, 2022-07-21) | - |
 
 ## Entities
 
@@ -49,6 +49,9 @@ Raw metadata for patients and families
 | FAMILIELEDEN | - | - | text |
 | UMCG_MOEDER | - | - | string |
 | UMCG_VADER | - | - | string |
+| FOETUS_ID | - | - | string |
+| SAMPLEDATE | - | - | string |
+| DISEASED | - | - | string |
 
 ### Entity: cosasportal_diagnoses
 
@@ -90,6 +93,7 @@ Raw data table for samples
 | LABUITSLAG_CODE | - | - | text |
 | LABRESULTS | - | - | string |
 | AUTHORISED | - | - | string |
+| FOETUS_ID | - | - | string |
 
 ### Entity: cosasportal_labs_array_adlas
 
@@ -125,6 +129,7 @@ Raw array metadata from ADLAS
 | SGA_REGIONS_UMCG_CNV_NL_COUNT | - | - | string |
 | SGA_SIMILAR_PREVIOUS_CASES | - | - | string |
 | SGA_OVERERVING | - | - | string |
+| FOETUS_ID | - | - | string |
 
 ### Entity: cosasportal_labs_array_darwin
 
@@ -139,6 +144,7 @@ Raw array metadata from Darwin
 | BatchNaam | - | - | string |
 | CallRate | - | - | string |
 | StandaardDeviatie | - | - | string |
+| Foetus_Id | - | - | string |
 
 ### Entity: cosasportal_labs_ngs_adlas
 
@@ -160,6 +166,7 @@ Raw NGS data from ADLAS
 | AMPLICON | - | - | string |
 | ALLELFREQUENTIE | - | - | string |
 | OVERERVING | - | - | string |
+| FOETUS_ID | - | - | string |
 
 ### Entity: cosasportal_labs_ngs_darwin
 
@@ -181,6 +188,7 @@ Raw NSG metadata from Darwin
 | GenomeBuild | - | - | string |
 | CallRate | - | - | string |
 | StandaardDeviatie | - | - | string |
+| Foetus_Id | - | - | string |
 
 ### Entity: cosasportal_cartagenia
 

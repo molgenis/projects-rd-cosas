@@ -12,8 +12,8 @@
 name: cosasportal
 label: COSAS Portal
 description: Staging tables for raw data exports
-version: 1.8.0
-date: 2022-06-29
+version: 1.9.0
+date: 2022-07-21
 
 # define entity level defaults
 defaults:
@@ -79,6 +79,9 @@ entities:
         dataType: text
       - name: UMCG_MOEDER
       - name: UMCG_VADER
+      - name: FOETUS_ID
+      - name: SAMPLEDATE
+      - name: DISEASED
   
   # @name cosasportal_diagnoses
   - name: diagnoses
@@ -124,6 +127,7 @@ entities:
         dataType: text
       - name: LABRESULTS
       - name: AUTHORISED
+      - name: FOETUS_ID
 
   # @name cosasportal_labs_array_adlas
   - name: labs_array_adlas
@@ -162,6 +166,7 @@ entities:
       - name: SGA_REGIONS_UMCG_CNV_NL_COUNT
       - name: SGA_SIMILAR_PREVIOUS_CASES
       - name: SGA_OVERERVING
+      - name: FOETUS_ID
   
   # @name cosasportal_labs_array_darwin
   - name: labs_array_darwin
@@ -175,6 +180,7 @@ entities:
       - name: BatchNaam
       - name: CallRate
       - name: StandaardDeviatie
+      - name: Foetus_Id
 
   # @name cosasportal_labs_ngs_adlas
   - name: labs_ngs_adlas
@@ -195,6 +201,7 @@ entities:
       - name: AMPLICON
       - name: ALLELFREQUENTIE
       - name: OVERERVING
+      - name: FOETUS_ID
 
   # @name cosasportal_labs_ngs_darwin
   - name: labs_ngs_darwin
@@ -215,6 +222,7 @@ entities:
       - name: GenomeBuild
       - name: CallRate
       - name: StandaardDeviatie
+      - name: Foetus_Id
       
   # @name cosasportal_cartagenia
   - name: cartagenia
