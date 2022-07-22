@@ -1,4 +1,35 @@
 
+// Init Search Object
+// Create object that will handle all loading messages (loading, error, successful)
+// when querying for results via the API
+//
+// @return object
+function initSearchResultsObject () {
+  return {
+    isSearching: false,
+    wasSuccessful: false,
+    hasFailed: false,
+    errorMessage: null,
+    successMessage: null,
+    resultsUrl: null
+  }
+}
+
+// fetchData
+// retrive data from a given endpoint
+//
+// @param url string to an API endoint
+//
+// @return json
+async function fetchData (url) {
+  const response = await fetch(url)
+  if (response.status / 100 !== 2) {
+    const message = `\nStatus: ${response.status}\nMessage: ${response.statusText}\nUrl: ${response.url}`
+    throw new Error(message)
+  }
+  return response.json()
+}
+
 // Remove Null Object Keys
 // Remove all null keys from an object. This is the first step in preparing
 // filters for a Molgenis DataExplorer URL
@@ -16,7 +47,7 @@
 // > { gender: 'female', country: 'Netherlands' }
 //
 // @return object
-const removeNullObjectKeys = function (data) {
+function removeNullObjectKeys (data) {
   const filters = data
   Object.keys(filters).forEach(key => {
     if (filters[key] === null || filters[key] === '') {
@@ -44,7 +75,7 @@ const removeNullObjectKeys = function (data) {
 // > ['gender==female', 'country=in=(Australia,New Zealand)']
 //
 // @return array of strings
-const objectToUrlFilterArray = function (object) {
+function objectToUrlFilterArray (object) {
   const urlFilter = []
   Object.keys(object).forEach(key => {
     let filter = null
@@ -88,7 +119,7 @@ const objectToUrlFilterArray = function (object) {
 // const filterArray = objectToUrlFilterArray(filters)
 // setDataExplorerUrl('database_table', filterArray)
 
-const setDataExplorerUrl = function (entity, array) {
+function setDataExplorerUrl (entity, array) {
   const filters = array.join(';')
   const filtersEncoded = encodeURIComponent(filters)
   const baseUrl = `/menu/plugins/dataexplorer?entity=${entity}&mod=data&hideselect=true`
@@ -102,11 +133,13 @@ const setDataExplorerUrl = function (entity, array) {
 // @param url URL to open
 //
 
-const windowReplaceUrl = function (url) {
+function windowReplaceUrl (url) {
   window.open(url, '_blank')
 }
 
 module.exports = {
+  initSearchResultsObject,
+  fetchData,
   removeNullObjectKeys,
   objectToUrlFilterArray,
   setDataExplorerUrl,

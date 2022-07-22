@@ -1,14 +1,12 @@
 <template>
-  <div :class="`search__results ${hasError ? 'search__error' : ''}`" v-if="hasError">
+  <div :class="`search__results ${hasError ? 'search__error' : ''}`" v-if="hasError || hasAction">
     <div class="error__box" v-if="hasError">
       <p class="error__box__message">
         <strong>{{ label }}</strong>
         <code>{{ actionErrorMessage }}</code>
       </p>
     </div>
-    <div class="loading__box" v-else-if="isPerformingAction && !actionWasSuccessful && !actionHasFailed">
-      <p>Searching....</p>
-    </div>
+    <LoadingBox v-else-if="hasAction" message="Searching for files" />
     <div class="results__box" v-else>
       <p>{{ actionSuccessMessage }}</p>
     </div>
@@ -16,6 +14,8 @@
 </template>
 
 <script>
+import LoadingBox from './Loading.vue'
+
 export default {
   name: 'search-results-box',
   props: {
@@ -48,7 +48,13 @@ export default {
       default: 'Action was successful'
     }
   },
+  components: {
+    LoadingBox
+  },
   computed: {
+    hasAction () {
+      return this.isPerformingAction && !this.actionWasSuccessful && !this.actionHasFailed
+    },
     hasError () {
       return !this.isPerformingAction && !this.actionWasSuccessful && this.actionHasFailed
     }
