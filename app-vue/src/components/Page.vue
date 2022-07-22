@@ -20,17 +20,6 @@ export default {
 </script>
 
 <style lang="scss">
-.visually-hidden {
-  position: absolute;
-  clip: rect(1px 1px 1px 1px); /* IE6, IE7 */
-  clip: rect(1px, 1px, 1px, 1px);
-  overflow: hidden;
-  height: 1px;
-  width: 1px;
-  margin: -1px;
-  white-space: nowrap;
-}
-
 .mg-page,
 .mg-app,
 .container-fluid,
@@ -50,15 +39,15 @@ footer.footer {
 
 .page {
   min-height: 100vh;
-  background-color: #f6f6f6;
+  background-color: $gray-050;
   
   .page__section__plain {
-    background-color: #ffffff;
+    background-color: $gray-000;
   }
   
   .page__footer {
     padding: 2em 1em;
-    background-color: #282d32;
+    background-color: $gray-900-alt;
     
     .molgenis_logo {
       width: 124px;

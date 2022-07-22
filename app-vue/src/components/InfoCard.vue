@@ -44,7 +44,7 @@ export default {
 .info__card {
   box-sizing: border-box;
   padding: 1.25em;
-  background-color: #ffffff;
+  background-color: $gray-000;
   border-radius: 6px;
   
   .card__title {

@@ -46,7 +46,7 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #282c32;
+  background-color: $gray-900-alt;
   padding: 24px;
   height: 15em;
   max-height: 15em;
@@ -66,13 +66,13 @@ export default {
       text-transform: uppercase;
       letter-spacing: 4px;
       font-weight: bold;
-      color: hsl(216, 11%, 90%);
+      color: $body-heading-light-100;
     }
 
     .header-subtitle {
       font-size: 32pt;
       font-weight: 200;
-      color: hsl(216, 11%, 98%);
+      color: $body-heading-light-050;
     }
   }
 
@@ -86,7 +86,7 @@ export default {
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: hsla(0, 0%, 0%, 0.25);
+      background-color: $black-transparent-100;
     }
   }
 }

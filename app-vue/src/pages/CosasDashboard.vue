@@ -229,20 +229,20 @@ export default {
   margin-top: 12px;
   font-size: 11pt;
   font-style: italic;
-  color: hsl(210, 9%, 47%);
+  color: $gray-400;
 }
 
 .text-error {
-  color: hsl(12, 100%, 50%);
+  color: $red-900;
   font-weight: 500;
 }
 
 #data-highlights {
-  background: hsl(0, 0%, 86%);
+  background: $gray-100;
 }
 
 .cosas-data-table {
-  background: #ffffff;
+  background: $gray-000;
   table {
     thead {
       font-size: 11pt;

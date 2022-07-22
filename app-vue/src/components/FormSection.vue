@@ -14,6 +14,6 @@ export default {
 .form__section {
   box-sizing: border-box;
   padding: 1em 0;
-  border-top: 1px solid #e6e6e6;
+  border-top: 1px solid $gray-100;
 }
 </style>

@@ -89,14 +89,10 @@ export default {
 </script>
 
 <style lang="scss">
-
-$text-dark: #252525;
-$text-default: #3f454b;
-
 .datatable-container {
   width: 100%;
   text-align: left;
-  color: $text-default;
+  color: $gray-900;
 
   .datatable {
     border-spacing: 0;
@@ -106,7 +102,7 @@ $text-default: #3f454b;
       font-size: 14pt;
       margin: 12px 0;
       font-weight: 600;
-      color: $text-dark;
+      color: $gray-900;
     }
     
     thead {
@@ -116,8 +112,8 @@ $text-default: #3f454b;
           padding: 4px 12px;
           text-transform: uppercase;
           letter-spacing: 2px;
-          border-bottom: 1px solid $text-dark;
-          color: $text-dark;
+          border-bottom: 1px solid $gray-900;
+          color: $gray-900;
         }
       }
     }
@@ -133,7 +129,7 @@ $text-default: #3f454b;
         }
 
         &:nth-child(odd) {
-          background-color: #f6f6f6;
+          background-color: $gray-050;
         }
       }
     }

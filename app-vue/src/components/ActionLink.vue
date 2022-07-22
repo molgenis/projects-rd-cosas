@@ -38,18 +38,15 @@ export default {
 </script>
 
 <style lang="scss">
-$link-color: #0d65fc;
-$link-color-inverse: hsl(218, 98%, 98%);
-
 .action-link {
   display: block;
   width: 100%;
   text-align: center;
-  color: $link-color;
+  color: $blue-800;
   box-sizing: border-box;
   padding: 0.5em 1em;
-  border: 1px solid $link-color;
-  background-color: #ffffff;
+  border: 1px solid $blue-800;
+  background-color: $blue-050;
   border-radius: 6px;
   margin: auto;
   
@@ -59,8 +56,7 @@ $link-color-inverse: hsl(218, 98%, 98%);
   }
   
   &:hover, &:focus {
-    background-color: $link-color;
-    color: $link-color-inverse
+    outline: 1px solid;
   }
 }
 </style>

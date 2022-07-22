@@ -35,10 +35,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-
-$primary-color: #0d65fc;
-$primary-color-inverse: hsl(218, 98%, 98%);
-
 .search__button {
   display: flex;
   width: 100%;
@@ -47,9 +43,9 @@ $primary-color-inverse: hsl(218, 98%, 98%);
   background: none;
   border: none;
   padding: 6px 12px;
-  background-color: $primary-color-inverse;
-  border: 1px solid $primary-color;
-  color: $primary-color;
+  background-color: $blue-050;
+  border: 1px solid $blue-800;
+  color: $blue-800;
   border-radius: 6px;
   
   .button__icon {

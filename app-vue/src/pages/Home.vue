@@ -77,7 +77,7 @@ export default {
 
 <style lang="scss" scoped>
 #portal-databases {
-  background-color: #f6f6f6;
+  background-color: $gray-050;
 }
 
 #database-cards {

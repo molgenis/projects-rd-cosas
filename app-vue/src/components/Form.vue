@@ -29,11 +29,11 @@ export default {
 <style lang="scss" scoped>
 .form {
   box-sizing: padding-box;
-  background-color: #ffffff;
+  background-color: $gray-000;
   padding: 2em;
   border-radius: 6px;
-  box-shadow: 0 0 4px 3px hsla(0, 0%, 0%, 0.11);
-  border-top: 5px solid #282d32;
+  box-shadow: $box-shadow;
+  border-top: 5px solid $gray-900;
   border-radius: 0 0 6px 6px;
   max-width: 600px;
   margin: 0 auto;

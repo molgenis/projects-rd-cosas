@@ -49,11 +49,11 @@ export default {
   width: 100%;
   background: none;
   border: none;
-  border: 1px solid #bdbdbd;
+  border: 1px solid $gray-200;
   padding: 6px;
   padding-left: 12px;
   border-radius: 4px;
-  box-shadow: inset 0 2px 4px 0 hsl(0, 0%, 85%);
+  box-shadow: $box-shadow-inset;
   margin: 12px 0;
 }
 </style>

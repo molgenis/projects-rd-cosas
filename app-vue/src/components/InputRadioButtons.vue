@@ -54,13 +54,13 @@ export default {
 <style lang="scss" scoped>
 .input__label {
   display: block;
-  color: #252525;
+  color: $gray-900;
   font-size: 12pt;
   
   .input__description {
     display: block;
     font-size: 11pt;
-    color: #616365;
+    color: $gray-500;
   }
 }
 </style>

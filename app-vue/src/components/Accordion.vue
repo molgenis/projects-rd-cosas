@@ -70,7 +70,7 @@ export default {
   font-family: inherit;
   box-sizing: border-box;
   margin: 24px 0;
-  border: 1px solid #f6f6f6;
+  border: 1px solid $gray-050;
   border-radius: 6px;
 
   button {
@@ -93,7 +93,7 @@ export default {
     margin: 0;
     padding: 16px 12px;
     font-size: 14pt;
-    background-color: #f6f6f6;
+    background-color: $gray-050;
 
     .toggle {
       display: flex;
