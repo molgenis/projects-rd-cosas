@@ -1,9 +1,9 @@
 <template>
   <div class="loading__box">
-    <svg class="icon" aria-hidden="true" width="32" height="24" viewBox="0 0 24 24">
-      <circle class="dot" cx="7.5" cy="12.5" r="5" />
-      <circle class="dot" cx="11.5" cy="12.5" r="5" />
-      <circle class="dot" cx="16.5" cy="12.5" r="5" />
+    <svg class="loading__icon" width="48" height="16" viewBox="0 0 48 16" fill="none" preserveAspectRatio="xMinYMin" xmlns="http://www.w3.org/2000/svg">
+      <circle class="dot" cx="8" cy="8" r="6" />
+      <circle class="dot" cx="24" cy="8" r="6" />
+      <circle class="dot" cx="40" cy="8" r="6" />
     </svg>
     <p class="message">{{ message }}</p>
   </div>
@@ -29,17 +29,19 @@ export default {
 }
 .loading__box {
   text-align: center;
-  .icon {
+  .loading__icon {
+    width: 72px;
+    height: 38px;
     .dot {
       fill: $green-300;
       &:nth-of-type(1) {
-        animation: blink 1s 0s infinite;
+        animation: blink 1.1s 0s infinite;
       }
       &:nth-of-type(2) {
-        animation: blink 1s 0.2s infinite;
+        animation: blink 1.1s 0.3s infinite;
       }
       &:nth-of-type(3) {
-        animation: blink 1s .4s infinite
+        animation: blink 1.1s .5s infinite
       }
     }
   }
