@@ -1,5 +1,5 @@
 <template>
-  <div :class="`search__results ${hasError ? 'search__error' : ''}`" v-if="hasError || hasAction">
+  <div :class="`search__results ${hasError ? 'search__error' : ''}`" v-if="hasError || hasAction || hasResult">
     <div class="error__box" v-if="hasError">
       <p class="error__box__message">
         <strong>{{ label }}</strong>
@@ -7,14 +7,18 @@
       </p>
     </div>
     <LoadingBox v-else-if="hasAction" message="Searching for files" />
-    <div class="results__box" v-else>
+    <div class="results__box" v-else-if="hasResult">
       <p>{{ actionSuccessMessage }}</p>
+      <ActionLink :href="searchResultsUrl" :showExternalLinkIcon="true">
+        View Results
+      </ActionLink>
     </div>
   </div>
 </template>
 
 <script>
 import LoadingBox from './Loading.vue'
+import ActionLink from './ActionLink.vue'
 
 export default {
   name: 'search-results-box',
@@ -43,13 +47,18 @@ export default {
       required: false
     },
     actionSuccessMessage: {
-      tyoe: String,
+      type: String,
       required: false,
       default: 'Action was successful'
+    },
+    searchResultsUrl: {
+      type: String,
+      required: false
     }
   },
   components: {
-    LoadingBox
+    LoadingBox,
+    ActionLink
   },
   computed: {
     hasAction () {
@@ -57,6 +66,9 @@ export default {
     },
     hasError () {
       return !this.isPerformingAction && !this.actionWasSuccessful && this.actionHasFailed
+    },
+    hasResult () {
+      return !this.isPerformingAction && this.actionWasSuccessful && !this.actionHasFailed
     }
   }
 }
@@ -87,5 +99,22 @@ export default {
       }
     }
   }
+  
+  .results__box {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    justify-content: center;
+    align-items: center;
+    
+    p {
+      margin: 0;
+    }
+    .action-link {
+      background-color: $blue-800;
+      color: $gray-050;
+      padding: 4px 0;
+    }
+  }
+  
 }
 </style>
