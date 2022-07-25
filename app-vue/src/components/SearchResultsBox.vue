@@ -102,7 +102,7 @@ export default {
   
   .results__box {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: 1.75fr 1.25fr;
     justify-content: center;
     align-items: center;
     
