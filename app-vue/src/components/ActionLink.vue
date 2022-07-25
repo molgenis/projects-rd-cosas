@@ -1,5 +1,5 @@
 <template>
-  <a class="action-link" :href="href">
+  <a class="action-link" :href="href" :target="showExternalLinkIcon ? '_blank' : false">
     <slot></slot>
     <svg
       v-if="showExternalLinkIcon"
@@ -27,7 +27,7 @@ export default {
   props: {
     href: {
       type: String,
-      required: true
+      required: false
     },
     showExternalLinkIcon: {
       type: Boolean,
