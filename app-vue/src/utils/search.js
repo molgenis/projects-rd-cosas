@@ -92,7 +92,7 @@ function objectToUrlFilterArray (object) {
       }
     } else {
       if (value.includes(',')) {
-        filter = `${key}=in=%28${value}%29`
+        filter = `${key}=in=(${value})`
       } else {
         filter = `${key}==${value}`
       }
