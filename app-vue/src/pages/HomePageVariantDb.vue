@@ -7,61 +7,56 @@
       :imageSrc="require('@/assets/header-bg-2.jpg')"
     />
     <Section id="variantdb-search" aria-labelledby="variantdb-search-title">
-      <!-- <h2 id="variantdb-search-title">Search the Variant database</h2>
-      <p>Find specific records or filter for classified variants using any of the filters below.</p> -->
-      <Form
-        id="variantdb-search-form"
-        title="Search the variant database"
-        description="Find specific records using one or more of the filters below. You can also search for multiple values at a time. To do so, format the values with a comma e.g., 'value 1, value 2, ...'."
-      >
-        <FormSection>
-          <SearchInput
-            id="UMCGnr"
-            label="Enter UMCGnr"
-            description="Search for a patient by ID"
-            @search="(value) => filters.umcg = value"
-          />
-        </FormSection>
-        <FormSection>
-          <SearchInput
-            id="DNAnumr"
-            label="Enter DNA nummer"
-            description="Search for a sample ID"
-            @search="(value) => filters.belongsToSample = value"
-          />
-        </FormSection>
-        <FormSection>
-          <SearchInput
-            id="gene"
-            label="Search for a specific gene"
-            description="e.g., TTN, ...."
-            @search="(value) => filters.gene = value"
-          />
-          <CheckboxInput
-            id="showVusPlus"
-            label="Would you also like to limit results by VUS+?"
-            @change="updateVusPlus"
-          />
-          <RadioButtons
-            v-show="showVusPlus"
-            id="vusPlus"
-            name="vusPlus"
-            label="Filter results by VUS+"
-            description="Select either True or False. Untick the checkbox to remove this option."
-            :values="['true', 'false']"
-            :labels="['True', 'False']"
-            @input="(value) => filters.vusplus = value"
-          />
-        </FormSection>
-        <!-- <FormSection>
-          <SearchInput
-            id="chromosome"
-            label="Search for a chromosome"
-            description="Enter either 1,2,3,4,etc."
-          />
-        </FormSection> -->
-        <SearchButton id="variantdb-search" @click="search" />
-      </Form>
+      <FormContainer>
+        <Form id="variantdb-search-form" title="Search the variant database">
+          <FormSection>
+            <SearchInput
+              id="UMCGnr"
+              label="Search for MDN/UMCG Numbers"
+              description="Search for patients and their relatives"
+              @search="(value) => variantFilters.umcg = value"
+            />
+          </FormSection>
+          <FormSection>
+            <SearchInput
+              id="DNAnumr"
+              label="Enter DNA nummer"
+              description="Search for a sample ID"
+              @search="(value) => variantFilters.belongsToSample = value"
+            />
+          </FormSection>
+          <FormSection>
+            <SearchInput
+              id="gene"
+              label="Search for a specific gene"
+              @search="(value) => variantFilters.gene = value"
+            />
+            <CheckboxInput
+              id="showVusPlus"
+              label="Would you also like to limit results by VUS+?"
+              :value="false"
+              @change="updateVusPlus"
+            />
+          </FormSection>
+          <!-- <FormSection>
+            <SearchInput
+              id="chromosome"
+              label="Search for a chromosome"
+              description="Enter either 1,2,3,4,etc."
+            />
+          </FormSection> -->
+          <SearchButton id="variantdb-search" @click="searchVariants" />
+          <SearchResultsBox
+          label="Unable to retrieve records"
+          :isPerformingAction="variantSearch.isSearching"
+          :actionWasSuccessful="variantSearch.wasSuccessful"
+          :actionHasFailed="variantSearch.hasFailed"
+          :actionErrorMessage="variantSearch.errorMessage"
+          :totalRecordsFound="variantSearch.totalRecordsFound"
+          :searchResultsUrl="variantSearch.resultsUrl"
+        />
+        </Form>
+      </FormContainer>
     </Section>
   </Page>
 </template>
@@ -70,18 +65,20 @@
 import Page from '@/components/Page.vue'
 import Header from '@/components/Header.vue'
 import Section from '@/components/Section.vue'
+import FormContainer from '@/components/FormContainer.vue'
 import Form from '@/components/Form.vue'
 import FormSection from '@/components/FormSection.vue'
-
+import SearchResultsBox from '@/components/SearchResultsBox.vue'
 import SearchButton from '@/components/ButtonSearch.vue'
 import SearchInput from '@/components/InputSearch.vue'
-import RadioButtons from '@/components/InputRadioButtons.vue'
 import CheckboxInput from '@/components/CheckboxInput.vue'
 
 import {
+  fetchData,
+  initSearchResultsObject,
   removeNullObjectKeys,
   objectToUrlFilterArray,
-  windowReplaceUrl
+  setDataExplorerUrl
 } from '@/utils/search.js'
 
 export default {
@@ -90,35 +87,74 @@ export default {
     Page,
     Header,
     Section,
+    FormContainer,
     Form,
     FormSection,
+    SearchResultsBox,
     SearchInput,
-    RadioButtons,
     SearchButton,
     CheckboxInput
   },
   data () {
     return {
-      filters: {
+      includeVusPlus: false,
+      variantFilters: {
         umcg: null,
         belongsToSample: null,
         gene: null,
         vusplus: null
       },
-      showVusPlus: false
+      variantSearch: initSearchResultsObject()
     }
   },
   methods: {
     updateVusPlus () {
-      this.showVusPlus = !this.showVusPlus
-      if (!this.showVusPlus) {
-        this.filters.vusplus = null
+      this.includeVusPlus = !this.includeVusPlus
+      if (this.includeVusPlus) {
+        this.variantFilters.vusplus = this.includeVusPlus.toString()
+      } else {
+        this.variantFilters.vusplus = null
       }
     },
-    search () {
-      const userInput = removeNullObjectKeys(this.filters)
-      const filterUrl = objectToUrlFilterArray(userInput)
-      windowReplaceUrl('variantdb_variant', filterUrl)
+    resetVariantSearch () {
+      this.variantSearch = initSearchResultsObject()
+    },
+    searchVariants () {
+      this.resetVariantSearch()
+      this.variantSearch.isSearching = true
+
+      const filters = removeNullObjectKeys(this.variantFilters)
+      const apiParams = objectToUrlFilterArray(filters).join(';')
+      const apiUrl = `/api/v2/variantdb_variant?q=${apiParams}`
+      
+      Promise.all([
+        fetchData(apiUrl)
+      ]).then(response => {
+        const data = response[0]
+        const totalRecordsFound = data.total
+        this.variantSearch.totalRecordsFound = totalRecordsFound
+        this.variantSearch.wasSuccessful = true
+        
+        if (totalRecordsFound > 0) {
+          const idsForUrl = data.items.map(row => {
+            return row.belongsToSubject // set correct ID when db is ready
+          })
+          const urlParams = objectToUrlFilterArray(
+            { belongsToSubject: idsForUrl.join(',') }
+          )
+          const dataExplorerUrl = setDataExplorerUrl('variantdb_variant', urlParams)
+          this.variantSearch.resultsUrl = dataExplorerUrl
+        }
+        this.variantSearch.isSearching = false
+      }).catch(error => {
+        this.variantSearch.isSearching = false
+        this.variantSearch.wasSuccessful = false
+        this.variantSearch.hasFailed = true
+        this.variantSearch.errorMessage = error.message
+      })
+      // const userInput = removeNullObjectKeys(this.filters)
+      // const filterUrl = objectToUrlFilterArray(userInput)
+      // // windowReplaceUrl('variantdb_variant', filterUrl)
       // console.log(filterUrl)
     }
   }
