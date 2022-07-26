@@ -2,19 +2,47 @@
   <div class="page">
     <slot></slot>
     <div class="page__footer">
-      <img :src="MolgenisLogo" alt="molgenis open source data platform" class="molgenis_logo"/>
-      <slot name="footer"></slot>
+      <div class="logo-navlinks">
+        <img
+        :src="require('@/assets/molgenis-logo-blue-small.png')"
+        alt="molgenis open source data platform"
+        class="molgenis_logo"
+        />
+        <NavLinks />
+      </div>
+      <p class="molgenis-citation"><small>This database was created using the open source MOLGENIS software {{ molgenisVersion }} on {{ molgenisBuildDate }}</small></p>
     </div>
   </div>
 </template>
 
 <script>
+import NavLinks from '@/components/NavLinks.vue'
+import { fetchData } from '@/utils/search'
+
 export default {
   name: 'uiPage',
+  components: {
+    NavLinks
+  },
   data () {
     return {
-      MolgenisLogo: require('@/assets/molgenis-logo-blue-small.png')
+      molgenisVersion: null,
+      molgenisBuildDate: null
     }
+  },
+  methods: {
+    getAppContext () {
+      Promise.all([
+        fetchData('/app-ui-context')
+      ]).then(response => {
+        const data = response[0]
+        this.molgenisVersion = data.version
+        this.molgenisBuildDate = data.buildDate
+      })
+    }
+  },
+  mounted () {
+    this.getAppContext()
   }
 }
 </script>
@@ -46,8 +74,25 @@ footer.footer {
   }
   
   .page__footer {
-    padding: 2em 1em;
+    box-sizing: padding-box;
+    padding: 2em;
     background-color: $gray-900-alt;
+    color: $gray-050;
+    
+    .logo-navlinks {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      
+      .navlinks {
+        margin-left: 24px;
+      }
+    }
+    
+    .molgenis-citation {
+      margin-top: 12px;
+      color: $gray-200;
+    }
     
     .molgenis_logo {
       width: 124px;
