@@ -8,8 +8,8 @@
     </div>
     <LoadingBox v-else-if="hasAction" message="Searching for files" />
     <div class="results__box" v-else-if="hasResult">
-      <p>{{ actionSuccessMessage }}</p>
-      <ActionLink :href="searchResultsUrl" :showExternalLinkIcon="true">
+      <p>Found <strong>{{ totalRecordsFound }}</strong> record{{ totalRecordsFound == 1 ? '' : 's' }}</p>
+      <ActionLink :href="searchResultsUrl" :showExternalLinkIcon="true" v-if="totalRecordsFound > 0">
         View Results
       </ActionLink>
     </div>
@@ -46,10 +46,9 @@ export default {
       type: String,
       required: false
     },
-    actionSuccessMessage: {
-      type: String,
-      required: false,
-      default: 'Action was successful'
+    totalRecordsFound: {
+      type: Number,
+      required: false
     },
     searchResultsUrl: {
       type: String,
