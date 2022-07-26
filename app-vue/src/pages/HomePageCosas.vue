@@ -4,26 +4,20 @@
       id="cosas-header"
       title="COSAS"
       subtitle="Search the COSAS Database"
-      :imageSrc="require('@/assets/header-bg-2.jpg')"
+      :imageSrc="require('@/assets/search.jpg')"
     />
-    <main>
-      <Section id="cosas-search-instructions" aria-labelledby="cosas-search-instructions-title">
-        <h2 id="cosas-search-instructions-title">Instructions</h2>
-        <p>Using the forms below, you can search for files or for patients with a certain phenotype. You may enter one or more values in the search fields (make sure values are separated by a comma) and tick any of the applicable boxes. If there are matching records, the total number of results will be displayed along with a link to view the results. Click the link to view the data in COSAS.</p>
-        <p>If you receive a "Found 0 records" message. This means that no matches could be found based on the provided search criteria. Try adjusting the search parameters. If you continue to receive zero results, then it is possible that the data is not yet available in COSAS.</p>
-        <p>In the event that something goes wrong, an error message will be display. The message will give you the error code, reason, and the URL that was used to search. Please note any error and notify the support desk if the error persists. There are some issues however that are easy to fix. A common issue is a "Bad Request (400)" error. This error occurrs when all search fields and filters are blank. Make sure at least one of the search files isn't blank or one filter has been selected.</p>
-      </Section>
-      <div id="cosas-search" class="cosas-search-container">
-        <Form
-          id="cosas-files-search-form"
-          class="cosas-search-form"
-          title="Search for Files"
-        >
+    <Section id="cosas-search-instructions" aria-labelledby="cosas-search-instructions-title">
+      <h2 id="cosas-search-instructions-title">Instructions</h2>
+      <p>Using the forms below, you can search for files or for patients with a certain phenotype. You may enter one or more values in the search fields (make sure values are separated by a comma) and tick any of the applicable boxes. If there are matching records, the total number of results will be displayed along with a link to view the results. Click the link to view the data in COSAS. If you encounter any issues, take a look at the troubleshooting section at the end of this page.</p>
+    </Section>
+    <div id="cosas-search" class="cosas-search-container">
+      <FormContainer class="cosas-search-form">
+        <Form id="cosas-files-search-form" title="Search for Files">
           <FormSection>
             <SearchInput
               id="subjectID"
               label="Search for MDN/UMCG Numbers"
-              description="Enter one or more MDN/UMCGnr for a patient or a relative of the patient"
+              description="Search for patients and their relatives"
               @search="(value) => fileFilters.belongsToSubject = value"
             />
           </FormSection>
@@ -49,26 +43,24 @@
             </div>
           </FormSection>
           <SearchButton id="search-subjects" @click="searchFiles"/>
-          <SearchResultsBox
-            label="Unable to retrieve records"
-            :isPerformingAction="fileSearch.isSearching"
-            :actionWasSuccessful="fileSearch.wasSuccessful"
-            :actionHasFailed="fileSearch.hasFailed"
-            :actionErrorMessage="fileSearch.errorMessage"
-            :actionSuccessMessage="fileSearch.successMessage"
-            :searchResultsUrl="fileSearch.resultsUrl"
-          />
         </Form>
-        <Form
-          id="cosas-diagnostic-search-form"
-          class="cosas-search-form"
-          title="Search for Diagnostic Information"
-        >
+        <SearchResultsBox
+          label="Unable to retrieve records"
+          :isPerformingAction="fileSearch.isSearching"
+          :actionWasSuccessful="fileSearch.wasSuccessful"
+          :actionHasFailed="fileSearch.hasFailed"
+          :actionErrorMessage="fileSearch.errorMessage"
+          :totalRecordsFound="fileSearch.totalRecordsFound"
+          :searchResultsUrl="fileSearch.resultsUrl"
+        />
+      </FormContainer>
+      <FormContainer class="cosas-search-form">
+        <Form id="cosas-diagnostic-search-form" title="Search for Diagnostic Information">
           <FormSection>
             <SearchInput
               id="clinicalSubjectID"
-              label="UMCGnummer"
-              description="Search for a particular UMCGnr"
+              label="Search for MDN/UMCG Numbers"
+              description="Search for patients and their relatives"
               @search="(value) => clinicalFilters.belongsToSubject = value"
             />
           </FormSection>
@@ -81,18 +73,18 @@
             />
           </FormSection>
           <SearchButton id="search-clinical" @click="searchClinical"/>
-          <SearchResultsBox
-            label="Unable to retrieve records"
-            :isPerformingAction="clinicalSearch.isSearching"
-            :actionWasSuccessful="clinicalSearch.wasSuccessful"
-            :actionHasFailed="clinicalSearch.hasFailed"
-            :actionErrorMessage="clinicalSearch.errorMessage"
-            :actionSuccessMessage="clinicalSearch.successMessage"
-            :searchResultsUrl="clinicalSearch.resultsUrl"
-          />
         </Form>
-      </div>
-    </main>
+        <SearchResultsBox
+          label="Unable to retrieve records"
+          :isPerformingAction="clinicalSearch.isSearching"
+          :actionWasSuccessful="clinicalSearch.wasSuccessful"
+          :actionHasFailed="clinicalSearch.hasFailed"
+          :actionErrorMessage="clinicalSearch.errorMessage"
+          :totalRecordsFound="clinicalSearch.totalRecordsFound"
+          :searchResultsUrl="clinicalSearch.resultsUrl"
+        />
+      </FormContainer>
+    </div>
   </Page>
 </template>
 
@@ -100,6 +92,7 @@
 import Page from '@/components/Page.vue'
 import Header from '@/components/Header.vue'
 import Section from '@/components/Section.vue'
+import FormContainer from '@/components/FormContainer.vue'
 import Form from '@/components/Form.vue'
 import FormSection from '@/components/FormSection.vue'
 import SearchButton from '@/components/ButtonSearch.vue'
@@ -120,6 +113,7 @@ export default {
     Page,
     Header,
     Section,
+    FormContainer,
     Form,
     FormSection,
     SearchButton,
@@ -164,18 +158,14 @@ export default {
       const filtersAsUrlParams = objectToUrlFilterArray(filters).join(';')
       const url = `/api/v2/umdm_files?attributes=fileID&q=${filtersAsUrlParams}`
 
-      Promise.all([
-        fetchData(url)
-      ]).then(response => {
+      Promise.all([fetchData(url)]).then(response => {
         const data = response[0]
         const totalRecordsFound = data.total
         this.fileSearch.totalRecordsFound = totalRecordsFound
-        this.fileSearch.successMessage = `Found ${totalRecordsFound} result${totalRecordsFound === 1 ? '' : 's'}`
         this.fileSearch.wasSuccessful = true
         
         if (totalRecordsFound > 0) {
-          // this needs to be replaced with fileID
-          const idsForUrl = data.items.map(row => { return row.belongsToSubject.subjectID })
+          const idsForUrl = data.items.map(row => { return row.belongsToSubject.subjectID }) // use fileID when available
           const filtersAsUrlParams = objectToUrlFilterArray(
             { belongsToSubject: idsForUrl.join(',') },
             { fileFormat: this.fileFilters.fileFormat }
@@ -200,13 +190,10 @@ export default {
       const filtersAsUrlParams = objectToUrlFilterArray(filters).join(';')
       const url = `/api/v2/umdm_clinical?attributes=belongsToSubject&q=${filtersAsUrlParams}`
 
-      Promise.all([
-        fetchData(url)
-      ]).then(response => {
+      Promise.all([fetchData(url)]).then(response => {
         const data = response[0]
         const totalRecordsFound = data.total
         this.clinicalSearch.totalRecordsFound = totalRecordsFound
-        this.clinicalSearch.successMessage = `Found ${totalRecordsFound} result${totalRecordsFound === 1 ? '' : 's'}`
         this.clinicalSearch.wasSuccessful = true
         
         if (totalRecordsFound > 0) {
@@ -254,12 +241,8 @@ export default {
     }
   }
 }
-.cosas-search-form {
-  max-width: 462px;
-  border-top-color: $green-300;
-}
 
-#cosas-search {
+.cosas-search-container {
   box-sizing: padding-box;
   padding: 2em 1em;
   margin: 0 auto;
@@ -269,6 +252,16 @@ export default {
   justify-content: center;
   align-items: flex-start;
   max-width: 1024px;
+  
+  .cosas-search-form {
+    width: 100%;
+    max-width: 462px;
+    border-top-color: $green-300;
+    
+    .search__button {
+      margin-top: 18px;
+    }
+  }
 }
 
 #cosas-search-instructions {
