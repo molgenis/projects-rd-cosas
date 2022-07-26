@@ -13,7 +13,6 @@ export default {
 <style lang="scss" scoped>
 .form__section {
   box-sizing: border-box;
-  padding: 1em 0;
-  border-top: 1px solid $gray-100;
+  padding-top: 4px;
 }
 </style>
