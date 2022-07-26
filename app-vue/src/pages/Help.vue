@@ -32,4 +32,10 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+#troubleshooting-searches {
+  h3 {
+    font-size: 15pt;
+    font-weight: bold;
+  }
+}
 </style>
