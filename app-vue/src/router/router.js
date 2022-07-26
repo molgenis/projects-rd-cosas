@@ -1,9 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
-
 import Home from '@/pages/Home.vue'
 import Cosas from '@/pages/HomePageCosas.vue'
 import CosasDashboard from '@/pages/CosasDashboard.vue'
-// import Ucu from '@/pages/HomePageUnsolvedCases.vue'
 import VariantDb from '@/pages/HomePageVariantDb.vue'
 import Help from '@/pages/Help.vue'
 
@@ -25,11 +23,6 @@ const routes = [
     path: '/cosas-dashboard',
     component: CosasDashboard
   },
-  // {
-  //   name: 'ucu',
-  //   path: '/unsolvedcases',
-  //   component: Ucu
-  // },
   {
     name: 'variantdb',
     path: '/variantdb',
