@@ -5,6 +5,7 @@ import Cosas from '@/pages/HomePageCosas.vue'
 import CosasDashboard from '@/pages/CosasDashboard.vue'
 // import Ucu from '@/pages/HomePageUnsolvedCases.vue'
 import VariantDb from '@/pages/HomePageVariantDb.vue'
+import Help from '@/pages/Help.vue'
 
 const initialState = window.__INITIAL_STATE__ || {}
 
@@ -33,6 +34,11 @@ const routes = [
     name: 'variantdb',
     path: '/variantdb',
     component: VariantDb
+  },
+  {
+    name: 'help',
+    path: '/help',
+    component: Help
   }
 ]
 
