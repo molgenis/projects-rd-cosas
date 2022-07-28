@@ -2,7 +2,7 @@
 #' FILE: data_filemetatdata_processing.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-07-18
-#' MODIFIED: 2022-07-19
+#' MODIFIED: 2022-07-28
 #' PURPOSE: initial data processing
 #' STATUS: experimental
 #' PACKAGES: **see below**
@@ -23,13 +23,24 @@ host = environ['MOLGENIS_ACC_HOST']
 cosas = Molgenis(host)
 cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
 
+
+def getFileType(value):
+  if re.search(r'(vcf.gz(.tbi)?)|(.vcf)|(vcf.bgz.tbi)$', value):
+    return 'gVCF'
+  elif re.search(r'.bam.cram$', value):
+    return 'cram'
+  elif re.search(r'.bam$', value):
+    return 'bam'
+  else:
+    return None
+
 #//////////////////////////////////////////////////////////////////////////////
 
 # ~ 0 ~
 # Processing and Import of Raw Data
 
 # load file
-filedata = fread('~/Downloads/COSAS.txt')
+filedata = fread('~/Downloads/COSAS 2.txt')
 
 # drop uncessary columns
 del filedata[:, ['id', 'testID', 'md5']]
@@ -57,7 +68,8 @@ finalData = filedata[(f.hasValidUmcgId) & (f.hasValidDnaId), :]
 del finalData[:, ['hasValidUmcgId', 'hasValidDnaId']]
 
 
-cosas.importDatatableAsCsv('cosasportal_files', finalData, 'cosasportal_files')
+cosas.delete('cosasportal_files')
+cosas.importDatatableAsCsv('cosasportal_files', finalData)
 
 #//////////////////////////////////////////////////////////////////////////////
 
@@ -67,9 +79,12 @@ cosas.importDatatableAsCsv('cosasportal_files', finalData, 'cosasportal_files')
 
 # ~ 1a ~
 # pull file metadata and prep
-filedata = dt.Frame(cosas.get('cosasportal_files', batch_size=10000))
+# filedata = dt.Frame(cosas.get('cosasportal_files', batch_size=10000))
+filedata = finalData
 
-del filedata[:, ['_href', 'id', 'familyID']]
+del filedata[:, '_href']
+del filedata[:, 'id']
+del filedata[:, 'familyID']
 
 filedata['belongsToSample'] = dt.Frame([
   re.sub(r'^(DNA)', 'DNA-', d)
@@ -82,9 +97,12 @@ filedata['filepath'] = dt.Frame([
 ])
 
 filedata['fileFormat'] = dt.Frame([
-  'gVCF' if re.search(r'(.vcf.gz)$', d) else d
+  getFileType(d)
   for d in filedata['filename'].to_list()[0]
 ])
+
+# dt.unique(filedata['fileFormat'])
+# filedata[:, :, dt.sort(f.fileFormat, reverse=True)][:, (f.filename, f.fileFormat)]
 
 filedata['fileID'] = dt.Frame([
   ''.join(d)
@@ -93,6 +111,11 @@ filedata['fileID'] = dt.Frame([
 
 if dt.unique(filedata['fileID']).nrows != filedata.nrows:
   raise SystemError('Number of unique file IDs must equal total possible rows')
+  
+# filedata['countOfDuplicates'] = dt.Frame([
+#   filedata[f.fileID == d, :].nrows
+#   for d in filedata['fileID'].to_list()[0]
+# ])
 
 # ~ 1b ~
 # get a list of all current patient identifiers (i.e., UmcgNr)
@@ -121,6 +144,8 @@ filedata[:, dt.count(), dt.by(f.patientIdExists)]
 filedata[:, dt.count(), dt.by(f.sampleIdExists)]
 filedata[:, dt.count(), dt.by(f.patientIdExists, f.sampleIdExists)]
 
+filedata[f.patientIdExists & f.sampleIdExists==False, :]
+
 # ~ 0d ~ 
 # Subset date for records that have a valid subject- and sample identifier
 
@@ -141,4 +166,5 @@ umdm_files['dateRecordCreated'] = datetime.now(tz=pytz.timezone('Europe/Amsterda
 umdm_files['recordCreatedBy'] = 'cosasbot'
 
 # import
+cosas.delete('umdm_files')
 cosas.importDatatableAsCsv(pkg_entity = 'umdm_files', data = umdm_files)
