@@ -9,6 +9,7 @@
 # COMMENTS: NA
 #////////////////////////////////////////////////////////////////////////////
 
+from zipfile import ZipFile
 from datatable import dt, f, as_type, first
 import molgenis.client as molgenis
 from datetime import datetime
@@ -485,6 +486,7 @@ class cosastools:
 # ~ 99 ~
 # Initial Steps
 # Steps to run before starting the mapping steps
+
 
 # connect to db (token is generated on run)
 db = Molgenis(url=host, token=token)
