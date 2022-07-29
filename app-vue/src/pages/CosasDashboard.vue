@@ -186,12 +186,18 @@ export default {
           this.attributeSummaryData[row.databaseTable] = []
         }
         this.attributeSummaryData[row.databaseTable].push({
-          column: row.databaseColumn,
+          column: row.displayName,
           actual: row.countOfValues,
           expected: row.totalValues,
           difference: row.differenceInValues,
           complete: `${row.percentComplete * 100}%`,
           'key.type': row.databaseKey !== undefined ? row.databaseKey.value : ''
+        })
+      })
+      
+      Object.keys(this.attributeSummaryData).forEach(key => {
+        this.attributeSummaryData[key].sort((a, b) => {
+          return a.column.toLowerCase() > b.column.toLowerCase() ? 1 : -1
         })
       })
     }
