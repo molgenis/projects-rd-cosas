@@ -4,7 +4,7 @@
 
 | Name | Description | Parent |
 |:---- |:-----------|:------|
-| cosasreports | Reports on COSAS jobs, imports, and processing (v1.5.0, 2022-06-29) | - |
+| cosasreports | Reports on COSAS jobs, imports, and processing (v1.6.0, 2022-07-29) | - |
 | cosasreports_refs | Reference tables for COSAS Reports | cosasreports |
 
 ## Entities
@@ -72,6 +72,7 @@ Summary of attributes used by COSAS table and the percentage of available data
 | dateLastUpdated | - | A data item that indicates the time when data about the sample collection was last updated in a database. | date |
 | databaseTable | - | A database table is a set of named columns with zero or more rows composed of cells that contain column values and is part of a database. | string |
 | databaseColumn | - | A database collumn is a column in a database table. | string |
+| displayName | - | The standardized text associated with a code in a particular code system. | string |
 | databaseKey | - | A database key is an informational entity whose value is constructed from one or more database columns. | xref |
 | countOfValues | - | Determining the number or amount of something. | int |
 | totalValues | - | Pertaining to an entirety or whole, also constituting the full quantity or extent; complete; derived by addition. | int |

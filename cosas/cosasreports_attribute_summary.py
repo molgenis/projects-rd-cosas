@@ -2,7 +2,7 @@
 #' FILE: cosasreports_attribute_summary.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-04-19
-#' MODIFIED: 2022-06-27
+#' MODIFIED: 2022-07-29
 #' PURPOSE: generate a coverage report of all attributes in COSAS
 #' STATUS: stable
 #' PACKAGES: **see below**
@@ -19,79 +19,95 @@ import re
 # from dotenv import load_dotenv
 # from os import environ
 # load_dotenv()
-# host=environ['MOLGENIS_HOST_ACC']
-# token=environ['MOLGENIS_TOKEN_ACC']
+# host=environ['MOLGENIS_ACC_HOST']
+# token=environ['MOLGENIS_ACC_TOKEN']
+# cosas= molgenis.Session(host)
+# cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
 
 host='http://localhost/api'
 token='${molgenisToken}'
 
 def summarizeData(tablename, data) -> dict:
-    """Summarize Data
-    For all columns in a datatable object, get the count of non-NoneType vaues
-    and the total number of values (i.e., rows)
-    
-    @param tablename name of the table
-    @param data a datatable object
-    
-    @return dictionary
-    """
-    datatable = data
-    data = []
-    for column in datatable.names:
-        data.append({
-            'databaseTable': tablename,
-            'databaseColumn': column,
-            'countOfValues': len([x for x in datatable[:, [column]].to_list()[0] if x is not None]),
-            'totalValues': datatable[:, [column]].nrows
-        })
-    return data
+  """Summarize Data
+  For all columns in a datatable object, get the count of non-NoneType vaues
+  and the total number of values (i.e., rows)
+  
+  @param tablename name of the table
+  @param data a datatable object
+  
+  @return dictionary
+  """
+  datatable = data
+  data = []
+  for column in datatable.names:
+    data.append({
+      'databaseTable': tablename,
+      'databaseColumn': column,
+      'countOfValues': len([x for x in datatable[:, [column]].to_list()[0] if x is not None]),
+      'totalValues': datatable[:, [column]].nrows
+    })
+  return data
+  
+def getAttributeLabel(pkg, table, column):
+  response = cosas.get(
+    entity = 'sys_md_Attribute',
+    q = f'entity=={pkg}_{table};name=={column}'
+  )
+  try:
+    return response[0]['label']
+  except KeyError as error:
+    print('Column', column, 'does not exist in', pkg,'_',table, '\n',str(error))
+    return None
+  except IndexError as error:
+    print('No results found for "',column,'" in', pkg,'_',table, '\n',str(error))
+    return None
 
 # define attributes that are currently used
 cosasTables={
-    'subjects': [
-        'subjectID',
-        'belongsToFamily',
-        'belongsToMother',
-        'belongsToFather',
-        'belongsWithFamilyMembers',
-        'subjectStatus',
-        'dateOfBirth',
-        'yearOfBirth',
-        'dateOfDeath',
-        'ageAtDeath',
-        'genderAtBirth',
-        'primaryOrganization'
-    ],
-    'clinical': [
-        'clinicalID',
-        'belongsToSubject',
-        'observedPhenotype',
-        'unobservedPhenotype',
-        'provisionalPhenotype',
-    ],
-    'samples': [
-      'sampleID',
-      'belongsToSubject',
-      'biospecimenType'  
-    ],
-    'samplePreparation': [
-        'samplePreparationID',
-        'belongsToSample',
-        'belongsToLabProcedure',
-        'belongsToRequest',
-        'belongsToBatch',
-    ],
-    'sequencing': [
-        'sequencingID',
-        'belongsToLabProcedure',
-        'belongsToSamplePreparation',
-        'reasonForSequencing',
-        'sequencingDate',
-        'sequencingFacilityOrganization',
-        'sequencingPlatform',
-        'sequencingInstrumentModel',
-        'referenceGenomeUsed',
-    ]
+  'subjects': [
+    'subjectID',
+    'belongsToFamily',
+    'belongsToMother',
+    'belongsToFather',
+    'belongsWithFamilyMembers',
+    'subjectStatus',
+    'dateOfBirth',
+    'yearOfBirth',
+    'dateOfDeath',
+    'ageAtDeath',
+    'genderAtBirth',
+    'primaryOrganization'
+  ],
+  'clinical': [
+    'clinicalID',
+    'belongsToSubject',
+    'observedPhenotype',
+    'unobservedPhenotype',
+    'provisionalPhenotype',
+  ],
+  'samples': [
+    'sampleID',
+    'belongsToSubject',
+    'biospecimenType'  
+  ],
+  'samplePreparation': [
+    'samplePreparationID',
+    'belongsToSample',
+    'belongsToLabProcedure',
+    'belongsToRequest',
+    'belongsToBatch',
+  ],
+  'sequencing': [
+    'sequencingID',
+    'belongsToLabProcedure',
+    'belongsToSamplePreparation',
+    'reasonForSequencing',
+    'sequencingDate',
+    'sequencingFacilityOrganization',
+    'sequencingPlatform',
+    'sequencingInstrumentModel',
+    'referenceGenomeUsed',
+  ]
 }
 
 #//////////////////////////////////////////////////////////////////////////////
@@ -236,6 +252,17 @@ cosasSummaryDT['databaseKey'] = dt.Frame([
         'primary database key' if re.search(r'(ID)$', value) else None
     )
     for value in cosasSummaryDT[:, f.databaseColumn].to_list()[0]
+])
+
+# set display name
+cosasSummaryDT['displayName'] = dt.Frame([
+  getAttributeLabel(pkg='umdm', table=d[0], column=d[1])
+  for d in cosasSummaryDT[:, ['databaseTable', 'databaseColumn']].to_tuples()
+])
+
+cosasSummaryDT['displayName'] = dt.Frame([
+  d[1] if d[0] is None else d[0]
+  for d in cosasSummaryDT[:, ['displayName', 'databaseColumn']].to_tuples()
 ])
 
 # set date last updated

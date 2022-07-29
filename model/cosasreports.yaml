@@ -2,7 +2,7 @@
 #' FILE: cosasreports.yaml
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-02-14
-#' MODIFIED: 2022-06-29
+#' MODIFIED: 2022-07-29
 #' PURPOSE: EMX for reporting
 #' STATUS: stable
 #' PACKAGES: NA
@@ -14,8 +14,8 @@ name: cosasreports
 label: COSAS Reports
 description: Reports on COSAS jobs, imports, and processing
 tags: NCIT_C82964 http://purl.obolibrary.org/obo/NCIT_C82964
-version: 1.5.0
-date: 2022-06-29
+version: 1.6.0
+date: 2022-07-29
 
 # set defaults
 defaults:
@@ -211,6 +211,11 @@ entities:
       - name: databaseColumn
         description: A database collumn is a column in a database table.
         tags: SIO_000757 http://semanticscience.org/resource/SIO_000757
+        dataType: string
+        
+      - name: displayName
+        description: The standardized text associated with a code in a particular code system.
+        tags: NCIT_C70896 http://purl.obolibrary.org/obo/NCIT_C70896
         dataType: string
         
       - name: databaseKey

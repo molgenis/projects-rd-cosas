@@ -31,7 +31,7 @@ config:
 #
 models:
   - name: cosasportal
-    active: true
+    active: false
     files: [
       "model/cosasportal.yaml"
     ]
@@ -43,7 +43,7 @@ models:
     ]
   
   - name: cosasreports
-    active: false
+    active: true
     files: [
       "model/cosasreports.yaml",
       "model/cosasreports_refs.yaml"
