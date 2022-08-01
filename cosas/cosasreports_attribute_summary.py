@@ -2,7 +2,7 @@
 #' FILE: cosasreports_attribute_summary.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-04-19
-#' MODIFIED: 2022-07-29
+#' MODIFIED: 2022-08-01
 #' PURPOSE: generate a coverage report of all attributes in COSAS
 #' STATUS: stable
 #' PACKAGES: **see below**
@@ -13,15 +13,14 @@ import molgenis.client as molgenis
 from datetime import datetime
 from datatable import dt,f
 import numpy as np
+import pytz
 import re
 
 # for local dev
 # from dotenv import load_dotenv
 # from os import environ
 # load_dotenv()
-# host=environ['MOLGENIS_ACC_HOST']
-# token=environ['MOLGENIS_ACC_TOKEN']
-# cosas= molgenis.Session(host)
+# cosas= molgenis.Session(environ['MOLGENIS_ACC_HOST'])
 # cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
 
 host='http://localhost/api'
@@ -115,12 +114,31 @@ cosasTables={
 # ~ 1 ~
 # GET INPUT DATA
 # Fetch all data from the UMDM schema and flatten attributes
-
-print('Preparing data....')
 cosas=molgenis.Session(url=host,token=token)
 
 
 # ~ 1a ~
+# Determine if nightly job was successful and update reports table
+print('Determining if the last import job was successful....')
+dateToday = datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime('%Y-%m-%d')
+recentImportData = cosas.get(entity='cosasreports_imports', q=f"date=={dateToday}")
+
+try:
+  dataExists = recentImportData[0]
+except IndexError as error:
+  print("Record of today's data import cannot be found.")
+  raise SystemError(error)
+
+cosas.update_one(
+  entity = 'cosasreports_imports',
+  id_ = dateToday,
+  attr = 'hasCompleted',
+  value = 'true'
+)
+
+print('Preparing data....')
+
+# ~ 1b ~
 # Get Data
 print('Fetching COSAS data....')
 
@@ -154,7 +172,7 @@ sequencingData = cosas.get(
     attributes=','.join(cosasTables['sequencing'])
 )
 
-# ~ 1b ~
+# ~ 1c ~
 # Flatten attributes
 print('Flattening nested attributes....')
 
@@ -190,7 +208,7 @@ for row in sequencingData:
     row['sequencingInstrumentModel'] = row.get('sequencingInstrumentModel', {}).get('value')
     row['referenceGenomeUsed'] = row.get('referenceGenomeUsed', {}).get('value')
 
-# ~ 1c ~
+# ~ 1d ~
 # Convert to DataTable object
 print('Converting objects to datatables....')
 
@@ -272,9 +290,6 @@ cosasSummaryDT['dateLastUpdated'] = datetime.utcnow().strftime('%Y-%m-%d')
 
 # ~ 3 ~
 # Import
-
-# cosasSummaryDT.to_csv('_data/cosasreports_attributesummary.csv')
-
 print('Importing data....')
 importData = cosasSummaryDT.to_pandas().replace({np.nan: None}).to_dict('records')
 cosas.delete(entity='cosasreports_attributesummary')
