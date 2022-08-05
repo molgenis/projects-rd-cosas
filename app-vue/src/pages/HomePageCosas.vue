@@ -4,11 +4,12 @@
       id="cosas-header"
       title="COSAS"
       subtitle="Search the COSAS Database"
-      :imageSrc="require('@/assets/search.jpg')"
+      :imageSrc="require('@/assets/header-bg-2.jpg')"
     />
     <Section id="cosas-search-instructions" aria-labelledby="cosas-search-instructions-title">
       <h2 id="cosas-search-instructions-title">Instructions</h2>
-      <p>Using the forms below, you can search for files or for patients with a certain phenotype. You may enter one or more values in the search fields (make sure values are separated by a comma) and tick any of the applicable boxes. If there are matching records, the total number of results will be displayed along with a link to view the results. Click the link to view the data in COSAS. If you encounter any issues, take a look at the troubleshooting section at the end of this page.</p>
+      <p>Using the forms below, you can search for files or for patients with a certain phenotype. You may search for more than one value by separating IDs or codes with a comma. For example: "Patient-1234, Patient-5678". If there are matching records, the total number of results will be displayed along with a link to view the results. Click the link to view the data in COSAS.</p>
+      <p>If you encounter any issues, take a look at the <router-link :to="{name: 'help'}">troubleshooting guide</router-link>.</p>
     </Section>
     <div id="cosas-search" class="cosas-search-container">
       <FormContainer class="cosas-search-form">
@@ -24,7 +25,7 @@
           <FormSection>
             <legend class="form__legend">
               Search for file types
-              <span class="form__legend__caption">Select one or more file types</span>
+              <span class="form__legend__caption">Select one or more file type</span>
             </legend>
             <div class="checkbox__group">
               <div class="checkbox" v-for="filetype in filetypes" :key="filetype.value">
@@ -67,8 +68,8 @@
           <FormSection>
             <SearchInput
               id="clinicalObservedPhenotype"
-              label="Klinisch Fenotype (HPO)"
-              description="Enter one or more HPO codes, e.g., 'HP:0001270,HP:0001638'"
+              label="Clinical Phenotype (HPO)"
+              description="Enter one or more HPO code, e.g., 'HP:0001270, HP:0001638'"
               @search="(value) => clinicalFilters.observedPhenotype = value"
             />
           </FormSection>
@@ -123,9 +124,10 @@ export default {
   data () {
     return {
       filetypes: [
-        { value: 'gVCF', label: 'gVCF' },
+        { value: 'bam', label: 'BAM' },
+        { value: 'cram', label: 'CRAM' },
         { value: 'fastq', label: 'FastQ' },
-        { value: 'bam', label: 'Bam' }
+        { value: 'vcf', label: 'VCF' }
       ],
       selectedFileTypes: [],
       clinicalFilters: {
