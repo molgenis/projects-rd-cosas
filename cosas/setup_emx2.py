@@ -29,8 +29,8 @@ email=environ['EMX2_USERNAME']
 password=environ['EMX2_PASSWORD']
 
 # sign in to both schemas
-unifiedmodel=Molgenis(url=host, database='unifiedmodel')
-unifiedmodelrefs=Molgenis(url=host, database='unifiedmodel_lookups')
+unifiedmodel=Molgenis(url=host, database='umdm')
+unifiedmodelrefs=Molgenis(url=host, database='umdmLookups')
 
 unifiedmodel.signin(email=email, password=password)
 unifiedmodelrefs.signin(email=email, password=password)
@@ -40,35 +40,29 @@ unifiedmodelrefs.signin(email=email, password=password)
 # each file that you wish to import using the following format:
 # `tablename: filepath`
 files={
-    'unifiedmodel': {
-        'organizations': 'lookups/umdm_organizations.csv',
-        'labProcedures': 'lookups/umdm_labProcedures.csv'
-    }
+  'umdm': {
+    'organizations': 'lookups/umdm_organizations.csv',
+    'labProcedures': 'lookups/umdm_labProcedures.csv'
+  },
+  'umdmLookups': {}
 }
 
 umdmDir='/Users/dcruvolo/GitHub/rd-datamodel'
-files['unifiedmodel_lookups'].update({
-    file.replace('.csv','').split('_')[-1]: f'{umdmDir}/lookups/{file}'
-    for file in listdir(f'{umdmDir}/lookups')
-    if file not in [
-        'umdm_lookups_biospecimenUsability.csv'
-    ]
-})
+referenceDatasetFiles = listdir(f'{umdmDir}/lookups')
+filesToIgnore = ['umdm_lookups_biospecimenUsability.csv']
 
+for file in referenceDatasetFiles:
+  if file not in filesToIgnore:
+    name = file.replace('umdm_lookups_', '').replace('.csv', '')
+    files['umdmLookups'][name] = f'{umdmDir}/lookups/{file}'
 
 # import lookups
-for file in files['unifiedmodel_lookups']:
-    unifiedmodelrefs.importCsvFile(
-        table=file,
-        file=files['unifiedmodel_lookups'][file]
-    )
+for file in files['umdmLookups']:
+  unifiedmodelrefs.importCsvFile(table=file, file=files['umdmLookups'][file])
 
 # import lookup cosas 
-for file in files['unifiedmodel']:
-    unifiedmodel.importCsvFile(
-        table=file,
-        file=files['unifiedmodel'][file]
-    )
+for file in files['umdm']:
+    unifiedmodel.importCsvFile(table=file,file=files['umdm'][file])
     
 
 # manually import cosas extensions
