@@ -2,7 +2,7 @@ import Vue from "vue";
 import VueRouter from "vue-router";
 
 import App from "./App";
-import RecordView from "./components/RecordView";
+import RecordView from "./pages/RecordView";
 
 Vue.use(VueRouter);
 
@@ -10,6 +10,7 @@ Vue.use(VueRouter);
 const router = new VueRouter({
   routes: [
     {
+      name: "recordView",
       path: "/",
       component: RecordView,
       props: true,

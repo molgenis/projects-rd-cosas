@@ -4,14 +4,6 @@
       <h1>Record View</h1>
     </header>
     <main>
-      <form>
-        <CheckboxGroup
-          id="datatables"
-          :options="datatables"
-          title="Select Data Sources"
-          caption="Customize the data shown in the cards by selecting one or more of the following options"
-        />
-      </form>
       <div class="flex">
         <SummaryCard
           v-for="row in data"
@@ -28,19 +20,16 @@
 
 <script>
 import { request, gql } from 'graphql-request'
-import SummaryCard from './SummaryCard'
-import CheckboxGroup from './CheckboxGroup.vue'
+import SummaryCard from '@/components/SummaryCard'
 
 export default {
   name: 'RecordView',
   components: {
-    SummaryCard,
-    CheckboxGroup
+    SummaryCard
   },
   data() {
     return {
-      data: null,
-      datatables: ["diagnoses",'samples','sequences','files']
+      data: null
     }
   },
   methods: {
@@ -54,10 +43,10 @@ export default {
         return newRow
       }, {})
     },
-    async getSubjects() {
+    async getSubjects(limit=2) {
       const query = gql`
       {
-        subjects(limit:3) {
+        subjects(limit:${limit}) {
           subjectID
           belongsToFamily
           subjectStatus {
@@ -77,11 +66,64 @@ export default {
       }
       `
       const data = await request('graphql', query)
-      this.data = data['subjects']
+      return data['subjects']
+    },
+    async getSubjectMetadata (idString) {
+      const query = gql`
+      {
+        sequencing (filter: {
+          belongsToSamplePreparation: {
+            belongsToSample: {
+              belongsToSubject: {
+                subjectID: {
+                  equals: [${idString}]
+                }
+              }
+            }
+          }
+        }) {
+          sequencingID
+          reasonForSequencing {
+            value
+          }
+          sequencingMethod {
+            value
+          }
+          belongsToSamplePreparation {
+            belongsToSample {
+              belongsToSubject {
+                subjectID
+              }
+              reasonForSampling {
+                value
+              }
+              biospecimenType {
+                value
+              }
+            }
+          }
+        }
+      }`
+      const response = await request('graphql', query)
+      console.log(response)
+    },
+    unpackLinkedSubjectMetadata (data) {
+      
     }
   },
   mounted() {
-    this.getSubjects()
+    Promise.all([
+      this.getSubjects()
+    ]).then(results => {
+      const subjectMetadata = results[0]
+      this.data = subjectMetadata
+      const subjectIDs = subjectMetadata.map(subject => `\"${subject.subjectID}\"`).join(',')
+      console.log(subjectIDs)
+      this.getSubjectMetadata(subjectIDs)
+    // }).then(results => {
+    //   const allSubjectData = results[0]
+    //   console.log(allSubjectData)
+    })
   }
 };
 </script>

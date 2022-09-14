@@ -1,6 +1,6 @@
 
 const HOST = process.env.MOLGENIS_APPS_HOST || "https://diagnostics-acc.molgeniscloud.org";
-const SCHEMA = process.env.MOLGENIS_APPS_SCHEMA || "unifiedmodel";
+const SCHEMA = process.env.MOLGENIS_APPS_SCHEMA || "umdm";
 
 const opts = { changeOrigin: true, secure: false };
 
