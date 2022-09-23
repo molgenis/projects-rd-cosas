@@ -2,24 +2,23 @@
 # FILE: mappings_cosas.py
 # AUTHOR: David Ruvolo
 # CREATED: 2021-10-05
-# MODIFIED: 2022-07-15
+# MODIFIED: 2022-09-23
 # PURPOSE: primary mapping script for COSAS
 # STATUS: stable
 # PACKAGES: **see below**
 # COMMENTS: NA
 #////////////////////////////////////////////////////////////////////////////
 
-from zipfile import ZipFile
 from datatable import dt, f, as_type, first
 import molgenis.client as molgenis
 from datetime import datetime
 from os.path import abspath
 import numpy as np
+import tempfile
 import json
 import pytz
-import re
-import tempfile
 import csv
+import re
 
 # uncomment when deployed
 host = 'http://localhost/api/'
@@ -37,7 +36,6 @@ def status_msg(*args):
   message = ' '.join(map(str, args))
   time = datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime('%H:%M:%S.%f')[:-3]
   print(f'[{time}] {message}')
-
 
 # custom logs
 class cosasLogger:
@@ -96,7 +94,6 @@ class cosasLogger:
       'steps': [],
       'comments': None
     }
-
     self._printMsg(self.logname,': log started at',self.log['startTime'].strftime(self.hhmmss))
 
   def stop(self):
@@ -129,7 +126,6 @@ class cosasLogger:
       'status': None,
       'comment': None
     }
-
     self._printMsg(self.logname, ': starting step', name)
 
   def stopProcessingStepLog(self):
@@ -221,265 +217,193 @@ class Molgenis(molgenis.Session):
         )
         self._checkResponseStatus(response, label)
 
-  def importData(self, entity: str, data: list):
-    """Import Data
-    Import data into a table. The data must be a list of dictionaries that
-    contains the 'idAttribute' and one or more attributes that you wish
-    to import.
+def calcAge(earliest: datetime.date = None, recent: datetime.date = None):
+  """Calculate Years of Age between two dates
 
-    @param entity (str) : name of the entity to import data into
-    @param data (list) : data to import (a list of dictionaries)
+  @param earliest: the earliest date (datetime: yyyy-mm-dd)
+  @param recent: the most recent date (datetime: yyyy-mm-dd)
+  @return int
+  """
+  if (earliest is None) or (recent is None):
+    return None
+  return round(((recent - earliest).days) / 365.25, 4)
 
-    @return a status message
-    """
-    url = '{}v2/{}'.format(self._apiUrl, entity)
-    if len(data) < 1000:
-      self._POST(url=url, data=data, label=str(entity))
+def collapseFamilyIDs(value: str = None, valueToRemove: str = None):
+  """Collapse string of Family Member Identifiers
+  Format IDs as a comma separated string. Remove subject ID it exists in
+  the list of IDs as it isn't necessary to reference the subject here.
 
-    # batch push
-    if len(data) >= 1000:
-      for d in range(0, len(data), 1000):
-        self._POST(
-          url=url,
-          data=data[d:d+1000],
-          label='{} (batch {})'.format(str(entity), str(d))
-        )
+  @param value comma separated string containing one or more IDs
+  @param valueToRemove value to remove from the list of IDs
 
-  def updateRows(self, entity: str, data: list):
-    """Update Rows
-    Update rows in a table. The data must be a list of dictionaries that
-    contains the 'idAttribute' and must contain values for all attributes
-    in addition to the one that you wish to update. This is ideal for
-    updating rows. To update an attribute, use `updateColumn`.
+  @return comma separated string containing one ore more family IDs
+  """
+  if (str(value) in ['nan', '-', '']) or (value is None):
+    return None
+  pattern = re.compile(f'((,)?({valueToRemove})(,)?)')
+  newString = re.sub(pattern, '', value).strip().replace(' ', '')
+  return re.sub(r'([,]$)', '', newString) if newString else None
 
-    @param entity name of the entity to import data into
-    @param data data to import; a list of dictionaries
+def collapseHpoCodes(id, column):
+  """Collapse HPO Codes
+  In the COSAS clinical table, find all HPO codes by subject identifier,
+  collapse, get distinct values, and collapse into a string.
 
-    @return a status message
-    """
-    url = '{}v2/{}'.format(self._apiUrl, entity)
-    if len(data) < 1000:
-      self._PUT(url=url, data=data, label=str(entity))
-    else:
-      for d in range(0, len(data), 1000):
-        self._PUT(
-          url=url,
-          data=data[d:d+1000],
-          label='{} (batch {})'.format(str(entity), str(d))
-        )
+  @param id : identifier to search for
+  @param column : name of the column to search for (datatable f-expression)
 
-  def updateColumn(self, entity: str, attr: str, data: list):
-    """Update Column
-    Update values of an single column in a table. The data must be a list of
-    dictionaries that contain the `idAttribute` and the value of the
-    attribute that you wish to update. As opposed to the `updateRows`, you
-    do not need to supply values for all columns.
+  @return comma separated string containing one or more value
+  """
+  results = clinical[f.belongsToSubject == id, column]
+  if results.nrows == 0:
+    return None
+  return ','.join(list(set(filter(None, results.to_list()[0]))))
 
-    @param entity name of the entity to import data into
-    @param attr name of the attribute to update
-    @param data data to import; a list of dictionaries
+def collapseHpoColumns(*kwargs):
+  """Collapse HPO Columns
+  Merge two or more HPO columns into one column. This is useful for merging
+  columns from Cartagenia data with ADLAS data.
 
-    @return status message
-    """
-    url = '{}v2/{}/{}'.format(self._apiUrl, str(entity), str(attr))
-    if len(data) < 1000:
-      self._PUT(url=url, data=data, label=f'{entity}/{attr}')
-    else:
-      for d in range(0, len(data), 1000):
-        self._PUT(
-          url=url,
-          data=data[d:d+1000],
-          label='{}/{} (batch {})'.format(str(entity),str(attr), str(d))
-        )
+  @param *kwargs row values from two or more HPO columns
 
-# create class of methods used in the mappings
-class cosastools:
-  @staticmethod
-  def calcAge(earliest: datetime.date = None, recent: datetime.date = None):
-    """Calculate Years of Age between two dates
+  @return unique HPO columns as a comma separated string
+  """
+  values = [*kwargs]
+  if len(values):
+    codes = []
+    for value in values:
+      if (value is not None) and (value != ''):
+        codes.extend(value.split(','))
+    uniquecodes = list(set(codes))
+    return ','.join(uniquecodes)
+  else:
+    return None
 
-    @param earliest: the earliest date (datetime: yyyy-mm-dd)
-    @param recent: the most recent date (datetime: yyyy-mm-dd)
-    @return int
-    """
-    if (earliest is None) or (recent is None):
-      return None
-    return round(((recent - earliest).days) / 365.25, 4)
+def collapseTestCodes(subjectID, sampleID, requestID, column):
+  """Collapse Test Codes
+  In the COSAS samples table, find all matching alternative identifiers
+  by id (subject-, sample-, and request identifiers), get distinct
+  values, and collapse into a string
 
-  @staticmethod
-  def collapseFamilyIDs(value: str = None, valueToRemove: str = None):
-    """Collapse string of Family Member Identifiers
-    Format IDs as a comma separated string. Remove subject ID it exists in
-    the list of IDs as it isn't necessary to reference the subject here.
+  @param subjectId (str) : subject ID to locate
+  @param sampleId  (str) : sample ID to locate
+  @param requestId (str) : specific request associated with a sample
+  @param column    (str) : name of the column where the codes are stored
 
-    @param value comma separated string containing one or more IDs
-    @param valueToRemove value to remove from the list of IDs
+  @return comma separated string containing one or more value
+  """
+  values = list(filter(None,
+    samples[
+      (f.belongsToSubject == subjectID) &
+      (f.sampleID == sampleID) &
+      (f.belongsToRequest == requestID),
+      column
+    ]
+  ))
+  unique = list(set(values))
+  return ','.join(unique)
 
-    @return comma separated string containing one ore more family IDs
-    """
-    if (str(value) in ['nan', '-', '']) or (value is None):
-      return None
-    pattern = re.compile(f'((,)?({valueToRemove})(,)?)')
-    newString = re.sub(pattern, '', value).strip().replace(' ', '')
-    return re.sub(r'([,]$)', '', newString)
+def formatAsYear(date: datetime.date = None):
+  """Format Date as Year
+  @param date: a datetime object
+  @return datetime object formated as year
+  """
+  if date is None or str(date) == 'nan':
+    return None
+  return date.strftime('%Y')
 
-  @staticmethod
-  def collapseHpoCodes(id, column):
-    """Collapse HPO Codes
-    In the COSAS clinical table, find all HPO codes by subject identifier,
-    collapse, get distinct values, and collapse into a string.
+def formatAsDate(date=None, pattern='%Y-%m-%d %H:%M:%S', asString=False):
+  """Format Date String as yyyy-mm-dd
 
-    @param id : identifier to search for
-    @param column : name of the column to search for (datatable f-expression)
+  @param string : date string
+  @param pattern : date format, default: %Y-%m-%d %H:%M:%S
+  @param asString : If True, the result will be returned as string
 
-    @return comma separated string containing one or more value
-    """
-    results = clinical[f.belongsToSubject == id, column]
-    if results.nrows == 0:
-      return None
-    return ','.join(list(set(filter(None, results.to_list()[0]))))
+  @return datetime or string
+  """
+  if not date or str(date) == 'nan':
+    return None
 
-  @staticmethod
-  def collapseHpoColumns(*kwargs):
-    """Collapse HPO Columns
-    Merge two or more HPO columns into one column. This is useful for merging
-    columns from Cartagenia data with ADLAS data.
+  x = date
+  if re.search(r'(T00:00)$', x):
+    x = re.sub(r'(T00:00)$', ' 00:00:00', x)
+  value = datetime.strptime(x, pattern).date()
 
-    @param *kwargs row values from two or more HPO columns
+  if asString:
+    value = str(value)
+  return value
 
-    @return unique HPO columns as a comma separated string
-    """
-    values = [*kwargs]
-    if len(values):
-      codes = []
-      for value in values:
-        if (value is not None) and (value != ''):
-          codes.extend(value.split(','))
-      uniquecodes = list(set(codes))
-      return ','.join(uniquecodes)
-    else:
-      return None
+def recodeValue(mappings: None,value: str=None,label: str=None,warn=True):
+  """Recode value
+  Recode values using new mappings. It is recommended to define all
+  mappings using lowercase letters and the the input for value should
+  also be lowered.
 
-  @staticmethod
-  def collapseTestCodes(subjectID, sampleID, requestID, column):
-    """Collapse Test Codes
-    In the COSAS samples table, find all matching alternative identifiers
-    by id (subject-, sample-, and request identifiers), get distinct
-    values, and collapse into a string
+  @param mappings a datatable object containing where each key corresponds to a new value
+  @param value string containing a value to recode
+  @param label string that indicates the mapping type for error messages
+  @param warn If True (default), a message will be displayed when a value
+      cannot be mapped
+  @return string or NoneType
+  """
+  try:
+    return mappings[value]
+  except KeyError:
+    if bool(value) and warn:
+      status_msg('Error in {} recoding: "{}" not found'.format(label, value))
+    return None
+  except AttributeError:
+    if bool(value):
+      status_msg('Error in {} recoding: "{}" not found'.format(label, value))
+    return None
 
-    @param subjectId (str) : subject ID to locate
-    @param sampleId  (str) : sample ID to locate
-    @param requestId (str) : specific request associated with a sample
-    @param column    (str) : name of the column where the codes are stored
+def mapCineasToHpo(value: str, refData):
+  """Recode Cineas Code to HPO
+  Find the HPO term to a corresponding Cineas
+  @param value a string containing a cineas code
+  @param refData datatable object containing Cineas to HPO mappings
+  @return string
+  """
+  if value is None:
+    return None
+  return refData[f.value == value, f.hpo][0][0]
 
-    @return comma separated string containing one or more value
-    """
-    values = list(filter(None,
-      samples[
-        (f.belongsToSubject == subjectID) &
-        (f.sampleID == sampleID) &
-        (f.belongsToRequest == requestID),
-        column
-      ]
-    ))
-    unique = list(set(values))
-    return ','.join(unique)
+def timestamp():
+  """Return Generic timestamp as yyyy-mm-ddThh:mm:ssZ"""
+  return datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime('%Y-%m-%dT%H:%M:%SZ')
 
-  @staticmethod
-  def formatAsYear(date: datetime.date = None):
-    """Format Date as Year
-    @param date: a datetime object
-    @return datetime object formated as year
-    """
-    if date is None or str(date) == 'nan':
-      return None
-    return date.strftime('%Y')
+def toKeyPairs(data, keyAttr='from', valueAttr='to'):
+  """To Key pairs
+  Convert a list of dictionaries into a key-value dictionary. This method
+  is useful for creating objects for mapping tables.
 
-  @staticmethod
-  def formatAsDate(date=None, pattern='%Y-%m-%d %H:%M:%S', asString=False):
-    """Format Date String as yyyy-mm-dd
+  @param data list of dictionaries that you wish to convert
+  @param keyAttr attribute that will be key
+  @param valueAttr attribute that contains the value
 
-    @param string : date string
-    @param pattern : date format, default: %Y-%m-%d %H:%M:%S
-    @param asString : If True, the result will be returned as string
+  @return a dictionary
+  """
+  maps = {}
+  for d in data:
+    maps[d[keyAttr]] = d.get(valueAttr)
+  return maps
 
-    @return datetime or string
-    """
-    if not date or str(date) == 'nan':
-      return None
-
-    x = date
-    if re.search(r'(T00:00)$', x):
-      x = re.sub(r'(T00:00)$', ' 00:00:00', x)
-    value = datetime.strptime(x, pattern).date()
-
-    if asString:
-      value = str(value)
-    return value
-
-  @staticmethod
-  def recodeValue(mappings: None,value: str=None,label: str=None,warn=True):
-    """Recode value
-    Recode values using new mappings. It is recommended to define all
-    mappings using lowercase letters and the the input for value should
-    also be lowered.
-
-    @param mappings a datatable object containing where each key corresponds to a new value
-    @param value string containing a value to recode
-    @param label string that indicates the mapping type for error messages
-    @param warn If True (default), a message will be displayed when a value
-        cannot be mapped
-    @return string or NoneType
-    """
-    try:
-      return mappings[value]
-    except KeyError:
-      if bool(value) and warn:
-        status_msg('Error in {} recoding: "{}" not found'.format(label, value))
-      return None
-    except AttributeError:
-      if bool(value):
-        status_msg('Error in {} recoding: "{}" not found'.format(label, value))
-      return None
-
-  @staticmethod
-  def mapCineasToHpo(value: str, refData):
-    """Recode Cineas Code to HPO
-    Find the HPO term to a corresponding Cineas
-    @param value a string containing a cineas code
-    @param refData datatable object containing Cineas to HPO mappings
-    @return string
-    """
-    if value is None:
-      return None
-    return refData[f.value == value, f.hpo][0][0]
-
-  @staticmethod
-  def timestamp():
-    """Return Generic timestamp as yyyy-mm-ddThh:mm:ssZ"""
-    return datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime('%Y-%m-%dT%H:%M:%SZ')
-
-  @staticmethod
-  def to_keypairs(data, keyAttr='from', valueAttr='to'):
-    """To Key pairs
-    Convert a list of dictionaries into a key-value dictionary. This method
-    is useful for creating objects for mapping tables.
-
-    @param data list of dictionaries that you wish to convert
-    @param keyAttr attribute that will be key
-    @param valueAttr attribute that contains the value
-
-    @return a dictionary
-    """
-    maps = {}
-    for d in data:
-      maps[d[keyAttr]] = d.get(valueAttr)
-    return maps
-
-  @staticmethod
-  def to_records(data):
-    """Datatable object to records"""
-    return data.to_pandas().replace({np.nan: None}).to_dict('records')
+def uniqueValuesById(data, groupby, column, keyGroupBy=True):
+  """Unique Values By Id
+  For a datatable object, collapse all unique values by ID into a comma
+  separated string.
+  @param data datatable object
+  @param groupby name of the column that will serve as the grouping variable
+  @param column name of the column that contains the values to collapse
+  
+  @param datatable object
+  """
+  df = data.to_pandas()
+  df[column] = df.groupby(groupby)[column].transform(lambda val: ','.join(set(val)))
+  df = df[[groupby, column]].drop_duplicates()
+  output = dt.Frame(df)
+  if keyGroupBy: output.key = groupby
+  return output
 
 # //////////////////////////////////////////////////////////////////////////////
 
@@ -495,11 +419,8 @@ db = Molgenis(url=host, token=token)
 # from dotenv import load_dotenv
 # from os import environ
 # load_dotenv()
-# host = environ['MOLGENIS_ACC_HOST']
-# usr = environ['MOLGENIS_ACC_USR']
-# pwd = environ['MOLGENIS_ACC_PWD']
-# db = Molgenis(url=host)
-# db.login(usr, pwd)
+# db = Molgenis(url=environ['MOLGENIS_ACC_HOST'])
+# db.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
 
 # init logs
 status_msg('COSAS: starting job...')
@@ -523,67 +444,23 @@ cosaslogs.startProcessingStepLog(
   tablename="cosasportal"
 )
 
-# get patients
-raw_subjects = dt.Frame(
-  db.get(
-    entity='cosasportal_patients',
-    batch_size=10000
-  )
-)
+# get raw data
+raw_subjects = dt.Frame(db.get('cosasportal_patients',batch_size=10000))
+raw_clinical = dt.Frame(db.get('cosasportal_diagnoses', batch_size=10000))
+raw_benchcnv = dt.Frame(db.get('cosasportal_cartagenia',batch_size=10000))
 
-# get clinical and phenotying data (BenchCNV)
-raw_clinical = dt.Frame(
-  db.get(
-    entity='cosasportal_diagnoses',
-    batch_size=10000
-  )
-)
-
-raw_benchcnv = dt.Frame(
-  db.get(
-    entity='cosasportal_cartagenia',
-    batch_size=10000
-  )
-)
-
-# get samples data from the portal
 raw_samples = dt.Frame(
   db.get(
-    entity='cosasportal_samples',
+    'cosasportal_samples',
     attributes='DNA_NUMMER,UMCG_NUMMER,ADVVRG_ID,MATERIAAL,TEST_CODE,TEST_OMS',
     batch_size=10000
   )
 )
 
-# get array data from the portal (x2)
-raw_array_adlas = dt.Frame(
-  db.get(
-    entity='cosasportal_labs_array_adlas',
-    batch_size=10000
-  )
-)
-
-raw_array_darwin = dt.Frame(
-  db.get(
-    entity='cosasportal_labs_array_darwin',
-    batch_size=10000
-  )
-)
-
-# get ngs data from the portal (x2)
-raw_ngs_adlas = dt.Frame(
-  db.get(
-    entity='cosasportal_labs_ngs_adlas',
-    batch_size=10000
-  )
-)
-
-raw_ngs_darwin = dt.Frame(
-  db.get(
-    entity='cosasportal_labs_ngs_darwin',
-    batch_size=10000
-  )
-)
+raw_array_adlas = dt.Frame(db.get('cosasportal_labs_array_adlas',batch_size=10000))
+raw_array_darwin = dt.Frame(db.get('cosasportal_labs_array_darwin',batch_size=10000))
+raw_ngs_adlas = dt.Frame(db.get('cosasportal_labs_ngs_adlas',batch_size=10000))
+raw_ngs_darwin = dt.Frame(db.get('cosasportal_labs_ngs_darwin',batch_size=10000))
 
 # delete _href column (not necessary, but helpful for local dev)
 # del raw_subjects['_href']
@@ -640,33 +517,19 @@ cosaslogs.startProcessingStepLog(
   tablename='cosasportal'
 )
 
-genderMappings = cosastools.to_keypairs(
-  data=db.get('cosasmappings_genderatbirth')
-)
-
-biospecimenTypeMappings = cosastools.to_keypairs(
-  data=db.get('cosasmappings_biospecimentype')
-)
-
-sampleReasonMappings = cosastools.to_keypairs(
-  data=db.get('cosasmappings_samplereason')
-)
-
-sequencerPlatformMappings = cosastools.to_keypairs(
-  data=db.get('cosasmappings_sequencerinfo')
-)
-
-sequencerInstrumentMappings = cosastools.to_keypairs(
+genderMappings = toKeyPairs(db.get('cosasmappings_genderatbirth'))
+biospecimenTypeMappings = toKeyPairs(db.get('cosasmappings_biospecimentype'))
+sampleReasonMappings = toKeyPairs(db.get('cosasmappings_samplereason'))
+sequencerPlatformMappings = toKeyPairs(db.get('cosasmappings_sequencerinfo'))
+sequencerInstrumentMappings = toKeyPairs(
   data=db.get('cosasmappings_sequencerinfo'),
   keyAttr='from',
   valueAttr='toAlternate'
 )
 
-genomeBuildMappings = cosastools.to_keypairs(
-  data=db.get('cosasmappings_genomebuild')
-)
+genomeBuildMappings = toKeyPairs(db.get('cosasmappings_genomebuild'))
 
-cineasHpoMappings = cosastools.to_keypairs(
+cineasHpoMappings = toKeyPairs(
   data=db.get('cosasmappings_cineasmappings', attributes='code,hpo'),
   keyAttr='code',
   valueAttr='hpo'
@@ -721,8 +584,7 @@ subjects = raw_subjects[:, {
 }][:, :, dt.sort(as_type(f.subjectID, int))]
 
 # create a list of unique subject identifiers --- very important!!!!
-cosasSubjectIdList = list(set(subjects[:, 'subjectID'].to_list()[0]))
-
+cosasSubjectIdList = dt.unique(subjects['subjectID']).to_list()[0]
 
 # save row count and set status
 cosaslogs.currentStep['comment'] = f'Initial subjects count: {subjects.nrows}'
@@ -752,13 +614,13 @@ cosaslogs.startProcessingStepLog(
 
 belongsToMother = dt.Frame([
   {
-    'subjectID': d[0],
-    'belongsToFamily': d[1],
+    'subjectID': tuple[0],
+    'belongsToFamily': tuple[1],
     'genderAtBirth': 'Vrouw',
     'comments': 'manually registered in COSAS'
   }
-  for d in subjects[:, (f.belongsToMother, f.belongsToFamily)].to_tuples()
-  if not (d[0] is None) and not (d[0] in cosasSubjectIdList)
+  for tuple in subjects[:, (f.belongsToMother, f.belongsToFamily)].to_tuples()
+  if not (tuple[0] is None) and not (tuple[0] in cosasSubjectIdList)
 ])
 
 # log number of cases found
@@ -783,13 +645,13 @@ cosaslogs.startProcessingStepLog(
 
 belongsToFather = dt.Frame([
   {
-    'subjectID': d[0],
-    'belongsToFamily': d[1],
+    'subjectID': tuple[0],
+    'belongsToFamily': tuple[1],
     'genderAtBirth': 'Man',
     'comments': 'manually registered in COSAS'
   }
-  for d in subjects[:, (f.belongsToFather, f.belongsToFamily)].to_tuples()
-  if not (d[0] is None) and not (d[0] in cosasSubjectIdList)
+  for tuple in subjects[:, (f.belongsToFather, f.belongsToFamily)].to_tuples()
+  if not (tuple[0] is None) and not (tuple[0] in cosasSubjectIdList)
 ])
 
 # log number of cases found
@@ -799,7 +661,6 @@ cosaslogs.currentStep['status'] = 'Success'
 cosaslogs.stopProcessingStepLog()
 
 
-#
 # ~ 1d ~
 # Combine all new subject identifiers
 #
@@ -824,12 +685,10 @@ cosaslogs.currentStep['comment'] = f'Added {subjectsToRegister.nrows} rows'
 cosaslogs.currentStep['status'] = 'Success'
 cosaslogs.stopProcessingStepLog()
 
-
 # clean up
 del belongsToMother
 del belongsToFather
 
-#
 # ~ 1e ~
 # Merge and format subject data
 #
@@ -850,14 +709,14 @@ cosaslogs.startProcessingStepLog(
 
 subjects = dt.rbind(subjects, subjectsToRegister, force=True)[
   :, first(f[:]), dt.by(f.subjectID)
-][:, :, dt.sort(as_type(f.subjectID, int))]
-
+][
+  :, :, dt.sort(as_type(f.subjectID, int))
+][f.subjectID != None, :]
 
 # log nrows
 cosaslogs.currentStep['comment'] = f'total subjects: {subjects.nrows}'
 cosaslogs.currentStep['status'] = 'Success' if subjects.nrows else 'Error'
 cosaslogs.stopProcessingStepLog()
-
 
 # transform variables
 cosaslogs.startProcessingStepLog(
@@ -869,73 +728,67 @@ cosaslogs.startProcessingStepLog(
 # Format `belongsWithFamilyMembers`: trimws, remove subject ID
 status_msg('Subjects: Formating linked Family IDs...')
 subjects['belongsWithFamilyMembers'] = dt.Frame([
-  cosastools.collapseFamilyIDs(d[0], d[1])
-  for d in subjects[:, (f.belongsWithFamilyMembers, f.subjectID)].to_tuples()
+  collapseFamilyIDs(tuple[0], tuple[1])
+  for tuple in subjects[:, (f.belongsWithFamilyMembers, f.subjectID)].to_tuples()
 ])
-
 
 # map gender values to `umdm_lookups_genderAtBirth`
 status_msg('Subjects: Recoding gender at birth...')
 subjects['genderAtBirth'] = dt.Frame([
-  cosastools.recodeValue(mappings=genderMappings, value=d, label='genderAtBirth')
-  for d in subjects['genderAtBirth'].to_list()[0]
+  recodeValue(mappings=genderMappings, value=value, label='genderAtBirth')
+  for value in subjects['genderAtBirth'].to_list()[0]
 ])
-
 
 # format date columns to the correct format (yyyy-mm-dd)
 status_msg('Subjects: formating date attributes...')
 
 # format `dateOfBirth` as yyyy-mm-dd
 subjects['dateOfBirth'] = dt.Frame([
-  cosastools.formatAsDate(date=d, pattern='%d-%m-%Y')
-  for d in subjects['dateOfBirth'].to_list()[0]
+  formatAsDate(date=date, pattern='%d-%m-%Y')
+  for date in subjects['dateOfBirth'].to_list()[0]
 ])
 
 # format `yearOfBirth` as yyyy
 subjects['yearOfBirth'] = dt.Frame([
-  cosastools.formatAsYear(d)
-  for d in subjects['dateOfBirth'].to_list()[0]
+  formatAsYear(date)
+  for date in subjects['dateOfBirth'].to_list()[0]
 ])
-
 
 # format `dateOfDeath` as yyyy-mm-dd
 subjects['dateOfDeath'] = dt.Frame([
-  cosastools.formatAsDate(date=d, pattern='%d-%m-%Y')
-  for d in subjects['dateOfDeath'].to_list()[0]
+  formatAsDate(date=date, pattern='%d-%m-%Y')
+  for date in subjects['dateOfDeath'].to_list()[0]
 ])
-
 
 # format `yearOfDeath` as yyyy
 subjects['yearOfDeath'] = dt.Frame([
-  cosastools.formatAsYear(d)
-  for d in subjects['dateOfDeath'].to_list()[0]
+  formatAsYear(date)
+  for date in subjects['dateOfDeath'].to_list()[0]
 ])
 
 # using `dateOfDeath` set `subjectStatus`
 subjects['subjectStatus'] = dt.Frame([
-  'Dead' if bool(d) else None
-  for d in subjects['dateOfDeath'].to_list()[0]
+  'Dead' if bool(date) else None
+  for date in subjects['dateOfDeath'].to_list()[0]
 ])
 
 # calcuate `ageAtDeath` if `dateOfDeath` is defined
 subjects['ageAtDeath'] = dt.Frame([
-  cosastools.calcAge(earliest=d[0], recent=d[1])
-  for d in subjects[:, (f.dateOfBirth, f.dateOfDeath)].to_tuples()
+  calcAge(earliest=tuple[0], recent=tuple[1])
+  for tuple in subjects[:, (f.dateOfBirth, f.dateOfDeath)].to_tuples()
 ])
-
 
 # format dates as string now that age calcuations are complete. Otherwise, you
 # will get an error when the data is imported.
 subjects['dateOfBirth'] = dt.Frame([
-  str(d) if bool(d) else None
-  for d in subjects['dateOfBirth'].to_list()[0]
+  str(date) if bool(date) else None
+  for date in subjects['dateOfBirth'].to_list()[0]
 ])
 
 subjects['dateOfDeath'] = dt.Frame([
-  str(d) if bool(d) else None
-  for d in subjects['dateOfDeath'].to_list()[0]
+  str(date) if bool(date) else None
+  for date in subjects['dateOfDeath'].to_list()[0]
 ])
-
 
 # track records and cleanup
 status_msg('Subjects: Mapped {} new records'.format(subjects.nrows))
@@ -944,7 +797,6 @@ cosaslogs.stopProcessingStepLog()
 del subjectsToRegister
 
 # //////////////////////////////////////////////////////////////////////////////
-
 
 # ~ 2 ~
 # Build Phenotypic Data from workbench export
@@ -993,7 +845,6 @@ cosaslogs.stopProcessingStepLog()
 #
 # Since we do not have a unique clinical diagnostic identifier, subjectID will
 # be used instead.
-#
 
 status_msg('Clinical: building base structure...')
 cosaslogs.startProcessingStepLog(
@@ -1015,7 +866,7 @@ clinical = dt.rbind(
     'code': f.EXTRA_DIAGNOSE,
     'certainty': f.EXTRA_DIAGNOSE_ZEKERHEID
   }]
-)[f.code != '-', :]
+)[f.code != '-', :][f.clinicalID != None, :]
 
 cosaslogs.currentStep['comment'] = f'Initial structure has {clinical.nrows} rows'
 cosaslogs.currentStep['status'] = 'Success' if clinical.nrows else 'Error'
@@ -1033,18 +884,13 @@ cosaslogs.startProcessingStepLog(
 )
 
 clinical['code'] = dt.Frame([
-  d.split(':')[0] if d else None
-  for d in clinical['code'].to_list()[0]
+  code.split(':')[0] if code else None
+  for code in clinical['code'].to_list()[0]
 ])
 
 clinical['hpo'] = dt.Frame([
-  cosastools.recodeValue(
-    mappings=cineasHpoMappings,
-    value=d,
-    label='Cineas-HPO',
-    warn=False
-  )
-  for d in clinical['code'].to_list()[0]
+  recodeValue(mappings=cineasHpoMappings, value=code, label='Cineas-HPO', warn=False)
+  for code in clinical['code'].to_list()[0]
 ])
 
 cosaslogs.stopProcessingStepLog()
@@ -1063,27 +909,27 @@ cosaslogs.startProcessingStepLog(
 )
 
 clinical['certainty'] = dt.Frame([
-  d.lower().replace(' ', '-') if (d != '-') and (d) else None
-  for d in clinical['certainty'].to_list()[0]
+  value.lower().replace(' ', '-') if (value != '-') and (value) else None
+  for value in clinical['certainty'].to_list()[0]
 ])
 
 # create `observedPhenotype`
 clinical['observedPhenotype'] = dt.Frame([
-  d[0] if (d[1] == 'zeker') and d[0] else None
-  for d in clinical[:, (f.hpo, f.certainty)].to_tuples()
+  tuple[0] if (tuple[1] == 'zeker') and tuple[0] else None
+  for tuple in clinical[:, (f.hpo, f.certainty)].to_tuples()
 ])
 
 # create `provisionalPhenotype`: uncertain and missing
 provisionalCertaintyRatings = ['niet-zeker', 'onzeker', None]
 clinical['provisionalPhenotype'] = dt.Frame([
-  d[0] if (d[1] in provisionalCertaintyRatings) and (d[0]) else None
-  for d in clinical[:, (f.hpo, f.certainty)].to_tuples()
+  tuple[0] if (tuple[1] in provisionalCertaintyRatings) and (tuple[0]) else None
+  for tuple in clinical[:, (f.hpo, f.certainty)].to_tuples()
 ])
 
 # create `excludedPhenotype`: zeker-niet
 clinical['unobservedPhenotype'] = dt.Frame([
-  d[0] if d[1] in ['zeker-niet'] else None
-  for d in clinical[:, (f.hpo, f.certainty)].to_tuples()
+  tuple[0] if tuple[1] in ['zeker-niet'] else None
+  for tuple in clinical[:, (f.hpo, f.certainty)].to_tuples()
 ])
 
 cosaslogs.stopProcessingStepLog()
@@ -1106,79 +952,91 @@ cosaslogs.startProcessingStepLog(
   tablename='clinical'
 )
 
-# collapse all observedPhenotype codes by ID
-clinical['observedPhenotype'] = dt.Frame([
-  cosastools.collapseHpoCodes(id=d, column='observedPhenotype')
-  for d in clinical['belongsToSubject'].to_list()[0]
-])
+# collapse observedPhenotype codes by ID
+subjectObservedPhenotype = uniqueValuesById(
+  data = clinical[f.observedPhenotype!=None, (f.clinicalID, f.observedPhenotype)],
+  groupby = 'clinicalID',
+  column = 'observedPhenotype'
+)
 
-# collapse all provisionalPhenotype codes by ID
-clinical['provisionalPhenotype'] = dt.Frame([
-  cosastools.collapseHpoCodes(id=d, column='provisionalPhenotype')
-  for d in clinical['belongsToSubject'].to_list()[0]
-])
+# collapse unobservedPhenotype codes by ID
+subjectUnobservedPhenotype = uniqueValuesById(
+  data = clinical[f.unobservedPhenotype!=None, (f.clinicalID, f.unobservedPhenotype)],
+  groupby = 'clinicalID',
+  column = 'unobservedPhenotype'
+)
 
-# collapse all excludedPhenotype codes by ID
-clinical['unobservedPhenotype'] = dt.Frame([
-  cosastools.collapseHpoCodes(id=d, column='unobservedPhenotype')
-  for d in clinical['belongsToSubject'].to_list()[0]
-])
+# collapse provisionalPhenotype codes by ID
+subjectProvisionalPhenotype = uniqueValuesById(
+  data = clinical[f.provisionalPhenotype!=None, (f.clinicalID, f.provisionalPhenotype)],
+  groupby = 'clinicalID',
+  column = 'provisionalPhenotype'
+)
 
 # update log
-del clinical[:, ['certainty', 'code', 'hpo']]
 cosaslogs.stopProcessingStepLog()
 
 # ~ 2e ~
 # Finalize data
 #
 # Now that the clinical dataset is prepped and all codes have been collapsed
-# by subject ID, select distinct rows and merge HPO data. Make sure all
+# by subject ID, merge HPO data and select distinct rows. Make sure all
 # subject IDs in the clinical table exist in the subjects dataset.
 
 status_msg('Clinical: Selecting distinct rows and merging HPO data...')
 cosaslogs.startProcessingStepLog(
-  type='Filtering',
-  name='Filtering data',
+  type='Data Processing',
+  name='Merging summarized HPO objects',
   tablename='clinical'
 )
 
 # select distinct rows
-clinical = clinical[:, first(f[1:]), dt.by(f.clinicalID)]
+clinicalDT = clinical[
+  :, first(f[1:]), dt.by(f.clinicalID)
+][:,(f.clinicalID, f.belongsToSubject)]
 
 # join HPO data
-clinical.key = 'clinicalID'
-clinical = clinical[:, :, dt.join(confirmedHpoDF)][:, :, dt.sort(as_type(f.clinicalID, int))]
+clinicalDT.key = 'clinicalID'
+subjectObservedPhenotype.key = 'clinicalID'
+subjectUnobservedPhenotype.key = 'clinicalID'
+subjectProvisionalPhenotype.key = 'clinicalID'
+
+clinicalDT = clinicalDT[:, :, dt.join(subjectObservedPhenotype)]
+clinicalDT = clinicalDT[:, :, dt.join(subjectUnobservedPhenotype)]
+clinicalDT = clinicalDT[:, :, dt.join(subjectProvisionalPhenotype)]
+clinicalDT = clinicalDT[:, :, dt.join(confirmedHpoDF)][
+  :, :, dt.sort(as_type(f.clinicalID, int))
+]
 
 # collapse observedPhenotype and Cartagenia HPO codes  
-clinical['observedPhenotype'] = dt.Frame([
-  cosastools.collapseHpoColumns(d[0], d[1])
-  for d in clinical[:,['observedPhenotype', 'hpo']].to_tuples()
+clinicalDT['observedPhenotype'] = dt.Frame([
+  collapseHpoColumns(tuple[0], tuple[1])
+  for tuple in clinicalDT[:,(f.observedPhenotype, f.hpo)].to_tuples()
 ])
-del clinical['hpo']
+del clinicalDT['hpo']
 
 # Check IDs: Make sure all IDs in the clinical dataset exist in subjects
-clinical['idExists'] = dt.Frame([
-  d in cosasSubjectIdList
-  for d in clinical['belongsToSubject'].to_list()[0]
+clinicalDT['idExists'] = dt.Frame([
+  id in cosasSubjectIdList for id in clinicalDT['belongsToSubject'].to_list()[0]
 ])
 
 # If there are unknown IDs, remove and log counts
-if clinical[f.idExists == False, :].nrows > 0:
+if clinicalDT[f.idExists == False, :].nrows > 0:
   status_msg(
     'Clinical: ERROR Excepted 0 flagged cases, but found',
-    clinical[f.idExists == False, :].nrows
+    clinicalDT[f.idExists == False, :].nrows
   )
   cosaslogs.currentStep['comment'] = 'Rows removed {}'.format(
     cosaslogs.currentStep['comment'],
-    clinical[f.idExists == False, :].nrows
+    clinicalDT[f.idExists == False, :].nrows
   )
-  clinical = clinical[f.idExists, :]
+  clinicalDT = clinicalDT[f.idExists, :]
 
 
-status_msg('Clinical: processed {} new records'.format(clinical.nrows))
-cosaslogs.currentStep['status'] = 'Success' if clinical.nrows else 'Error'
+status_msg('Clinical: processed {} new records'.format(clinicalDT.nrows))
+cosaslogs.currentStep['status'] = 'Success' if clinicalDT.nrows else 'Error'
 
-del clinical['idExists']
+del clinicalDT['idExists']
 del confirmedHpoDF
 
 cosaslogs.stopProcessingStepLog()
@@ -1240,7 +1098,7 @@ cosaslogs.startProcessingStepLog(
 )
 
 samples['biospecimenType'] = dt.Frame([
-  cosastools.recodeValue(
+  recodeValue(
     mappings=biospecimenTypeMappings,
     value=d.lower(),
     label='biospecimenType'
@@ -1264,8 +1122,7 @@ cosaslogs.startProcessingStepLog(
 )
 
 samples['idExists'] = dt.Frame([
-  d in cosasSubjectIdList
-  for d in samples['belongsToSubject'].to_list()[0]
+  id in cosasSubjectIdList for id in samples['belongsToSubject'].to_list()[0]
 ])
 
 if samples[f.idExists == False, :].nrows > 0:
@@ -1273,14 +1130,11 @@ if samples[f.idExists == False, :].nrows > 0:
   status_msg('Samples: ERROR excepted 0 flagged cases, but found ',samples.nrows)
   cosaslogs.currentStep['comment'] = f'Rows removed {samples.nrows}'
 
-
 status_msg('Samples: processed {} new records'.format(samples.nrows))
 cosaslogs.currentStep['status'] = 'Success' if samples.nrows else 'Error'
-
 del samples['idExists']
 
 cosaslogs.stopProcessingStepLog()
-
 
 # //////////////////////////////////////////////////////////////////////////////
 
@@ -1294,7 +1148,6 @@ cosaslogs.stopProcessingStepLog()
 # In this section, combine the ADLAS and Darwin exports for each test type
 # indepently, and then bind them into one object.
 #
-
 
 # ~ 4a ~
 # Build Array Adlas dataset
@@ -1372,7 +1225,6 @@ cosaslogs.stopProcessingStepLog()
 
 del array_darwin, array_adlas
 
-
 # ~ 4b ~
 # Build NGS Dataset
 #
@@ -1387,7 +1239,6 @@ cosaslogs.startProcessingStepLog(
   name='Build NGS dataset',
   tablename='samples-sampleprep-seq'
 )
-
 
 # ~ 4b.i ~
 # Process ngs-aldas data
@@ -1448,7 +1299,6 @@ cosaslogs.stopProcessingStepLog()
 
 del ngs_darwin, ngs_adlas
 
-
 # ~ 4c ~
 # Create main sample-labs dataset
 #
@@ -1461,7 +1311,6 @@ del ngs_darwin, ngs_adlas
 #       easier to process these values in this step rather than independently.
 #   - This step also removes unknown samples, i.e. samples that aren't
 #       listed in the `samples` table.
-#
 
 status_msg('SamplePrep & Sequencing: merging ngs and array datasets...')
 cosaslogs.startProcessingStepLog(
@@ -1484,7 +1333,6 @@ del arrayData, ngsData
 cosaslogs.currentStep['status'] = 'Success' if sampleSequencingData.nrows else 'Error'
 cosaslogs.stopProcessingStepLog()
 
-
 # ~ 4c.ii ~
 # Filter dataset for known samples
 #
@@ -1500,17 +1348,17 @@ cosaslogs.startProcessingStepLog(
   tablename='samples-sampleprep-seq'
 )
 
-registeredSamples = samples['sampleID'].to_list()[0]
+registeredSamples = dt.unique(samples['sampleID']).to_list()[0]
 sampleSequencingData['idExists'] = dt.Frame([
-  d in registeredSamples
-  for d in sampleSequencingData['belongsToSample'].to_list()[0]
+  id in registeredSamples
+  for id in sampleSequencingData['belongsToSample'].to_list()[0]
 ])
-
 
 if sampleSequencingData[f.idExists == False, :].nrows > 0:
   status_msg(
-    "SamplePrep & Sequencing: ERROR expected 0 flagged cases, but found",
-    sampleSequencingData[f.idExists == False, :].nrows
+    "SamplePrep & Sequencing: WARNING removing",
+    sampleSequencingData[f.idExists == False, :].nrows,
+    "records where the ID does not exist"
   )
   cosaslogs.currentStep['comment'] = 'Rows removed {}'.format(
     sampleSequencingData[f.idExists == False, :].nrows
@@ -1521,7 +1369,6 @@ if sampleSequencingData[f.idExists == False, :].nrows > 0:
 cosaslogs.currentStep['status'] = 'Success' if sampleSequencingData.nrows else 'Error'
 cosaslogs.stopProcessingStepLog()
 
-
 # ~ 4c.iii ~
 # Prepare data
 #
@@ -1529,7 +1376,6 @@ cosaslogs.stopProcessingStepLog()
 # each sample 'unique' the row identifier is a concatenation of multiple IDs.
 # These are: sampleID + requestID + labProcedure. At some point, we may want
 # to change this format
-#
 
 status_msg('SamplePrep & Sequencing: Setting unqiue identifiers (primary key)...')
 cosaslogs.startProcessingStepLog(
@@ -1541,7 +1387,8 @@ cosaslogs.startProcessingStepLog(
 # create unique identifier: sampleID + request + belongsToLabProcedure (i.e., test code)
 # create IDs for multiple tables
 sampleSequencingData[['belongsToSamplePreparation', 'sequencingID']] = dt.Frame([
-  f'{d[0]}_{d[1]}_{d[2]}' for d in sampleSequencingData[
+  f'{tuple[0]}_{tuple[1]}_{tuple[2]}'
+  for tuple in sampleSequencingData[
     :, (f.belongsToSample, f.belongsToRequest, f.belongsToLabProcedure)
   ].to_tuples()
 ])
@@ -1549,24 +1396,23 @@ sampleSequencingData[['belongsToSamplePreparation', 'sequencingID']] = dt.Frame(
 # format `sequencingDate` as yyyy-mm-dd
 status_msg('SamplePrep & Sequencing: Formatting sequencing date...')
 sampleSequencingData['sequencingDate'] = dt.Frame([
-  cosastools.formatAsDate(
-    date=d,
+  formatAsDate(
+    date=date,
     pattern='%d-%m-%Y %H:%M:%S',
     asString=True
   )
-  for d in sampleSequencingData['sequencingDate'].to_list()[0]
+  for date in sampleSequencingData['sequencingDate'].to_list()[0]
 ])
-
 
 # format `labIndication`: use urdm_lookups_samplingReason
 status_msg('SamplePrep & Sequencing: recoding "reason for sequencing"...')
 sampleSequencingData['reasonForSequencing'] = dt.Frame([
-  cosastools.recodeValue(
+  recodeValue(
     mappings=sampleReasonMappings,
-    value=d.lower(),
+    value=value.lower(),
     label='reasonForSequencing'
-  ) if bool(d) else None
-  for d in sampleSequencingData['reasonForSequencing'].to_list()[0]
+  ) if bool(value) else None
+  for value in sampleSequencingData['reasonForSequencing'].to_list()[0]
 ])
 
 # set facility (links with umdm_organizations)
@@ -1575,35 +1421,34 @@ sampleSequencingData['sequencingFacilityOrganization'] = 'UMCG'
 # recode `sequencingPlatform`
 status_msg('SamplePrep & Sequencing: recoding sequencing platform...')
 sampleSequencingData['sequencingPlatform'] = dt.Frame([
-  cosastools.recodeValue(
+  recodeValue(
     mappings=sequencerPlatformMappings,
-    value=d,
+    value=value,
     label='sequencingPlatform'
   )
-  for d in sampleSequencingData['sequencingPlatform'].to_list()[0]
+  for value in sampleSequencingData['sequencingPlatform'].to_list()[0]
 ])
 
 # recode `sequencingInstrumentModel`
 status_msg('SamplePrep & Sequencing: recoding sequencing instrument model...')
 sampleSequencingData['sequencingInstrumentModel'] = dt.Frame([
-  cosastools.recodeValue(
+  recodeValue(
     mappings=sequencerInstrumentMappings,
-    value=d,
+    value=value,
     label='sequencing instrument'
-  ) for d in sampleSequencingData['sequencingInstrumentModel'].to_list()[0]
+  ) for value in sampleSequencingData['sequencingInstrumentModel'].to_list()[0]
 ])
 
 # recode `genomeBuild`
 status_msg('SamplePrep & Sequencing: recoding reference genome...')
 sampleSequencingData['referenceGenomeUsed'] = dt.Frame([
-  cosastools.recodeValue(
+  recodeValue(
     mappings=genomeBuildMappings,
-    value=d,
+    value=value,
     label='genome build'
   )
-  for d in sampleSequencingData['referenceGenomeUsed'].to_list()[0]
+  for value in sampleSequencingData['referenceGenomeUsed'].to_list()[0]
 ])
-
 
 cosaslogs.stopProcessingStepLog()
 
@@ -1648,7 +1493,6 @@ samplePreparation = samplePreparation[:, first(f[:]), dt.by(f.samplePreparationI
 status_msg('Sample Preparation: Processed',samplePreparation.nrows,'new records')
 cosaslogs.currentStep['status'] = 'Success' if samplePreparation.nrows else 'Error'
 cosaslogs.stopProcessingStepLog()
-
 
 # create sequencing table
 status_msg('Sequencing: Selecting relevant columns...')
@@ -1721,7 +1565,7 @@ if testcodes[f.codeExists == False, :].nrows:
   cosaslogs.currentStep['comment'] = 'Identified {} new codes'.format(newTestCodes.nrows)
 
   status_msg('Validation: Importing new testcodes')
-  db.importData(entity='umdm_labProcedures', data=cosastools.to_records(newTestCodes))
+  db.importDatatableAsCsv(pkg_entity = 'umdm_labProcedures', data = newTestCodes)
   del newTestCodes
 else:
     status_msg('Validation: all testcodes passed')
@@ -1748,30 +1592,11 @@ cosaslogs.startProcessingStepLog(
   tablename='all'
 )
 
-subjects[:, dt.update(
-  dateRecordCreated=cosastools.timestamp(),
-  recordCreatedBy=createdBy
-)]
-
-clinical[:, dt.update(
-  dateRecordCreated=cosastools.timestamp(),
-  recordCreatedBy=createdBy
-)]
-
-samples[:, dt.update(
-  dateRecordCreated=cosastools.timestamp(),
-  recordCreatedBy=createdBy
-)]
-
-samplePreparation[:, dt.update(
-  dateRecordCreated=cosastools.timestamp(),
-  recordCreatedBy=createdBy
-)]
-
-sequencing[:, dt.update(
-  dateRecordCreated=cosastools.timestamp(),
-  recordCreatedBy=createdBy
-)]
+subjects[:, dt.update(dateRecordCreated=timestamp(), recordCreatedBy=createdBy)]
+clinical[:, dt.update(dateRecordCreated=timestamp(), recordCreatedBy=createdBy)]
+samples[:, dt.update(dateRecordCreated=timestamp(), recordCreatedBy=createdBy)]
+samplePreparation[:, dt.update(dateRecordCreated=timestamp(), recordCreatedBy=createdBy)]
+sequencing[:, dt.update(dateRecordCreated=timestamp(), recordCreatedBy=createdBy)]
 
 # update row counts in the log
 cosaslogs.log['subjects'] = subjects.nrows
@@ -1875,7 +1700,6 @@ db.importDatatableAsCsv(
 )
 
 cosaslogs.stopProcessingStepLog()
-
 
 # ~ 5b.v ~
 # import logs
