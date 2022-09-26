@@ -2,7 +2,7 @@
 # FILE: mappings_cosas.py
 # AUTHOR: David Ruvolo
 # CREATED: 2021-10-05
-# MODIFIED: 2022-09-23
+# MODIFIED: 2022-09-26
 # PURPOSE: primary mapping script for COSAS
 # STATUS: stable
 # PACKAGES: **see below**
@@ -1707,8 +1707,11 @@ cosaslogs.stop()
 status_msg('Mapping completed in',round(cosaslogs.log['elapsedTime'] / 60, 3),'minutes')
 
 status_msg('Importing logs...')
-db.importData(
+db.importDatatableAsCsv(
   entity='cosasreports_processingsteps',
-  data=cosaslogs.processingStepLogs
+  data=dt.Frame(cosaslogs.processingStepLogs)
 )
-db.importData(entity='cosasreports_imports', data=[cosaslogs.log])
+db.importDatatableAsCsv(
+  entity='cosasreports_imports',
+  data=dt.Frame([cosaslogs.log])
+)
