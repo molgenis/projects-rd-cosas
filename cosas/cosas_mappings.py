@@ -2,7 +2,7 @@
 # FILE: mappings_cosas.py
 # AUTHOR: David Ruvolo
 # CREATED: 2021-10-05
-# MODIFIED: 2022-09-26
+# MODIFIED: 2022-09-30
 # PURPOSE: primary mapping script for COSAS
 # STATUS: stable
 # PACKAGES: **see below**
@@ -15,7 +15,6 @@ from datetime import datetime
 from os.path import abspath
 import numpy as np
 import tempfile
-import json
 import pytz
 import csv
 import re
@@ -160,31 +159,24 @@ class Molgenis(molgenis.Session):
       
     host=self._apiUrl.replace('/api/','')
     self._fileImportUrl=f"{host}/plugin/importwizard/importFile"
+  
+  def _print(self, *args):
+    """Print
+    Print a message with a timestamp, e.g., "[16:50:12.245] Hello world!".
+
+    @param *args one or more strings containing a message to print
+    @return string
+    """
+    message = ' '.join(map(str, args))
+    time = datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime('%H:%M:%S.%f')[:-3]
+    print(f'[{time}] {message}')
 
   def _checkResponseStatus(self, response, label):
     if (response.status_code // 100) != 2:
       err = response.json().get('errors')[0].get('message')
-      status_msg(f'Failed to import data into {label} ({response.status_code}): {err}')
+      self._print('Failed to import data into',label,'(',response.status_code,'):',err)
     else:
-      status_msg(f'Imported data into {label}')
-
-  def _POST(self, url: str = None, data: list = None, label: str = None):
-    response = self._session.post(
-      url=url,
-      headers=self._get_token_header_with_content_type(),
-      data=json.dumps({'entities': data})
-    )
-    self._checkResponseStatus(response, label)
-    response.raise_for_status()
-
-  def _PUT(self, url: str = None, data: list = None, label: str = None):
-    response = self._session.put(
-      url=url,
-      headers=self._get_token_header_with_content_type(),
-      data=json.dumps({'entities': data})
-    )
-    self._checkResponseStatus(response, label)
-    response.raise_for_status()
+      self._print('Imported data into', label)
   
   def _datatableToCsv(self, path, datatable):
     """To CSV
@@ -196,17 +188,17 @@ class Molgenis(molgenis.Session):
     data = datatable.to_pandas().replace({np.nan: None})
     data.to_csv(path, index=False, quoting=csv.QUOTE_ALL)
   
-  def importDatatableAsCsv(self, filename: str, data, label: str):
+  def importDatatableAsCsv(self, pkg_entity: str, data):
     """Import Datatable As CSV
     Save a datatable object to as csv file and import into MOLGENIS using the
     importFile api.
     
-    @param filename name of the file (minus the file format)
+    @param pkg_entity table identifier in emx format: package_entity
     @param data a datatable object
     @param label a description to print (e.g., table name)
     """
     with tempfile.TemporaryDirectory() as tmpdir:
-      filepath=f"{tmpdir}/{filename}.csv"
+      filepath=f"{tmpdir}/{pkg_entity}.csv"
       self._datatableToCsv(filepath, data)
       with open(abspath(filepath),'r') as file:
         response = self._session.post(
@@ -215,7 +207,9 @@ class Molgenis(molgenis.Session):
           files={'file': file},
           params = {'action': 'add_update_existing', 'metadataAction': 'ignore'}
         )
-        self._checkResponseStatus(response, label)
+        self._checkResponseStatus(response, pkg_entity)
+        return response
+
 
 def calcAge(earliest: datetime.date = None, recent: datetime.date = None):
   """Calculate Years of Age between two dates
@@ -991,9 +985,7 @@ cosaslogs.startProcessingStepLog(
 )
 
 # select distinct rows
-clinicalDT = clinical[
-  :, first(f[1:]), dt.by(f.clinicalID)
-][:,(f.clinicalID, f.belongsToSubject)]
+clinicalDT = clinical[:, first(f[1:]), dt.by(f.clinicalID)][:,(f.clinicalID, f.belongsToSubject)]
 
 # join HPO data
 clinicalDT.key = 'clinicalID'
@@ -1517,7 +1509,6 @@ sequencing = sampleSequencingData[:, (
 
 status_msg('Sequencing: Processed {} new records'.format(sequencing.nrows))
 cosaslogs.currentStep['status'] = 'Success' if sequencing.nrows else 'Error'
-
 cosaslogs.stopProcessingStepLog()
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -1621,12 +1612,7 @@ cosaslogs.startProcessingStepLog(
   tablename='subjects'
 )
 
-db.importDatatableAsCsv(
-  filename='umdm_subjects',
-  data = subjects,
-  label = 'umdm_subjects'
-)
-
+db.importDatatableAsCsv(pkg_entity='umdm_subjects', data = subjects)
 cosaslogs.stopProcessingStepLog()
 
 # ~ 5b.ii ~
@@ -1638,12 +1624,7 @@ cosaslogs.startProcessingStepLog(
   tablename='clinical'
 )
 
-db.importDatatableAsCsv(
-  filename = 'umdm_clinical',
-  data = clinical,
-  label = 'umdm_clinical'
-)
-
+db.importDatatableAsCsv(pkg_entity = 'umdm_clinical', data = clinical)
 cosaslogs.stopProcessingStepLog()
 
 # ~ 5b.ii ~
@@ -1656,12 +1637,7 @@ cosaslogs.startProcessingStepLog(
     tablename='samples'
 )
 
-db.importDatatableAsCsv(
-  filename = 'umdm_samples',
-  data = samples,
-  label = 'umdm_samples'
-)
-
+db.importDatatableAsCsv(pkg_entity = 'umdm_samples', data = samples)
 cosaslogs.stopProcessingStepLog()
 
 # ~ 5b.iii
@@ -1675,12 +1651,7 @@ cosaslogs.startProcessingStepLog(
   tablename='samplepreparation'
 )
 
-db.importDatatableAsCsv(
-  filename = 'umdm_samplePreparation',
-  data = samplePreparation,
-  label = 'umdm_samplePreparation'
-)
-
+db.importDatatableAsCsv(pkg_entity = 'umdm_samplePreparation',data = samplePreparation)
 cosaslogs.stopProcessingStepLog()
 
 # ~ 5b.iv ~
@@ -1693,12 +1664,7 @@ cosaslogs.startProcessingStepLog(
   tablename='sequencing'
 )
 
-db.importDatatableAsCsv(
-  filename = 'umdm_sequencing',
-  data = sequencing,
-  label = 'umdm_sequencing'
-)
-
+db.importDatatableAsCsv(pkg_entity = 'umdm_sequencing', data = sequencing)
 cosaslogs.stopProcessingStepLog()
 
 # ~ 5b.v ~
@@ -1708,10 +1674,10 @@ status_msg('Mapping completed in',round(cosaslogs.log['elapsedTime'] / 60, 3),'m
 
 status_msg('Importing logs...')
 db.importDatatableAsCsv(
-  entity='cosasreports_processingsteps',
+  pkg_entity='cosasreports_processingsteps',
   data=dt.Frame(cosaslogs.processingStepLogs)
 )
 db.importDatatableAsCsv(
-  entity='cosasreports_imports',
+  pkg_entity='cosasreports_imports',
   data=dt.Frame([cosaslogs.log])
 )
