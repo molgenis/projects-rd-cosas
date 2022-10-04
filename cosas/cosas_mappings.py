@@ -28,7 +28,6 @@ createdBy = 'cosasbot'
 def status_msg(*args):
   """Status Message
   Print a log-style message, e.g., "[16:50:12.245] Hello world!"
-
   @param *args one or more strings containing a message to print
   @return string
   """
@@ -44,8 +43,7 @@ class cosasLogger:
 
     @param logname : name of the log
     @param silent : If True, all messages will be disabled
-    @param printWithTime: If True and silent is False, all messages will be
-        printed with timestamps
+    @param printWithTime: If True and silent is False, all messages will be printed with timestamps
     """
     self.silent = silent
     self.logname = logname
@@ -63,11 +61,11 @@ class cosasLogger:
       return datetime.now(tz=pytz.timezone(self.tz)).strftime(strftime)
     return datetime.now(tz=pytz.timezone(self.tz))
 
-  def _printMsg(self, *message):
+  def _print(self, *message):
     if not self.silent:
       message = ' '.join(map(str, message))
       if self._printWithTime:
-          message = f"[{self._now(strftime=self.hhmmss_f)[:-3]}] {message}"
+        message = f"[{self._now(strftime=self.hhmmss_f)[:-3]}] {message}"
       print(message)
 
   def __stoptime__(self, name):
@@ -79,9 +77,7 @@ class cosasLogger:
     self.__setattr__(name, log)
 
   def start(self):
-    """Start Log
-    Start logs for an entire job, script, action, etc.
-    """
+    """Start Log"""
     self.log = {
       'identifier': self._now(strftime='%Y-%m-%d'),
       'name': self.logname,
@@ -93,15 +89,13 @@ class cosasLogger:
       'steps': [],
       'comments': None
     }
-    self._printMsg(self.logname,': log started at',self.log['startTime'].strftime(self.hhmmss))
+    self._print(self.logname,': log started at',self.log['startTime'].strftime(self.hhmmss))
 
   def stop(self):
-    """Stop Log
-    End logging at the end of job, script, etc.
-    """
+    """Stop Log"""
     self.__stoptime__(name='log')
     self.log['steps'] = ','.join(map(str, self.log['steps']))
-    self._printMsg('Logging stopped (elapsed time:', self.log['elapsedTime'], 'seconds')
+    self._print('Logging stopped (elapsed time:', self.log['elapsedTime'], 'seconds')
 
   def startProcessingStepLog(self, type: str = None, name: str = None, tablename: str = None):
     """Start a new log for a processing step
@@ -125,20 +119,15 @@ class cosasLogger:
       'status': None,
       'comment': None
     }
-    self._printMsg(self.logname, ': starting step', name)
+    self._print(self.logname, ': starting step', name)
 
   def stopProcessingStepLog(self):
-    """Stop a log for a processing step
-    Stop logging for the current step
-
-    @return confirmation message
-    """
+    """Stop a log for a processing step"""
     self.__stoptime__(name='currentStep')
     self.log['steps'].append(self.currentStep['identifier'])
     self.processingStepLogs.append(self.currentStep)
-    self._printMsg(
-      self.logname,
-      ': finished step',
+    self._print(
+      self.logname, ': finished step',
       self.currentStep['name'],'in',
       self.currentStep['elapsedTime']
     )
@@ -147,18 +136,7 @@ class cosasLogger:
 class Molgenis(molgenis.Session):
   def __init__(self, *args, **kwargs):
     super(Molgenis, self).__init__(*args, **kwargs)
-    self.__getApiUrl__()
-
-  def __getApiUrl__(self):
-    """Find API endpoint regardless of version"""
-    props = list(self.__dict__.keys())
-    if '_url' in props:
-      self._apiUrl = self._url
-    if '_api_url' in props:
-      self._apiUrl = self._api_url
-      
-    host=self._apiUrl.replace('/api/','')
-    self._fileImportUrl=f"{host}/plugin/importwizard/importFile"
+    self.fileImportEndpoint = f"{self._root_url}plugin/importwizard/importFile"
   
   def _print(self, *args):
     """Print
@@ -170,13 +148,6 @@ class Molgenis(molgenis.Session):
     message = ' '.join(map(str, args))
     time = datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime('%H:%M:%S.%f')[:-3]
     print(f'[{time}] {message}')
-
-  def _checkResponseStatus(self, response, label):
-    if (response.status_code // 100) != 2:
-      err = response.json().get('errors')[0].get('message')
-      self._print('Failed to import data into',label,'(',response.status_code,'):',err)
-    else:
-      self._print('Imported data into', label)
   
   def _datatableToCsv(self, path, datatable):
     """To CSV
@@ -202,18 +173,20 @@ class Molgenis(molgenis.Session):
       self._datatableToCsv(filepath, data)
       with open(abspath(filepath),'r') as file:
         response = self._session.post(
-          url=self._fileImportUrl,
-          headers = self._get_token_header(),
-          files={'file': file},
+          url = self.fileImportEndpoint,
+          headers = self._headers.token_header,
+          files = {'file': file},
           params = {'action': 'add_update_existing', 'metadataAction': 'ignore'}
         )
-        self._checkResponseStatus(response, pkg_entity)
+        if (response.status_code // 100 ) != 2:
+          self._print('Failed to import data into', pkg_entity, '(', response.status_code, ')')
+        else:
+          self._print('Imported data into', pkg_entity)
         return response
 
 
 def calcAge(earliest: datetime.date = None, recent: datetime.date = None):
   """Calculate Years of Age between two dates
-
   @param earliest: the earliest date (datetime: yyyy-mm-dd)
   @param recent: the most recent date (datetime: yyyy-mm-dd)
   @return int
@@ -229,7 +202,6 @@ def collapseFamilyIDs(value: str = None, valueToRemove: str = None):
 
   @param value comma separated string containing one or more IDs
   @param valueToRemove value to remove from the list of IDs
-
   @return comma separated string containing one ore more family IDs
   """
   if (str(value) in ['nan', '-', '']) or (value is None):
@@ -238,28 +210,12 @@ def collapseFamilyIDs(value: str = None, valueToRemove: str = None):
   newString = re.sub(pattern, '', value).strip().replace(' ', '')
   return re.sub(r'([,]$)', '', newString) if newString else None
 
-def collapseHpoCodes(id, column):
-  """Collapse HPO Codes
-  In the COSAS clinical table, find all HPO codes by subject identifier,
-  collapse, get distinct values, and collapse into a string.
-
-  @param id : identifier to search for
-  @param column : name of the column to search for (datatable f-expression)
-
-  @return comma separated string containing one or more value
-  """
-  results = clinical[f.belongsToSubject == id, column]
-  if results.nrows == 0:
-    return None
-  return ','.join(list(set(filter(None, results.to_list()[0]))))
-
 def collapseHpoColumns(*kwargs):
   """Collapse HPO Columns
   Merge two or more HPO columns into one column. This is useful for merging
   columns from Cartagenia data with ADLAS data.
 
   @param *kwargs row values from two or more HPO columns
-
   @return unique HPO columns as a comma separated string
   """
   values = [*kwargs]
@@ -279,11 +235,10 @@ def collapseTestCodes(subjectID, sampleID, requestID, column):
   by id (subject-, sample-, and request identifiers), get distinct
   values, and collapse into a string
 
-  @param subjectId (str) : subject ID to locate
-  @param sampleId  (str) : sample ID to locate
-  @param requestId (str) : specific request associated with a sample
-  @param column    (str) : name of the column where the codes are stored
-
+  @param subjectId subject ID to locate
+  @param sampleId sample ID to locate
+  @param requestId specific request associated with a sample
+  @param column name of the column where the codes are stored
   @return comma separated string containing one or more value
   """
   values = list(filter(None,
@@ -308,24 +263,17 @@ def formatAsYear(date: datetime.date = None):
 
 def formatAsDate(date=None, pattern='%Y-%m-%d %H:%M:%S', asString=False):
   """Format Date String as yyyy-mm-dd
-
   @param string : date string
   @param pattern : date format, default: %Y-%m-%d %H:%M:%S
   @param asString : If True, the result will be returned as string
-
   @return datetime or string
   """
   if not date or str(date) == 'nan':
     return None
-
-  x = date
-  if re.search(r'(T00:00)$', x):
-    x = re.sub(r'(T00:00)$', ' 00:00:00', x)
-  value = datetime.strptime(x, pattern).date()
-
-  if asString:
-    value = str(value)
-  return value
+  if re.search(r'(T00:00)$', date):
+    date = re.sub(r'(T00:00)$', ' 00:00:00', date)
+  date = datetime.strptime(date, pattern).date()
+  return str(date) if asString else date
 
 def recodeValue(mappings: None,value: str=None,label: str=None,warn=True):
   """Recode value
@@ -374,7 +322,6 @@ def toKeyPairs(data, keyAttr='from', valueAttr='to'):
   @param data list of dictionaries that you wish to convert
   @param keyAttr attribute that will be key
   @param valueAttr attribute that contains the value
-
   @return a dictionary
   """
   maps = {}
@@ -386,10 +333,10 @@ def uniqueValuesById(data, groupby, column, keyGroupBy=True):
   """Unique Values By Id
   For a datatable object, collapse all unique values by ID into a comma
   separated string.
+
   @param data datatable object
   @param groupby name of the column that will serve as the grouping variable
   @param column name of the column that contains the values to collapse
-  
   @param datatable object
   """
   df = data.to_pandas()
@@ -404,7 +351,6 @@ def uniqueValuesById(data, groupby, column, keyGroupBy=True):
 # ~ 99 ~
 # Initial Steps
 # Steps to run before starting the mapping steps
-
 
 # connect to db (token is generated on run)
 db = Molgenis(url=host, token=token)
@@ -442,7 +388,6 @@ cosaslogs.startProcessingStepLog(
 raw_subjects = dt.Frame(db.get('cosasportal_patients',batch_size=10000))
 raw_clinical = dt.Frame(db.get('cosasportal_diagnoses', batch_size=10000))
 raw_benchcnv = dt.Frame(db.get('cosasportal_cartagenia',batch_size=10000))
-
 raw_samples = dt.Frame(
   db.get(
     'cosasportal_samples',
@@ -530,12 +475,7 @@ cineasHpoMappings = toKeyPairs(
 )
 
 # get labprocedures
-activeTestCodes = dt.Frame(
-  db.get(
-    entity='umdm_labProcedures',
-    attributes='code'
-  )
-)
+activeTestCodes = dt.Frame(db.get(entity='umdm_labProcedures', attributes='code'))
 
 cosaslogs.currentStep['status'] = 'Success'
 cosaslogs.stopProcessingStepLog()
@@ -860,7 +800,7 @@ clinical = dt.rbind(
     'code': f.EXTRA_DIAGNOSE,
     'certainty': f.EXTRA_DIAGNOSE_ZEKERHEID
   }]
-)[f.code != '-', :][f.clinicalID != None, :]
+)[(f.clinicalID != None) & (f.code != '-') & (f.code != None), :]
 
 cosaslogs.currentStep['comment'] = f'Initial structure has {clinical.nrows} rows'
 cosaslogs.currentStep['status'] = 'Success' if clinical.nrows else 'Error'
@@ -1011,6 +951,17 @@ del clinicalDT['hpo']
 clinicalDT['idExists'] = dt.Frame([
   id in cosasSubjectIdList for id in clinicalDT['belongsToSubject'].to_list()[0]
 ])
+
+# remove rows that do not have any data (i.e., only clincialID and subjectID)
+clinicalDT['rowsToRemove'] = dt.Frame([
+  ((tuple[0] == None) | (tuple[0] == '')) & (tuple[1] == None) & (tuple[2] == None)
+  for tuple in clinicalDT[:,
+    (f.observedPhenotype, f.unobservedPhenotype, f.provisionalPhenotype)
+  ].to_tuples()
+])
+
+clinicalDT = clinicalDT[f.rowsToRemove == False, :]
+
 
 # If there are unknown IDs, remove and log counts
 if clinicalDT[f.idExists == False, :].nrows > 0:
@@ -1584,14 +1535,14 @@ cosaslogs.startProcessingStepLog(
 )
 
 subjects[:, dt.update(dateRecordCreated=timestamp(), recordCreatedBy=createdBy)]
-clinical[:, dt.update(dateRecordCreated=timestamp(), recordCreatedBy=createdBy)]
+clinicalDT[:, dt.update(dateRecordCreated=timestamp(), recordCreatedBy=createdBy)]
 samples[:, dt.update(dateRecordCreated=timestamp(), recordCreatedBy=createdBy)]
 samplePreparation[:, dt.update(dateRecordCreated=timestamp(), recordCreatedBy=createdBy)]
 sequencing[:, dt.update(dateRecordCreated=timestamp(), recordCreatedBy=createdBy)]
 
 # update row counts in the log
 cosaslogs.log['subjects'] = subjects.nrows
-cosaslogs.log['clinical'] = clinical.nrows
+cosaslogs.log['clinical'] = clinicalDT.nrows
 cosaslogs.log['samples'] = samples.nrows
 cosaslogs.log['samplePreparation'] = samplePreparation.nrows
 cosaslogs.log['sequencing'] = sequencing.nrows
@@ -1624,7 +1575,7 @@ cosaslogs.startProcessingStepLog(
   tablename='clinical'
 )
 
-db.importDatatableAsCsv(pkg_entity = 'umdm_clinical', data = clinical)
+db.importDatatableAsCsv(pkg_entity = 'umdm_clinical', data = clinicalDT)
 cosaslogs.stopProcessingStepLog()
 
 # ~ 5b.ii ~
