@@ -182,7 +182,6 @@ export default {
       ]
     }
   },
-  
   methods: {
     parseVariantLocation (value) {
       const locationValues = value.split(',')
@@ -234,7 +233,6 @@ export default {
         if (totalRecordsFound > 0) {
           this.patientSearchResults.resultsUrl = setDataExplorerUrl('variantdb_variant', apiParams)
         }
-
         this.patientSearchResults.isSearching = false
       }).catch(error => {
         this.patientSearchResults.isSearching = false
@@ -257,12 +255,11 @@ export default {
         const data = response[0]
         const totalRecordsFound = data.total
         this.variantSearchResults.totalRecordsFound = totalRecordsFound
-        this.patientSearchResults.wasSuccessful = true
+        this.variantSearchResults.wasSuccessful = true
         
         if (totalRecordsFound > 0) {
           this.variantSearchResults.resultsUrl = setDataExplorerUrl('variantdb_variant', apiParams)
         }
-
         this.variantSearchResults.isSearching = false
       }).catch(error => {
         this.variantSearchResults.isSearching = false

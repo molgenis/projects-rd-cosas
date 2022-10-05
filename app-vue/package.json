@@ -1,6 +1,6 @@
 {
   "name": "gcc",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "GCC Server application",
   "main": "index.js",
   "scripts": {
