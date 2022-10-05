@@ -42,11 +42,11 @@ export default {
   display: block;
   width: 100%;
   text-align: center;
-  color: $blue-800;
+  color: $molgenis-blue-800;
   box-sizing: border-box;
   padding: 0.5em 1em;
-  border: 1px solid $blue-800;
-  background-color: $blue-050;
+  border: 1px solid $molgenis-blue-800;
+  background-color: $molgenis-blue-050;
   border-radius: 6px;
   margin: auto;
   
