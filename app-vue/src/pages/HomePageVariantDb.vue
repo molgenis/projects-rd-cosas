@@ -8,9 +8,33 @@
     />
     <Section id="variantdb-search-instructions" aria-labelledby="variantdb-search-instructions-title">
       <h2 id="variantdb-search-instructions-title">Instructions</h2>
-      <p>Using the forms below, you can search for files or for patients with a certain phenotype. In all search fields, you may search for more than one value by separating each value with a comma. For example, if you would like to search for more than one patient by ID, format the values in the following way: "Patient-1234, Patient-5678". Click the search button to search the variant database.</p>
+      <p>Using the forms below, you can search for classifed variants using patient or variant information. In all search fields, you may search for more than one value by separating each value with a comma. For example, if you would like to search for more than one patient by ID, format the values in the following way: "Patient-1234, Patient-5678". Click the search button to search the variant database.</p>
       <p>If there are any matching records, you will see a message below the search button that displays the total number of results along with a link to view the results. Click the link to view the data in the database.</p>
       <p>If you encounter any issues, take a look at the <router-link :to="{name: 'help'}">troubleshooting guide</router-link>.</p>
+    </Section>
+    <Section id="variant-search-all">
+      <FormContainer>
+        <Form id="variantdb-search-all-form" title="Search the Variant Database">
+          <FormSection>
+            <SearchInput
+              id="searchAll"
+              label="Search all"
+              description="Search the entire variant database by MSN/UMCG number, DNA number, chromosome, start or stop position, genes, etc."
+              @search="(value) => searchAll.query = value"
+            />
+          </FormSection>
+          <SearchButton id="variantdb-search-all" @click="searchAll"/>
+          <SearchResultsBox
+            label="Unable to retrieve records"
+            :isPerformingAction="searchAllResults.isSearching"
+            :actionWasSuccessful="searchAllResults.wasSuccessful"
+            :actionHasFailed="searchAllResults.hasFailed"
+            :actionErrorMessage="searchAllResults.errorMessage"
+            :totalRecordsFound="searchAllResults.totalRecordsFound"
+            :searchResultsUrl="searchAllResults.resultsUrl"
+          />
+        </Form>
+      </FormContainer>
     </Section>
     <Section id="variantdb-search-forms" aria-labelledby="variantdb-search-patients-title">
       <div class="search-form-container">
@@ -76,17 +100,17 @@
                 description="Find classified variants by clinical classification status"
               />
               <CheckboxGroup>
-                <div class="checkbox" v-for="type in classificationTypes" :key="type.value">
+                <div class="checkbox" v-for="row in classificationTypes" :key="row.value">
                   <input
-                    :id="type.value"
+                    :id="row.value"
                     type="checkbox"
-                    :value="type.value"
+                    :value="row.value"
                     class="checkbox__input"
                     v-model="selectedClassificationTypes"
                     @change="updateClassificationTypes"
                   />
-                  <label :for="type.value" class="checkbox__label">
-                    {{ type.label }}
+                  <label :for="row.value" class="checkbox__label">
+                    {{ row.label }}
                   </label>
                 </div>
               </CheckboxGroup>
@@ -158,8 +182,12 @@ export default {
   data () {
     return {
       includeVusPlus: false,
+      searchAllResults: initSearchResultsObject(),
       patientSearchResults: initSearchResultsObject(),
       variantSearchResults: initSearchResultsObject(),
+      searchAllFilters: {
+        query: null
+      },
       patientFilters: {
         umcg: null,
         belongsToSample: null,
@@ -208,11 +236,39 @@ export default {
     updateClassificationTypes () {
       this.variantFilters.classificationStaf = this.selectedClassificationTypes.join()
     },
+    resetSearchAllResults () {
+      this.searchAllResults = initSearchResultsObject()
+    },
     resetPatientSearchResults () {
       this.patientSearchResults = initSearchResultsObject()
     },
     resetVariantSearchResults () {
       this.variantSearchResults = initSearchResultsObject()
+    },
+    searchAll () {
+      this.resetSearchAllResults()
+      this.searchAllResults.isSearching = true
+      const apiParams = `*=q=${this.searchAll.query}`
+      const apiUrl = `/api/v2/variantdb_variant?q=${apiParams}`
+
+      Promise.all([
+        fetchData(apiUrl)
+      ]).then(response => {
+        const data = response[0]
+        const totalRecordsFound = data.total
+        this.searchAllResults.totalRecordsFound = totalRecordsFound
+        this.searchAllResults.wasSuccessful = true
+        
+        if (totalRecordsFound > 0) {
+          this.searchAllResuts.resultsUrl = setDataExplorerUrl('variantdb_variant', apiParams)
+        }
+        this.searchAllResults.isSearching = false
+      }).catch(error => {
+        this.searchAllResults.isSearching = false
+        this.searchAllResults.wasSuccessful = false
+        this.searchAllResults.hasFailed = true
+        this.searchAllResults.errorMessage = error.message
+      })
     },
     searchPatients () {
       this.resetPatientSearchResults()
@@ -273,9 +329,16 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+  
+#variant-search-all {
+  background-color: $blue-300;
+  
+  .form__container {
+    max-width: 672px;
+  }
+}
 
 #variantdb-search-instructions {
   background-color: $gray-000;
 }
-
 </style>
