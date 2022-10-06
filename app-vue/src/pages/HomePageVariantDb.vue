@@ -20,7 +20,7 @@
               id="searchAll"
               label="Search all"
               description="Search the entire variant database by MSN/UMCG number, DNA number, chromosome, start or stop position, genes, etc."
-              @search="(value) => searchAll.query = value"
+              @search="(value) => searchAllFilters.query = value"
             />
           </FormSection>
           <SearchButton id="variantdb-search-all" @click="searchAll"/>
@@ -248,7 +248,7 @@ export default {
     searchAll () {
       this.resetSearchAllResults()
       this.searchAllResults.isSearching = true
-      const apiParams = `*=q=${this.searchAll.query}`
+      const apiParams = `*=q="${this.searchAllFilters.query}"`
       const apiUrl = `/api/v2/variantdb_variant?q=${apiParams}`
 
       Promise.all([
@@ -260,7 +260,10 @@ export default {
         this.searchAllResults.wasSuccessful = true
         
         if (totalRecordsFound > 0) {
-          this.searchAllResuts.resultsUrl = setDataExplorerUrl('variantdb_variant', apiParams)
+          const rowIDs = data.items.map(row => { return `variantID=q=${row.variantID}` })
+          const urlParam = [`(${rowIDs.join(',')})`]
+          const url = setDataExplorerUrl('variantdb_variant', urlParam)
+          this.searchAllResults.resultsUrl = url
         }
         this.searchAllResults.isSearching = false
       }).catch(error => {

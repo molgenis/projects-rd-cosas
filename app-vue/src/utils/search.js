@@ -127,6 +127,24 @@ function setDataExplorerUrl (entity, array) {
   return url
 }
 
+// setSearchAllUrl
+// Generate the Data Explorer URL for a search all query
+//
+// @param entity EMX table location as <package>_<entity>
+// @param query a string containing a search term
+//
+// @examples
+// const query = 'my-search-term'
+//
+// @return a string containing a URL to a dataexplorer table
+function setSearchAllUrl (entity, query) {
+  const baseUrl = `/menu/plugins/dataexplorer?entity=${entity}&mod=data&hideselect=true`
+  const queryString = 'query[q][0][operator]=SEARCH&query[q][0][value]'
+  const queryEncoded = encodeURIComponent(queryString)
+  const url = `${baseUrl}&${queryEncoded}=${query}`
+  return url
+}
+
 // windowReplaceUrl
 // Open table in database
 //
@@ -143,5 +161,6 @@ module.exports = {
   removeNullObjectKeys,
   objectToUrlFilterArray,
   setDataExplorerUrl,
+  setSearchAllUrl,
   windowReplaceUrl
 }
