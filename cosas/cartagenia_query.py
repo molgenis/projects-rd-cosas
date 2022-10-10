@@ -2,7 +2,7 @@
 #' FILE: cartagenia_query.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-03-23
-#' MODIFIED: 2022-07-20
+#' MODIFIED: 2022-10-10
 #' PURPOSE: run query for cartagenia data
 #' STATUS: stable
 #' PACKAGES: **see below**
@@ -11,13 +11,13 @@
 
 import molgenis.client as molgenis
 from datatable import dt, f
+from os.path import abspath
 import numpy as np
 import datetime
 import requests
 import tempfile
-import csv
-from os.path import abspath
 import pytz
+import csv
 import re
 
 # only for local dev
@@ -27,40 +27,22 @@ import re
 # apiUrl = environ['CNV_API_HOST']
 # apiToken = environ['CNV_API_TOKEN']
 
-def status_msg(*args):
+def now():
+  return datetime.datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime('%H:%M:%S.%f')[:-3]
+
+def print2(*args):
   """Status Message
   Print a log-style message, e.g., "[16:50:12.245] Hello world!"
-
   @param *args one or more strings containing a message to print
   @return string
   """
   message = ' '.join(map(str, args))
-  time = datetime.datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime('%H:%M:%S.%f')[:-3]
-  print(f'[{time}] {message}')
-
+  print(f'[{now()}] {message}')
 
 class Molgenis(molgenis.Session):
   def __init__(self, *args, **kwargs):
     super(Molgenis, self).__init__(*args, **kwargs)
-    self.__getApiUrl__()
-
-  def __getApiUrl__(self):
-    """Find API endpoint regardless of version"""
-    props = list(self.__dict__.keys())
-    if '_url' in props:
-      self._apiUrl = self._url
-    if '_api_url' in props:
-      self._apiUrl = self._api_url
-      
-    host=self._apiUrl.replace('/api/','')
-    self._fileImportUrl=f"{host}/plugin/importwizard/importFile"
-
-  def _checkResponseStatus(self, response, label):
-    if (response.status_code // 100) != 2:
-      err = response.json().get('errors')[0].get('message')
-      status_msg(f'Failed to import data into {label} ({response.status_code}): {err}')
-    else:
-      status_msg(f'Imported data into {label}')
+    self.fileImportEndpoint = f"{self._root_url}plugin/importwizard/importFile"
   
   def _datatableToCsv(self, path, datatable):
     """To CSV
@@ -86,12 +68,16 @@ class Molgenis(molgenis.Session):
       self._datatableToCsv(filepath, data)
       with open(abspath(filepath),'r') as file:
         response = self._session.post(
-          url=self._fileImportUrl,
-          headers = self._get_token_header(),
-          files={'file': file},
+          url = self.fileImportEndpoint,
+          headers = self._headers.token_header,
+          files = {'file': file},
           params = {'action': 'add_update_existing', 'metadataAction': 'ignore'}
         )
-        self._checkResponseStatus(response, pkg_entity)
+        if (response.status_code // 100 ) != 2:
+          print2('Failed to import data into', pkg_entity, '(', response.status_code, ')')
+        else:
+          print2('Imported data into', pkg_entity)
+        return response
 
 class Cartagenia:
   """Cartagenia Client"""
@@ -101,15 +87,9 @@ class Cartagenia:
     self._api_token = token
 
   def getData(self):
-    status_msg('Sending request....')
-    try:
-      headers = {'x-api-key': self._api_token}
-      response = self.session.get(url=self._api_url, headers=headers)
-      response.raise_for_status()
-    except requests.exceptions.HTTPError as error:
-      raise Exception('Failed to retrieve data:', str(error))
-    
-    status_msg('Preparing data...')
+    headers = {'x-api-key': self._api_token}
+    response = self.session.get(url=self._api_url, headers=headers)
+    response.raise_for_status()
     data = response.json()
     if 'Output' not in data:
       raise KeyError('Expected object "Output" not found')
@@ -147,9 +127,17 @@ def extractIdsFromValue(value):
 
 # ~ 0 ~
 # init db connections
+
 cosas = Molgenis(url='http://localhost/api/', token = '${molgenisToken}')
 
+# for local dev
+# from dotenv import load_dotenv
+# from os import environ
+# load_dotenv()
+# cosas = Molgenis(url=environ['MOLGENIS_ACC_HOST'])
+# cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
 
+# get login information for Cartagenia
 # get login information for Cartagenia
 apiUrl = cosas.get(
   entity = 'sys_sec_Token',
@@ -164,7 +152,6 @@ apiToken = cosas.get(
 )[0]['token']
 
 cartagenia = Cartagenia(url = apiUrl, token = apiToken)
-
 
 # ~ 1 ~
 # Build Phenotype Dataset
@@ -188,9 +175,8 @@ cartagenia = Cartagenia(url = apiUrl, token = apiToken)
 
 # ~ 1a ~
 # query the Cartagenia endpoint (i.e., lambda function for UMCG data)
-status_msg('Querying Cartagenia endpoint....')
+print2('Querying Cartagenia endpoint....')
 rawData = cartagenia.getData()
-
 
 # ~ 1b ~
 # Query the Cartagenia endpoint and extract results
@@ -200,7 +186,7 @@ rawData = cartagenia.getData()
 # data transformatons. The headers were defined by the original Cartagenia
 # file. The structure did not change when the export was moved to a private
 # endpoint.
-status_msg('Processing raw data....')
+print2('Processing raw data....')
 
 rawBenchCnv = dt.Frame()
 for entity in rawData:
@@ -220,14 +206,14 @@ for entity in rawData:
 
 # ~ 1c ~
 # Filter dataset (apply inclusion criteria)
-status_msg('Applying inclusion criteria....')
+print2('Applying inclusion criteria....')
 rawBenchCnv['keep'] = dt.Frame([
   (
-    bool(re.search(r'^[0-9].*', str(d[0]).strip())) and
-    bool(re.search(r'^(HP:)', d[1].strip()))
+    bool(re.search(r'^[0-9].*', str(tuple[0]).strip())) and
+    bool(re.search(r'^(HP:)', tuple[1].strip()))
   )
-  if (d[0] is not None) and (d[1] is not None) else False
-  for d in rawBenchCnv[:, (f.primid, f.phenotype)].to_tuples()
+  if (tuple[0] is not None) and (tuple[1] is not None) else False
+  for tuple in rawBenchCnv[:, (f.primid, f.phenotype)].to_tuples()
 ])
 
 benchcnv = rawBenchCnv[f.keep, :][
@@ -236,7 +222,7 @@ benchcnv = rawBenchCnv[f.keep, :][
 
 # ~ 1d ~
 # Transform columns
-status_msg('Formatting columns....')
+print2('Formatting columns....')
 
 # format IDs: remove white space
 benchcnv['primid'] = dt.Frame([
@@ -265,20 +251,24 @@ benchcnv[['subjectID','belongsToMother','alternativeIdentifiers']] = dt.Frame([
 ])
 
 # check for duplicate entries
-if len(list(set(benchcnv['primid'].to_list()[0]))) != benchcnv.nrows:
+if dt.unique(benchcnv['primid']).nrows != benchcnv.nrows:
   raise SystemError(
     'Total number of distinct identifiers ({}) must match row numbers ({})'
     .format(
-      len(list(set(benchcnv['primid'].to_list()[0]))),
+      dt.unique(benchcnv['primid']).nrows,
       benchcnv.nrows
     )
   )
 
 # ~ 1e ~
 # Convert data to record set
-benchcnv.names = {'primid': 'id', 'secid': 'belongsToFamily', 'phenotype': 'observedPhenotype'}
+benchcnv.names = {
+  'primid': 'id',
+  'secid': 'belongsToFamily',
+  'phenotype': 'observedPhenotype'
+}
 
 # ~ 1f ~
 # Import data
-status_msg('Imporing data into cosasportal...')
+print2('Imporing data into cosasportal...')
 cosas.importDatatableAsCsv(pkg_entity="cosasportal_cartagenia", data=benchcnv)
