@@ -195,10 +195,10 @@ export default {
       },
       variantFilters: {
         '%23CHROM': null,
-        start: null,
         ADLASgeneNames: null,
         classificationStaf: null
       },
+      locationFilter: null,
       selectedClassificationTypes: [],
       classificationTypes: [
         { value: '1', label: 'Benign' },
@@ -212,18 +212,21 @@ export default {
   },
   methods: {
     parseVariantLocation (value) {
-      const locationValues = value.split(',')
-      const chromosomes = []
-      const startPositions = []
-      locationValues.forEach(val => {
-        const valueSplit = val.split(':')
-        if (valueSplit.length > 0) {
-          chromosomes.push(valueSplit[0])
-          startPositions.push(valueSplit[1])
+      if (value !== null && value !== '') {
+        const locationValue = value.split(',')[0]
+        const location = locationValue.split(':')
+        if (location.length > 0) {
+          const chromosome = location[0]
+          const position = location[1]
+          const dataExplorerParam = `(start=le=${position};start=ge=${position})`
+          this.locationFilter = dataExplorerParam
+          this.variantFilters['%23CHROM'] = chromosome
         }
-      })
-      this.variantFilters['%23CHROM'] = chromosomes.join(',')
-      this.variantFilters.start = startPositions.join(',')
+      } else {
+        this.locationFilter = null
+        this.variantFilters['%23CHROM'] = null
+        this.variantFilters.start = null
+      }
     },
     updateVusPlus () {
       this.includeVusPlus = !this.includeVusPlus
@@ -306,6 +309,9 @@ export default {
       
       const filters = removeNullObjectKeys(this.variantFilters)
       const apiParams = objectToUrlFilterArray(filters)
+      if (this.locationFilter !== null) {
+        apiParams.push(this.locationFilter)
+      }
       const apiUrl = `/api/v2/variantdb_variant?q=${apiParams.join(';')}`
       
       Promise.all([
@@ -317,7 +323,8 @@ export default {
         this.variantSearchResults.wasSuccessful = true
         
         if (totalRecordsFound > 0) {
-          this.variantSearchResults.resultsUrl = setDataExplorerUrl('variantdb_variant', apiParams)
+          const url = setDataExplorerUrl('variantdb_variant', apiParams)
+          this.variantSearchResults.resultsUrl = url.replace('%2523CHROM', '%23CHROM')
         }
         this.variantSearchResults.isSearching = false
       }).catch(error => {
