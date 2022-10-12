@@ -279,7 +279,7 @@ export default {
 
       const filters = removeNullObjectKeys(this.patientFilters)
       const apiParams = objectToUrlFilterArray(filters)
-      const apiUrl = `/api/v2/variantdb_variant?q=${apiParams}`
+      const apiUrl = `/api/v2/variantdb_variant?q=${apiParams.join(';')}`
       
       Promise.all([
         fetchData(apiUrl)
@@ -306,7 +306,7 @@ export default {
       
       const filters = removeNullObjectKeys(this.variantFilters)
       const apiParams = objectToUrlFilterArray(filters)
-      const apiUrl = `/api/v2/variantdb_variant?q=${apiParams}`
+      const apiUrl = `/api/v2/variantdb_variant?q=${apiParams.join(';')}`
       
       Promise.all([
         fetchData(apiUrl)
