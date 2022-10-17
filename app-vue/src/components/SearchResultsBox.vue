@@ -94,6 +94,7 @@ export default {
       white-space: pre-wrap;
       
       code {
+        display: block;
         color: currentColor;
       }
     }
