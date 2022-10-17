@@ -90,7 +90,7 @@
               <SearchInput
                 id="gene-location"
                 label="Search by Location"
-                description="Enter chromosome:position; e.g., 8:100844758"
+                description="Enter chromosome:position; e.g., 9:117684"
                 @search="(value) => parseVariantLocation(value)"
               />
             </FormSection>
