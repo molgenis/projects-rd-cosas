@@ -139,11 +139,13 @@ function setDataExplorerUrl (entity, array) {
 // @return a string containing a URL to a dataexplorer table
 function setSearchAllUrl (entity, query) {
   const baseUrl = `/menu/plugins/dataexplorer?entity=${entity}&mod=data&hideselect=true`
-  const queryString = 'query[q][0][operator]=SEARCH&query[q][0][value]'
-  const queryEncoded = encodeURIComponent(queryString)
-  const url = `${baseUrl}&${queryEncoded}=${query}`
+  const urlParamEncoded = 'query%5Bq%5D%5B0%5D%5Boperator%5D=SEARCH&query%5Bq%5D%5B0%5D%5Bvalue%5D'
+  const queryEncoded = encodeURIComponent(query)
+  const url = `${baseUrl}&${urlParamEncoded}=${queryEncoded}`
   return url
 }
+
+// https://cosas-acc.molgeniscloud.org/menu/plugins/dataexplorer?entity=variantdb_variant&hideselect=true&mod=data&query%5Bq%5D%5B0%5D%5Boperator%5D=SEARCH&query%5Bq%5D%5B0%5D%5Bvalue%5D=test
 
 // windowReplaceUrl
 // Open table in database

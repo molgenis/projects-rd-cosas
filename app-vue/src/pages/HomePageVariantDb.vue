@@ -44,7 +44,7 @@
               <SearchInput
                 id="UMCGnr"
                 label="Search by MDN/UMCG number"
-                description="Find classified variants using MDN/UMCG numbers"
+                description="e.g., 012345"
                 @search="(value) => patientFilters.umcg = value"
               />
             </FormSection>
@@ -52,7 +52,7 @@
               <SearchInput
                 id="DNAnumr"
                 label="Search by DNA number"
-                description="Find classified variants using DNA numbers"
+                description="e.g., DNA-012345"
                 @search="(value) => patientFilters.belongsToSample = value"
               />
             </FormSection>
@@ -60,7 +60,7 @@
               <SearchInput
                 id=""
                 label="Search by test code"
-                description="Find classified variants using ADLAS test codes"
+                description="e.g., NX229"
                 @search="(value) => patientFilters[`belongsToSamplePreparation.belongsToLabProcedure`] = value"
               />
             </FormSection>
@@ -82,7 +82,7 @@
               <SearchInput
                 id="gene-name"
                 label="Search for Genes"
-                description="Find classified variants by ADLAS gene names"
+                description="e.g., BRCA1, TTN, etc."
                 @search="(value) => variantFilters.ADLASgeneNames = value"
               />
             </FormSection>
@@ -90,14 +90,14 @@
               <SearchInput
                 id="gene-location"
                 label="Search by Location"
-                description="Find classified variants by chr:position"
+                description="Enter chromosome:position; e.g., 8:100844758"
                 @search="(value) => parseVariantLocation(value)"
               />
             </FormSection>
             <FormSection>
               <FormLegend
                 title="Search by Classification Status"
-                description="Find classified variants by clinical classification status"
+                description="Select one or more option or leave blank"
               />
               <CheckboxGroup>
                 <div class="checkbox" v-for="row in classificationTypes" :key="row.value">
@@ -160,7 +160,8 @@ import {
   initSearchResultsObject,
   removeNullObjectKeys,
   objectToUrlFilterArray,
-  setDataExplorerUrl
+  setDataExplorerUrl,
+  setSearchAllUrl
 } from '@/utils/search.js'
 
 export default {
@@ -239,17 +240,17 @@ export default {
     updateClassificationTypes () {
       this.variantFilters.classificationStaf = this.selectedClassificationTypes.join()
     },
-    resetSearchAllResults () {
-      this.searchAllResults = initSearchResultsObject()
+    resetSearchResultsObject (object) {
+      this[object] = initSearchResultsObject()
     },
-    resetPatientSearchResults () {
-      this.patientSearchResults = initSearchResultsObject()
-    },
-    resetVariantSearchResults () {
-      this.variantSearchResults = initSearchResultsObject()
+    throwSearchResultsError (object, errorMessage) {
+      this[object].isSearching = false
+      this[object].wasSuccessful = false
+      this[object].hasFailed = true
+      this[object].errorMessage = errorMessage
     },
     searchAll () {
-      this.resetSearchAllResults()
+      this.resetSearchResultsObject('searchAllResults')
       this.searchAllResults.isSearching = true
       const apiParams = `*=q="${this.searchAllFilters.query}"`
       const apiUrl = `/api/v2/variantdb_variant?q=${apiParams}`
@@ -263,21 +264,16 @@ export default {
         this.searchAllResults.wasSuccessful = true
         
         if (totalRecordsFound > 0) {
-          const rowIDs = data.items.map(row => { return `variantID=q=${row.variantID}` })
-          const urlParam = [`(${rowIDs.join(',')})`]
-          const url = setDataExplorerUrl('variantdb_variant', urlParam)
+          const url = setSearchAllUrl('variantdb_variant', this.searchAllFilters.query)
           this.searchAllResults.resultsUrl = url
         }
         this.searchAllResults.isSearching = false
       }).catch(error => {
-        this.searchAllResults.isSearching = false
-        this.searchAllResults.wasSuccessful = false
-        this.searchAllResults.hasFailed = true
-        this.searchAllResults.errorMessage = error.message
+        this.throwSearchResultsError('searchAllResults', error.message)
       })
     },
     searchPatients () {
-      this.resetPatientSearchResults()
+      this.resetSearchResultsObject('patientSearchResults')
       this.patientSearchResults.isSearching = true
 
       const filters = removeNullObjectKeys(this.patientFilters)
@@ -297,14 +293,11 @@ export default {
         }
         this.patientSearchResults.isSearching = false
       }).catch(error => {
-        this.patientSearchResults.isSearching = false
-        this.patientSearchResults.wasSuccessful = false
-        this.patientSearchResults.hasFailed = true
-        this.patientSearchResults.errorMessage = error.message
+        this.throwSearchResultsError('patientSearchResults', error.message)
       })
     },
     searchVariants () {
-      this.resetVariantSearchResults()
+      this.resetSearchResultsObject('variantSearchResults')
       this.variantSearchResults.isSearching = true
       
       const filters = removeNullObjectKeys(this.variantFilters)
@@ -328,10 +321,7 @@ export default {
         }
         this.variantSearchResults.isSearching = false
       }).catch(error => {
-        this.variantSearchResults.isSearching = false
-        this.variantSearchResults.wasSuccessful = false
-        this.variantSearchResults.hasFailed = true
-        this.variantSearchResults.errorMessage = error.message
+        this.throwSearchResultsError('variantSearchResults', error.message)
       })
     }
   }
