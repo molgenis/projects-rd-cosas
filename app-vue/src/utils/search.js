@@ -145,8 +145,6 @@ function setSearchAllUrl (entity, query) {
   return url
 }
 
-// https://cosas-acc.molgeniscloud.org/menu/plugins/dataexplorer?entity=variantdb_variant&hideselect=true&mod=data&query%5Bq%5D%5B0%5D%5Boperator%5D=SEARCH&query%5Bq%5D%5B0%5D%5Bvalue%5D=test
-
 // windowReplaceUrl
 // Open table in database
 //
