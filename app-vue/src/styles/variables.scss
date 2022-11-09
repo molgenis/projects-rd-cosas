@@ -12,8 +12,18 @@ $gray-000: #ffffff;
 $red-900: hsl(10, 90%, 55%);
 $red-050: hsl(1, 100%, 95%);
 
-$blue-800: hsl(218, 98%, 52%);
-$blue-050: hsl(218, 98%, 98%);
+$molgenis-blue-800: hsl(218, 98%, 52%);
+$molgenis-blue-050: hsl(218, 98%, 98%);
+
+$blue-100: #FBFCFE;
+$blue-200: #DEE4EF;
+$blue-300: #C2CCE1;
+$blue-400: #A5B4D2;
+$blue-500: #899DC4;
+$blue-600: #6C85B5;
+$blue-700: #4F6DA6;
+$blue-800: #335598;
+$blue-900: #163D89;
 
 $green-300: #7EA172;
 
@@ -39,3 +49,5 @@ $box-shadow-alt: 0 0 5px 3px $black-transparent-100;
 $box-shadow-inset: inset 0 2px 4px 0 $gray-100;
 
 $primary: $gray-900-alt;
+
+$max-width: 972px;

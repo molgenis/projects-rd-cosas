@@ -43,9 +43,9 @@ export default {
   background: none;
   border: none;
   padding: 6px 12px;
-  background-color: $blue-050;
-  border: 1px solid $blue-800;
-  color: $blue-800;
+  background-color: $molgenis-blue-050;
+  border: 1px solid $molgenis-blue-800;
+  color: $molgenis-blue-800;
   border-radius: 6px;
   
   .button__icon {

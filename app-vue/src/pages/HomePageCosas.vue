@@ -8,10 +8,11 @@
     />
     <Section id="cosas-search-instructions" aria-labelledby="cosas-search-instructions-title">
       <h2 id="cosas-search-instructions-title">Instructions</h2>
-      <p>Using the forms below, you can search for files or for patients with a certain phenotype. You may search for more than one value by separating IDs or codes with a comma. For example: "Patient-1234, Patient-5678". If there are matching records, the total number of results will be displayed along with a link to view the results. Click the link to view the data in COSAS.</p>
+      <p>Using the forms below, you can search for files or for patients with a certain phenotype. In all search fields, you may search for more than one value by separating each value with a comma. For example, if you would like to search for more than one patient by ID, format the values in the following way: "Patient-1234, Patient-5678". Click the search button to search the variant database.</p>
+      <p>If there are any matching records, you will see a message below the search button that displays the total number of results along with a link to view the results. Click the link to view the data in the database.</p>
       <p>If you encounter any issues, take a look at the <router-link :to="{name: 'help'}">troubleshooting guide</router-link>.</p>
     </Section>
-    <div id="cosas-search" class="cosas-search-container">
+    <div id="cosas-search" class="search-form-container">
       <FormContainer class="cosas-search-form">
         <Form id="cosas-files-search-form" title="Search for Files">
           <FormSection>
@@ -23,10 +24,10 @@
             />
           </FormSection>
           <FormSection>
-            <legend class="form__legend">
-              Search for file types
-              <span class="form__legend__caption">Select one or more file type</span>
-            </legend>
+            <FormLegend
+              title="Search for file types"
+              description="Select one or more file types"
+            />
             <div class="checkbox__group">
               <div class="checkbox" v-for="filetype in filetypes" :key="filetype.value">
                 <input
@@ -96,6 +97,7 @@ import Section from '@/components/Section.vue'
 import FormContainer from '@/components/FormContainer.vue'
 import Form from '@/components/Form.vue'
 import FormSection from '@/components/FormSection.vue'
+import FormLegend from '@/components/FormLegend.vue'
 import SearchButton from '@/components/ButtonSearch.vue'
 import SearchInput from '@/components/InputSearch.vue'
 import SearchResultsBox from '@/components/SearchResultsBox.vue'
@@ -117,6 +119,7 @@ export default {
     FormContainer,
     Form,
     FormSection,
+    FormLegend,
     SearchButton,
     SearchInput,
     SearchResultsBox
@@ -218,17 +221,6 @@ export default {
 
 <style lang="scss" scoped>
 
-.form__legend {
-  font-size: 12pt;
-  color: $body-heading;
-  
-  .form__legend__caption {
-    display: block;
-    font-size: 11pt;
-    color: $body-caption;
-  }
-}
-
 .checkbox__group {
   .checkbox {
     display: flex;
@@ -240,28 +232,6 @@ export default {
     }
     .checkbox__label {
       line-height: 1.4;
-    }
-  }
-}
-
-.cosas-search-container {
-  box-sizing: padding-box;
-  padding: 2em 1em;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: flex-start;
-  max-width: 1024px;
-  
-  .cosas-search-form {
-    width: 100%;
-    max-width: 462px;
-    border-top-color: $green-300;
-    
-    .search__button {
-      margin-top: 18px;
     }
   }
 }
