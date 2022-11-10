@@ -2,7 +2,7 @@
 #' FILE: cosasportal.yaml
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-12-10
-#' MODIFIED: 2022-06-29
+#' MODIFIED: 2022-11-09
 #' PURPOSE: EMX for COSAS staging tables
 #' STATUS: stable
 #' PACKAGES: NA
@@ -12,8 +12,8 @@
 name: cosasportal
 label: COSAS Portal
 description: Staging tables for raw data exports
-version: 1.9.0
-date: 2022-07-21
+version: 2.0.0
+date: 2022-11-09
 
 # define entity level defaults
 defaults:
@@ -64,24 +64,54 @@ entities:
         partOfAttribute: recordMetadata
         tags: NCIT_C42628 http://purl.obolibrary.org/obo/NCIT_C42628
     
-
-  # @name cosasportal_patients
-  - name: patients
-    description: Raw metadata for patients and families
-    extends: cosasportal_template
+  # @name cosasportal_cartagenia
+  - name: cartagenia
+    description: Processed Cartagenia CNV bench data
     attributes:
-      - name: UMCG_NUMBER
-      - name: OVERLIJDENSDATUM
-      - name: FAMILIENUMMER
-      - name: GEBOORTEDATUM
-      - name: GESLACHT
-      - name: FAMILIELEDEN
+      - name: id
+        idAttribute: true
+        description: Cartagenia identifier
+      - name: subjectID
+        description: parsed UMCG number
+      - name: belongsToMother
+        description: parsed maternal ID (UMCG Number)
+      - name: belongsToFamily
+        description: family number (may not be accurate)
+      - name: isFetus
+        description: computed fetus status
+        dataType: bool
+      - name: alternativeIdentifiers
+        description: additional UMCG numbers detected in column 'id'
+      - name: observedPhenotype
+        description: HPO terms provided by Cartagenia 
         dataType: text
-      - name: UMCG_MOEDER
-      - name: UMCG_VADER
-      - name: FOETUS_ID
-      - name: SAMPLEDATE
-      - name: DISEASED
+  
+  # @name cosasportal_consent
+  - name: consent
+    description: Raw consent information open-exoom en 5PGM
+    attributes:
+      - name: analysis
+      - name: datefilled
+      - name: MDN_umcgnr
+      - name: familienummer
+      - name: request_consent_material
+      - name: request_form
+      - name: request_date_signed
+      - name: consent_recontact
+      - name: consent_research
+      - name: consent_system
+      - name: consent_form
+      - name: consent_doctor
+      - name: consent_date_signed
+      - name: consent_folder
+      - name: incidental_consent_recontact
+      - name: incidental_form
+      - name: incidental_date_signed
+      - name: id
+        idAttribute: true
+        nillable: false
+        auto: true
+      
   
   # @name cosasportal_diagnoses
   - name: diagnoses
@@ -95,39 +125,38 @@ entities:
       - name: EXTRA_DIAGNOSE_ZEKERHEID
       - name: DATUM_EERSTE_CONSULT
       - name: OND_ID
-  
-  # @name cosasportal_samples
-  - name: samples
-    description: Raw data table for samples
-    extends: cosasportal_template
+      
+  # @name cosasportal_files
+  - name: files
+    description: Raw file metadata
     attributes:
-      - name: UMCG_NUMMER
-      - name: ADVVRG_ID
-      - name: ADVIESVRAAG_DATUM
-      - name: MONSTER_ID
-      - name: TEST_CODE
-      - name: TEST_OMS
-        dataType: text
-      - name: DNA_NUMMER
-      - name: MATERIAAL
-      - name: EINDUITSLAGTEKST
-        dataType: text
-      - name: EINDUITSLAG_DATUM
-      - name: ADVIESVRAAGUITSLAG_ID
-      - name: ADVIESVRAAGUITSLAG_CODE
-        dataType: text
-      - name: AANDOENING_CODE
-      - name: LABUITSLAGTEKST
-        dataType: text
-      - name: LABUITSLAG_COMMENTAAR
-        dataType: text
-      - name: LABUITSLAG_DATUM
-      - name: LABUITSLAG_ID
-      - name: LABUITSLAG_CODE
-        dataType: text
-      - name: LABRESULTS
-      - name: AUTHORISED
-      - name: FOETUS_ID
+      - name: id
+        description: auto generated identifier
+        idAttribute: true
+        auto: true
+      - name: umcgID
+        description: Internal patient identifier
+        dataType: string
+      - name: familyID
+        description: family identifier of the patient
+        dataType: string
+      - name: dnaID
+        description: sample identifier
+        dataType: string
+      - name: testID
+        description: test code that indicates the lab procedure
+        dataType: string
+      - name: filename
+        description: name of the file
+        dataType: string
+      - name: filepath
+        description: location of the file
+      - name: filetype
+        description: file format
+      - name: md5
+        description: checksum of the file
+      - name: dateCreated
+        description: date the file was created
 
   # @name cosasportal_labs_array_adlas
   - name: labs_array_adlas
@@ -223,57 +252,54 @@ entities:
       - name: CallRate
       - name: StandaardDeviatie
       - name: Foetus_Id
-      
-  # @name cosasportal_cartagenia
-  - name: cartagenia
-    description: Processed Cartagenia CNV bench data
+
+  # @name cosasportal_patients
+  - name: patients
+    description: Raw metadata for patients and families
+    extends: cosasportal_template
     attributes:
-      - name: id
-        idAttribute: true
-        description: Cartagenia identifier
-      - name: subjectID
-        description: parsed UMCG number
-      - name: belongsToMother
-        description: parsed maternal ID (UMCG Number)
-      - name: belongsToFamily
-        description: family number (may not be accurate)
-      - name: isFetus
-        description: computed fetus status
-        dataType: bool
-      - name: alternativeIdentifiers
-        description: additional UMCG numbers detected in column 'id'
-      - name: observedPhenotype
-        description: HPO terms provided by Cartagenia 
+      - name: UMCG_NUMBER
+      - name: OVERLIJDENSDATUM
+      - name: FAMILIENUMMER
+      - name: GEBOORTEDATUM
+      - name: GESLACHT
+      - name: FAMILIELEDEN
         dataType: text
+      - name: UMCG_MOEDER
+      - name: UMCG_VADER
+      - name: FOETUS_ID
+      - name: SAMPLEDATE
+      - name: DISEASED
   
-  # @name cosasportal_files
-  - name: files
-    description: Raw file metadata
+  # @name cosasportal_samples
+  - name: samples
+    description: Raw data table for samples
+    extends: cosasportal_template
     attributes:
-      - name: id
-        description: auto generated identifier
-        idAttribute: true
-        auto: true
-      - name: umcgID
-        description: Internal patient identifier
-        dataType: string
-      - name: familyID
-        description: family identifier of the patient
-        dataType: string
-      - name: dnaID
-        description: sample identifier
-        dataType: string
-      - name: testID
-        description: test code that indicates the lab procedure
-        dataType: string
-      - name: filename
-        description: name of the file
-        dataType: string
-      - name: filepath
-        description: location of the file
-      - name: filetype
-        description: file format
-      - name: md5
-        description: checksum of the file
-      - name: dateCreated
-        description: date the file was created
+      - name: UMCG_NUMMER
+      - name: ADVVRG_ID
+      - name: ADVIESVRAAG_DATUM
+      - name: MONSTER_ID
+      - name: TEST_CODE
+      - name: TEST_OMS
+        dataType: text
+      - name: DNA_NUMMER
+      - name: MATERIAAL
+      - name: EINDUITSLAGTEKST
+        dataType: text
+      - name: EINDUITSLAG_DATUM
+      - name: ADVIESVRAAGUITSLAG_ID
+      - name: ADVIESVRAAGUITSLAG_CODE
+        dataType: text
+      - name: AANDOENING_CODE
+      - name: LABUITSLAGTEKST
+        dataType: text
+      - name: LABUITSLAG_COMMENTAAR
+        dataType: text
+      - name: LABUITSLAG_DATUM
+      - name: LABUITSLAG_ID
+      - name: LABUITSLAG_CODE
+        dataType: text
+      - name: LABRESULTS
+      - name: AUTHORISED
+      - name: FOETUS_ID
