@@ -2,16 +2,16 @@
 # FILE: cosas_consent.py
 # AUTHOR: David Ruvolo
 # CREATED: 2022-11-10
-# MODIFIED: 2022-11-10
+# MODIFIED: 2022-11-14
 # PURPOSE: mapping script for consent dataset
-# STATUS: in.progress
+# STATUS: stable
 # PACKAGES: see below
 # COMMENTS: NA
 #///////////////////////////////////////////////////////////////////////////////
 
 from cosas.api.molgenis2 import Molgenis
 from dotenv import load_dotenv
-from datatable import dt, f
+from datatable import dt, f, as_type
 from datetime import datetime
 from os import environ
 import pandas as pd
@@ -42,8 +42,11 @@ def uniqueValuesById(data, groupby, column, dropDuplicates=True, keyGroupBy=True
     output.key = groupby
   return output
 
+#///////////////////////////////////////////////////////////////////////////////
 
-# connect to database
+# ~ 0 ~
+# Pull raw data
+
 cosas = Molgenis(environ['MOLGENIS_ACC_HOST'])
 cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
 
@@ -329,3 +332,46 @@ signedForms = uniqueValuesById(
 
 signedForms.names = {'rowID': 'MDN_umcgnr', 'consentID': 'signedForms'}
 permissions = permissions[:, :, dt.join(signedForms)]
+permissions.names = { 'MDN_umcgnr': 'consentID' }
+
+# check for multiple entries and select unique rows only
+# permissions[:, dt.count(), dt.by(f.consentID)][f.count > 1, :]
+permissions = permissions[:, dt.first(f[:]), dt.by(f.consentID, f.signedForms)]
+
+# create link between the permissions and patients tables
+permissions['belongsToSubject'] = dt.Frame([
+  value if value in subjectIDs else None
+  for value in permissions['consentID'].to_list()[0]
+])
+
+# check row counts
+permissions.nrows == dt.unique(permissions['consentID']).nrows
+
+# import
+cosas.importDatatableAsCsv('umdm_consent', permissions)
+
+#///////////////////////////////////////
+
+# save mapping objects
+# dt.rbind(
+#   consentCategories[:, {
+#     'value': f.request_consent_material,
+#     'mapping': as_type(f.mapping, str),
+#     'variable': 'consent to use material'
+#   }],
+#   incidentalCategories[:, {
+#     'value': f.incidental_consent_recontact,
+#     'mapping': as_type(f.mappings, str),
+#     'variable': 'incidental findings'
+#   }],
+#   recontactCategories[:,{
+#     'value': f.consent_recontact,
+#     'mapping': as_type(f.mapping, str),
+#     'variable': 'consent to recontact'
+#   }],
+#   researchCategories[:, {
+#     'value': f.consent_research,
+#     'mapping': as_type(f.mappings, str),
+#     'variable': 'consent for research'
+#   }]
+# ).to_csv('private/consent_mappings.csv')
