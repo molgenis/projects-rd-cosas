@@ -40,11 +40,11 @@ load_dotenv()
 # given admin rights in Alissa.
 #   
 alissa = Alissa(
-    host=environ['ALISSA_HOST'],
-    clientId=environ['ALISSA_CLIENT_ID'],
-    clientSecret=environ['ALISSA_CLIENT_SECRET'],
-    username=environ['ALISSA_USERNAME'],
-    password=environ['ALISSA_PASSWORD']
+  host=environ['ALISSA_HOST'],
+  clientId=environ['ALISSA_CLIENT_ID'],
+  clientSecret=environ['ALISSA_CLIENT_SECRET'],
+  username=environ['ALISSA_API_USR'],
+  password=environ['ALISSA_API_PWD']
 )
 
 
@@ -57,8 +57,8 @@ alissa = Alissa(
 # for now, grab a subset patients using ISO 8601 date-time. Make sure you pick
 # a datetime range far enough in the past so it wont effect current records.
 patients = alissa.getPatients(
-    createdAfter="2019-01-01T00:00:00.000+00:00",
-    createdBefore="2019-01-02T00:00:00.000+00:00"
+  createdAfter="2020-02-25T00:00:00.000+00:00",
+  createdBefore="2020-02-26T00:00:00.000+00:00"
 )
 
 # extract the identifiers. These values aren't the actual 'patient identifiers',
@@ -80,13 +80,13 @@ patientIdentifiers=[patient['id'] for patient in patients]
 
 analysesByPatient = []
 for id in patientIdentifiers:
-    response = alissa.getPatientAnalyses(patientId=id)
-    if response:
-        for analysis in response:
-            analysesByPatient.append({
-                'patientId': id,
-                'analysisId': analysis['id']
-            })
+  response = alissa.getPatientAnalyses(patientId=id)
+  if response:
+    for analysis in response:
+      analysesByPatient.append({
+        'patientId': id,
+        'analysisId': analysis['id']
+      })
 
             
 # ~ 3 ~
