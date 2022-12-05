@@ -2,19 +2,20 @@
 #' FILE: data_filemetatdata_processing.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-07-18
-#' MODIFIED: 2022-07-28
+#' MODIFIED: 2022-12-05
 #' PURPOSE: initial data processing
-#' STATUS: experimental
+#' STATUS: stable
 #' PACKAGES: **see below**
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
 from cosas.api.molgenis2 import Molgenis
-from datetime import datetime
-import pytz
-from dotenv import load_dotenv
-from os import environ
 from datatable import dt, f, fread
+from dotenv import load_dotenv
+from datetime import datetime
+from os import environ
+import pandas as pd
+import pytz
 import re
 
 # connect to cosas-db
@@ -31,6 +32,8 @@ def getFileType(value):
     return 'cram'
   elif re.search(r'.bam$', value):
     return 'bam'
+  elif re.search(r'.fq.gz$', value):
+    return 'fastq'
   else:
     return None
 
@@ -40,11 +43,45 @@ def getFileType(value):
 # Processing and Import of Raw Data
 
 # load file
-portaldata = fread('~/Downloads/COSAS.txt')
+portaldata = dt.rbind(
+  fread('~/Downloads/....'),
+  fread('~/Downloads/....')
+)
 
-# drop uncessary columns
-del portaldata[:, ['id', 'testID', 'md5']]
+# drop uncessary columns only if they exist
+for column in ['id', 'testID', 'md5']:
+  if column in portaldata.names:
+    print(f"Deleting column '{column}' from dataset....")
+    del portaldata[column]
 
+
+#///////////////////////////////////////
+
+# ~ 🚨🚨🚨 ~ 
+# run this step if you are working with FastQ metadata
+
+# rename columns to make sure separated is read correctly
+portaldata.names = {
+  'fastQname1': 'fastQname_1',
+  'fastQname2': 'fastQname_2',
+  'dateCreated1': 'dateCreated_1',
+  'dateCreated2': 'dateCreated_2'
+}
+
+portaldataDF = portaldata.to_pandas()
+
+portaldataDF['_id'] = list(range(0, portaldata.nrows))
+portaldataDF=pd.wide_to_long(
+  df = portaldataDF,
+  stubnames=['fastQname','md5', 'dateCreated'],
+  sep='_',
+  i='_id',
+  j='x'
+)
+
+portaldata=dt.Frame(portaldataDF)
+
+#///////////////////////////////////////
 
 # NOTE: The following steps are applied to speed up the testing and development
 # of the filemetadata script. Cases that do not meet the following criteria
@@ -62,14 +99,12 @@ portaldata['hasValidDnaId'] = dt.Frame([
   for d in portaldata[:, f.dnaID].to_list()[0]
 ])
 
-
 # reduce data to valid umcg- and dna IDs only
 portaldata = portaldata[(f.hasValidUmcgId) & (f.hasValidDnaId), :]
 del portaldata[:, ['hasValidUmcgId', 'hasValidDnaId']]
 
-
-cosas.delete('cosasportal_files')
-cosas.importDatatableAsCsv('cosasportal_files', portaldata)
+# cosas.delete('cosasportal_files')
+# cosas.importDatatableAsCsv('cosasportal_files', portaldata)
 
 #//////////////////////////////////////////////////////////////////////////////
 
@@ -80,6 +115,8 @@ cosas.importDatatableAsCsv('cosasportal_files', portaldata)
 # ~ 1a ~
 # pull file metadata and prep
 # portaldata = dt.Frame(cosas.get('cosasportal_files', batch_size=10000))
+# OR use the portaldata object in the local env
+# portaldata.names = {'filetype': 'fileFormat', 'filepath': 'filename'}
 
 for column in portaldata.names:
   if column in ['_href', 'id', 'familyID']:
