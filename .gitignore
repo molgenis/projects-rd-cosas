@@ -5,3 +5,4 @@ _raw
 .sh.env
 node_modules
 private
+venv
