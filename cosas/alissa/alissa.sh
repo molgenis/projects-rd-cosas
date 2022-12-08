@@ -7,15 +7,23 @@
 # PURPOSE: alissa API endpoint
 # DEPENDENCIES: jq
 # COMMENTS: jq can be installed with homebrew: `brew install jq`
+# Create a `.env` file in the root directory and paste the following lines.
+# Fill in the credentials and run line-by-line.
+# 
+#     export ALISSA_HOST="...."
+#     export ALISSA_API_USR="...."
+#     export ALISSA_API_PWD="...."
+#     export ALISSA_CLIENT_ID="...."
+#     export ALISSA_CLIENT_SECRET="...."
+#
 # ////////////////////////////////////////////////////////////////////////////
 
+# init vars
 source .env
-
-# SET URLS
 HOST="${ALISSA_HOST}"
 API_ROOT="${HOST}/interpret/api/2"
 
-# AUTHENTICATE
+# authenticate and create header var
 TOKEN=$( \
   curl --user "${ALISSA_CLIENT_ID}:${ALISSA_CLIENT_SECRET}" "${HOST}/auth/oauth/token" \
   -d grant_type=password \
@@ -23,7 +31,6 @@ TOKEN=$( \
   -d password="${ALISSA_API_PWD}" \
 )
 
-# SET TOKEN HEADER
 TOKEN_TYPE=$(jq -r '.token_type' <<< "${TOKEN}")
 ACCESS_TOKEN=$(jq -r '.access_token' <<< "${TOKEN}")
 TOKEN_HEADER="Authorization: ${TOKEN_TYPE} ${ACCESS_TOKEN}"
@@ -48,17 +55,19 @@ echo "${PATIENT_IDS}"
 TEST_ID=$( sed -n '3p' <<< "${PATIENT_IDS}" )
 echo "${TEST_ID}"
 
-# ====OPTIONAL====
+# ============OPTIONAL============
 # ~ 1b ~
-# GET TEST PATIENT INFO --- THIS ISN"T NECESSARY, BUT GOOD TO CHECK WHAT"S AVAILABLE
+# get test patient info --- this isn"t necessary, but good to check what"s available
+#
 # TEST_PATIENT=$(curl -H "${TOKEN_HEADER}" -X GET "${API_ROOT}/patients/${TEST_ID}")
 # TEST_PATIENT_ID=$(jq -r '.id' <<< "${TEST_PATIENT}")
 # echo "${TEST_PATIENT}"
 # echo "${TEST_PATIENT_ID}"
-#=================
+#
+#=================================
 
 # ~ 1c ~
-# GET ANALYSES -- YOU MAY NEED TO REPEAT THE 'TEST_ID' STEP UNTIL YOU GET A GOOD ID
+# get analyses -- you may need to repeat the 'test_id' step until you get a good id
 TEST_PATIENT_ANALYSES=$(curl -H "${TOKEN_HEADER}" "${API_ROOT}/patients/${TEST_ID}/analyses")
 echo "${TEST_PATIENT_ANALYSES}"
 
@@ -67,12 +76,12 @@ TEST_ANALYSIS_ID=$( sed -n '1p' <<< "${PATIENT_ANALYSIS_IDS}" )
 echo "${PATIENT_ANALYSIS_IDS}"
 echo "${TEST_ANALYSIS_ID}"
 
-# NOTE: NONE OF THE IDS WORKED :-P
-# SO I MANUALLY PICKED AN ID IN ALISSA AND PUT IT HERE
+# note: none of the ids worked :-p
+# so i manually picked an id in alissa and put it here
 TEST_ANALYSIS_ID="...."
 
 # ~ 1d ~
-# GET VARIANTS EXPORT IDs
+# get variants export ids
 
 TEST_PATIENT_VARIANT_EXPORT=$( \
   curl --request POST "${API_ROOT}/patient_analyses/${TEST_ANALYSIS_ID}/molecular_variants/exports" \
@@ -87,7 +96,7 @@ TEST_VARIANT_EXPORT_ID=$(jq -r '.exportId' <<< "${TEST_PATIENT_VARIANT_EXPORT}")
 echo "${TEST_VARIANT_EXPORT_ID}"
 
 # ~ 1e ~
-# GET EXPORT ID
+# get export id
 TEST_VARIANT_EXPORT=$( \
   curl -H "${TOKEN_HEADER}" \
   -X GET "${API_ROOT}/patient_analyses/${TEST_ANALYSIS_ID}/molecular_variants/exports/${TEST_VARIANT_EXPORT_ID}" \
