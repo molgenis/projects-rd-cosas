@@ -2,7 +2,7 @@
 # FILE: alissa.py
 # AUTHOR: David Ruvolo
 # CREATED: 2022-04-19
-# MODIFIED: 2022-05-19
+# MODIFIED: 2023-01-13
 # PURPOSE: fetch data from alissa
 # STATUS: experimental
 # PACKAGES: cosas.api.alissa, dotenv, os, requests
@@ -27,18 +27,35 @@
 # are available in this python script.
 #//////////////////////////////////////////////////////////////////////////////
 
-from cosas.api.alissa import Alissa
+from cosas.alissa.client import Alissa
 from dotenv import load_dotenv
+from datetime import datetime
 from os import environ
+from tqdm import tqdm
 import requests
+import json
 load_dotenv()
+
+def to_json(path, data):
+  """Write data to json format"""
+  with open(path,'w') as file:
+    json.dump(data, file)
+  file.close()
+
+def now():
+  """Timestamp"""
+  return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+# define object to store logs
+messages = {'variantExportId': [], 'variantExportData': []}
 
 # Connect to the UMCG instance of Alissa Interpret
 #
 # NOTE: Credentials are stored in the vault, but you will need your own API
 # username and password. This information can be generated if you have been
-# given admin rights in Alissa.
-#   
+# given admin rights in Alissa. Contact agilent support if you have any
+# questions or if you encounter any issues.
+
 alissa = Alissa(
   host=environ['ALISSA_HOST'],
   clientId=environ['ALISSA_CLIENT_ID'],
@@ -47,6 +64,7 @@ alissa = Alissa(
   password=environ['ALISSA_API_PWD']
 )
 
+#///////////////////////////////////////////////////////////////////////////////
 
 # ~ 1 ~
 # GET PATIENTS
@@ -54,18 +72,28 @@ alissa = Alissa(
 # system. Add additional request paramaters as needed or filter data after
 # the request has completed.
 
+# ~ Standard Approach ~
 # for now, grab a subset patients using ISO 8601 date-time. Make sure you pick
 # a datetime range far enough in the past so it wont effect current records.
-patients = alissa.getPatients(
-  createdAfter="2020-02-25T00:00:00.000+00:00",
-  createdBefore="2020-02-26T00:00:00.000+00:00"
-)
+# patients = alissa.getPatients(
+#   createdAfter="2020-02-25T00:00:00.000+00:00",
+#   createdBefore="2020-02-26T00:00:00.000+00:00"
+# )
 
 # extract the identifiers. These values aren't the actual 'patient identifiers',
 # they are the internal record identifiers that Alissa generates. This is
 # required in order to retrieve any other information.
-patientIdentifiers=[patient['id'] for patient in patients]
+# patientIdentifiers=[patient['id'] for patient in patients]
 
+# ~ Manualy Approach ~
+# alternatively, manually enter IDs
+patientIdentifiers=[  ]
+
+patientInfo = []
+for id in tqdm(patientIdentifiers):
+  patientResponse = alissa.getPatientByInternalId(patientId=id)
+  if patientResponse:
+    patientInfo.append(patientResponse)
 
 # ~ 2 ~
 # GET ANALYSES BY PATIENT
@@ -79,15 +107,15 @@ patientIdentifiers=[patient['id'] for patient in patients]
 # aren't included in the remaining steps.
 
 analysesByPatient = []
-for id in patientIdentifiers:
-  response = alissa.getPatientAnalyses(patientId=id)
-  if response:
-    for analysis in response:
-      analysesByPatient.append({
-        'patientId': id,
-        'analysisId': analysis['id']
-      })
+for id in tqdm(patientIdentifiers):
+  analysisResponse = alissa.getPatientAnalyses(patientId=id)
+  if analysisResponse:
+    for analysis in analysisResponse:
+      analysis['analysisId'] = analysis['id']
+      del analysis['id']
+      analysesByPatient.append(analysis)
 
+#///////////////////////////////////////////////////////////////////////////////
             
 # ~ 3 ~
 # GET VARIANT EXPORT IDs
@@ -107,32 +135,32 @@ for id in patientIdentifiers:
 # remaining steps.
 
 variantExportsByAnalyses = []
-for row in analysesByPatient:
-    try:
-        response = alissa.getPatientVariantExportId(
-            analysisId=row['analysisId'],
-            markedForReview=True,
-            markedIncludeInReport=True
-        )
-    except requests.exceptions.HTTPError as error:
-        print(
-            'For patient',row['patientId'],', the analysisId',
-            row['analysisId'],'exists, but no information could be retrieved.'
-        )
-    if response:
-        if isinstance(response, dict):
-            variantExportsByAnalyses.append({
-                'patientId': row['patientId'],
-                'analysisId': row['analysisId'],
-                'exportId': response['exportId']
-            })
-        elif isinstance(response, list):
-            for record in response:
-                variantExportsByAnalyses.append({
-                    'patientId': row['patientId'],
-                    'analysisId': row['analysisId'],
-                    'exportId': record['exportId']
-                })
+for analysisRow in tqdm(analysesByPatient):
+  try:
+    variantResponse = alissa.getPatientVariantExportId(
+      analysisId=analysisRow['analysisId'],
+      markedForReview=True,
+      markedIncludeInReport=False
+    )
+    if variantResponse:
+      if isinstance(variantResponse, dict):
+        variantResponse['patientId'] = analysisRow['patientId']
+        variantResponse['analysisId'] = analysisRow['analysisId']
+        variantResponse['dateRetrieved'] = now()
+        variantExportsByAnalyses.append(variantResponse)
+      if isinstance(variantResponse, list):
+        for record in variantResponse:
+          record['patientId'] = analysisRow['patientId']
+          record['analysisId'] = analysisRow['analysisId']
+          record['dateRetreived'] = now()
+          variantExportsByAnalyses.append(record)
+  except requests.exceptions.HTTPError as error:
+    msg = f"For patient {analysisRow['patientId']} and analysis {analysisRow['analysisId']}, an ID exists, but no information could be retrieved."
+    if not (msg in messages['variantExportId']):
+      messages['variantExportId'].append(msg)
+      del msg
+
+#///////////////////////////////////////////////////////////////////////////////
 
 # ~ 4 ~
 # GET VARIANT EXPORT REPORTS
@@ -140,17 +168,34 @@ for row in analysesByPatient:
 # to retrieve the variant export report for the patient and analysis.
 
 variantExport = []
-for row in variantExportsByAnalyses[:2]:
-    try:
-        response = alissa.getPatientVariantExportData(
-            analysisId=row['analysisId'],
-            exportId=row['exportId']
-        )
-    except requests.exceptions.HTTPError as error:
-        print(
-            'For patient',row['patientId'],', the analysisId',
-            row['analysisId'],'and exportId exists, but something went wrong.'
-        )
-    
-    if response:
-        variantExport.extend(response)
+for variantRow in tqdm(variantExportsByAnalyses):
+  try:
+    exportResponse = alissa.getPatientVariantExportData(
+      analysisId=variantRow['analysisId'],
+      exportId=variantRow['exportId']
+    )
+    if exportResponse:
+      if isinstance(exportResponse, dict):
+        exportResponse['patientId'] = variantRow['patientId']
+        exportResponse['analysisId'] = variantRow['analysisId']
+        exportResponse['variantExportId'] = variantRow['exportId']
+        variantExport.append(export)
+      if isinstance(exportResponse, list):
+        for export in exportResponse:
+          export['patientId'] = variantRow['patientId']
+          export['analysisId'] = variantRow['analysisId']
+          export['variantExportId'] = variantRow['exportId']
+          variantExport.append(export)
+  except requests.exceptions.HTTPError as error:
+    msg=f"For patient {variantRow['patientId']} and analysis {variantRow['analysisId']}, an exportId exists, but no information could be retrieved."
+    if not (msg in messages['variantExportData']):
+      messages['variantExportData'].append(msg)
+
+#///////////////////////////////////////////////////////////////////////////////
+
+# save data
+to_json('private/alissa_export/2023_01_13/patients.json', patientInfo)
+to_json('private/alissa_export/2023_01_13/analyses.json', analysesByPatient)
+to_json('private/alissa_export/2023_01_13/variantIds.json', variantExportsByAnalyses)
+to_json('private/alissa_export/2023_01_13/variants.json', variantExport)
+to_json('private/alissa_export/2023_01_13/logs.json', messages)

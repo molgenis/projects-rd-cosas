@@ -110,6 +110,19 @@ class Alissa:
         response.raise_for_status()
         return response.json()
 
+    def getPatientByInternalId(self, patientId: str = None):
+        """Get Patient By ID
+        Retrieve patient information using Alissa's internal identifier for 
+        patients rather than accession number.
+        
+        @param patientId the unique internal identifier of a patient (Alissa ID)
+        @return json
+        """
+        url = f'{self.apiUrl}/patients/{patientId}'
+        response = self.session.get(url)
+        response.raise_for_status()
+        return response.json()
+
     def getPatients(
         self,
         accessionNumber: str = None,
