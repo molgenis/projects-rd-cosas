@@ -1,0 +1,302 @@
+#//////////////////////////////////////////////////////////////////////////////
+# FILE: alissa.yaml
+# AUTHOR: David Ruvolo
+# CREATED: 2023-01-26
+# MODIFIED: 2023-01-26
+# PURPOSE: EMX Package for Alissa Data
+# STATUS: in.progress
+# COMMENTS: NA
+#//////////////////////////////////////////////////////////////////////////////
+
+name: alissa
+label: Alissa Interpret
+description: Information for interacting with the Alissa Interpret API and variant exports
+date: 2023-01-26
+version: 0.9.0
+
+defaults:
+  dataType: string
+  visible: true
+  nillable: true
+  
+entities:
+
+  # @name alissa_patients
+  # @description this table will serve as the main 'controller' for the Alissa
+  #   scripts. This table will generate the necessary information for interacting
+  #   with the API.
+  - name: patients
+    label: Patient Information
+    description: Information about patients in Alissa
+    attributes:
+      - name: umcgNr
+        idAttribute: true
+        auto: true
+        nillable: false
+        lookupAttribute: true
+      - name: familieNr
+      - name: alissaInternalID
+      - name: accessionNr
+      - name: dateFirstRun
+      - name: dateLastUpdated
+      - name: status
+        dataType: compound
+      - name: hasError
+        dataType: bool
+        partOfAttribute: status
+      - name: errorType
+        partOfAttribute: status
+      - name: errorMessage
+        partOfAttribute: status
+      - name: comments
+        dataType: text
+        partOfAttribute: status
+  
+  - name: variantexports
+    label: Variant Exports
+    description: Export of variants information from Alissa
+    attributes:
+      - name: umcgNr
+      - name: patientId
+        description: Alissa's internal identifier for a patient
+      - name: analysisId
+        description: Alissa's internal identifier for an analysis
+      - name: variantExportId
+        description: "Alissa's internal identifier for a specific variant export. (This value is not static.)"
+        
+      - name: dateRetrieved
+        description: Date the variant information was retrieved
+        dataType: date
+
+      # patientinfo
+      - name: accessionNumber
+        description: the displayed patient identifier in Alissa. This is a string formated like so familyNr_UmcgNr.
+      - name: gender
+        description: gender reported in Alissa
+      - name: folderName
+
+      # analyses data
+      - name: analysisReference
+        description: identifier of an analysis
+      - name: analysisType
+        description: type of analysis indiciated in Alissa. Attached to analysisReference
+      - name: status
+        description: current status of the analyses. Attached to analysisReference
+      - name: domainName
+        description: attached to analysisReference
+      - name: genomeBuild
+        description: attached to analysisReference
+      - name: analysisPipelineName
+        description: attached to analysisReference
+      - name: classificationTreeName
+        description: attached to analysisReference
+      - name: targetPanelNames
+        description: attached to analysisReference
+
+      # variant data
+      - name: start
+      - name: stop
+      - name: gene
+      - name: reference
+      - name: allele1
+      - name: allele2
+      - name: alleleInScope
+      - name: allele1Frequency
+      - name: allele2Frequency
+      - name: allelicDepth1
+      - name: allelicDepth2
+      - name: readDepth
+      - name: type
+      - name: transcript
+      - name: location
+      - name: exon
+      - name: effect
+      - name: protein
+      - name: zygosity
+      - name: genotype
+      - name: chromosome
+      - name: chromosomeType
+      - name: toReview
+      - name: includeInReport
+      - name: variantAssessment
+      - name: variantAssessmentLabels
+      - name: variantAssessmentNotes
+      - name: thirdPartyStatus
+      - name: alleleType
+      - name: classification
+      - name: cnv
+      - name: cdna
+      
+      # flatten nested object: `databaseReferences`
+      - name: databaseReferences_dbSNP
+      - name: databaseReferences_omimRefs
+      - name: databaseReferences_omimMorbidRefs
+      
+      # flatten nested object: `classificationTreeLabelsScore`
+      - name: classificationTreeLabels
+      - name: classificationTreeScores
+      
+      - name: geneProfileReport
+      
+      # flatten nessted object: `customFields` ?
+      - name: customFields
+      
+      # flatten nested object: `externalDatabases`?
+      - name: '_1000_genomes_phase_1_allele_frequency_African_1000Gp1_FreqAFR'
+      - name:  '_1000_genomes_phase_1_allele_frequency_American_1000Gp1_FreqAMR'
+      - name:  '_1000_genomes_phase_1_allele_frequency_Asian_1000Gp1_FreqASN'
+      - name:  '_1000_genomes_phase_1_allele_frequency_European_1000Gp1_FreqEUR'
+      - name:  '_1000_genomes_phase_1_allele_frequency_all_1000Gp1_FreqAll'
+      - name:  '_1000_genomes_phase_3_allele_frequency_African_1000Gp3_FreqAFR'
+      - name:  '_1000_genomes_phase_3_allele_frequency_American_1000Gp3_FreqAMR'
+      - name:  '_1000_genomes_phase_3_allele_frequency_East_Asian_1000Gp3_FreqEAS'
+      - name:  '_1000_genomes_phase_3_allele_frequency_European_1000Gp3_FreqEUR'
+      - name:  '_1000_genomes_phase_3_allele_frequency_South_Asian_1000Gp3_FreqSAS'
+      - name:  '_1000_genomes_phase_3_allele_frequency_all_1000Gp3_FreqAll'
+      - name:  '_ALT_allele_depth_infoAltAD'
+      - name:  '_CIViC_Diagnostic_evidence_civicDiagnosticEvidence'
+      - name:  '_CIViC_Disease_civicDisease'
+      - name:  '_CIViC_Drugs_civicDrugs'
+      - name:  '_CIViC_Gene_civicGene'
+      - name:  '_CIViC_Predictive_evidence_civicPredictiveEvidence'
+      - name:  '_CIViC_Prognostic_evidence_civicPrognosticEvidence'
+      - name:  '_CIViC_Variant_civicVariant'
+      - name:  '_COSMIC_CGC_Cancer_syndrome_cgcCancerSyndrome'
+      - name:  '_COSMIC_CGC_Gene_cgcGene'
+      - name:  '_COSMIC_CGC_Germline_cgcGermline'
+      - name:  '_COSMIC_CGC_Molecular_genetics_cgcMolecularGenetics'
+      - name:  '_COSMIC_CGC_Other_syndrome_cgcOtherSyndrome'
+      - name:  '_COSMIC_CGC_Somatic_cgcSomatic'
+      - name:  '_COSMIC_CGC_Tissue_types_cgcTissueTypes'
+      - name:  '_COSMIC_CGC_Translocation_partner_cgcTranslocationPartner'
+      - name:  '_COSMIC_CGC_Tumor_types_Germline_cgcTumorTypesGermline'
+      - name:  '_COSMIC_CGC_Tumor_types_Somatic_cgcTumorTypesSomatic'
+      - name:  '_COSMIC_Id_cosmicId'
+      - name:  '_COSMIC_sample_count_cosmicSampleCount'
+      - name:  '_COSMIC_tumor_type_sample_count_cosmicTumorTypeSampleCount'
+      - name:  '_Call_quality_quality'
+      - name:  '_ClinVar_Id_clinVarId'
+      - name:  '_ClinVar_clinical_significance_clinVarClinicalSignificance'
+      - name:  '_ClinVar_disease_clinVarDisease'
+      - name:  '_ClinVar_disease_clinVarGeneDisease'
+      - name:  '_ClinVar_linkouts_clinVarLinkouts'
+      - name:  '_ESP6500_allele_frequency_African_American_ESP6500_alleleFrequencyAA'
+      - name:  '_ESP6500_allele_frequency_European_American_ESP6500_alleleFrequencyEA'
+      - name:  '_ESP6500_allele_frequency_all_ESP6500_alleleFrequencyAll'
+      - name:  '_ESP6500_genotype_frequency_African_American_ESP6500_genotypeFrequencyAA'
+      - name:  '_ESP6500_genotype_frequency_European_American_ESP6500_genotypeFrequencyEA'
+      - name:  '_ESP6500_genotype_frequency_all_ESP6500_genotypeFrequencyAll'
+      - name:  '_ExAC_allele_frequency_African_African_American_ExAC_alleleFrequencyAFR'
+      - name:  '_ExAC_allele_frequency_East_Asian_ExAC_alleleFrequencyEAS'
+      - name:  '_ExAC_allele_frequency_Finnish_ExAC_alleleFrequencyFIN'
+      - name:  '_ExAC_allele_frequency_Latino_ExAC_alleleFrequencyAMR'
+      - name:  '_ExAC_allele_frequency_Non_Finnish_European_ExAC_alleleFrequencyNFE'
+      - name:  '_ExAC_allele_frequency_South_Asian_ExAC_alleleFrequencySAS'
+      - name:  '_ExAC_allele_frequency_all_ExAC_alleleFrequencyAll'
+      - name:  '_ExAC_allele_frequency_other_ExAC_alleleFrequencyOTH'
+      - name:  '_ExAC_genotype_frequency_African_African_American_ExAC_genotypeFrequencyAFR'
+      - name:  '_ExAC_genotype_frequency_East_Asian_ExAC_genotypeFrequencyEAS'
+      - name:  '_ExAC_genotype_frequency_Finnish_ExAC_genotypeFrequencyFIN'
+      - name:  '_ExAC_genotype_frequency_Latino_ExAC_genotypeFrequencyAMR'
+      - name:  '_ExAC_genotype_frequency_Non_Finnish_European_ExAC_genotypeFrequencyNFE'
+      - name:  '_ExAC_genotype_frequency_South_Asian_ExAC_genotypeFrequencySAS'
+      - name:  '_ExAC_genotype_frequency_all_ExAC_genotypeFrequencyAll'
+      - name:  '_ExAC_genotype_frequency_other_ExAC_genotypeFrequencyOTH'
+      - name:  '_FATHMM_Score_FATHMMScore'
+      - name:  '_Filter_status_filter'
+      - name:  '_GERP_conservation_score_gerpConsScore'
+      - name:  '_GERP_RS_score_gerpPPRSScore'
+      - name:  '_GERP_neutral_rate_gerpPPNeutralRate'
+      - name:  '_Genotype_quality_infoGQ'
+      - name:  '_Grantham_distance_granthamDist'
+      - name:  '_HGMD_Confidence_hgmdConfidence'
+      - name:  '_HGMD_Disease_hgmdDisease'
+      - name:  '_HGMD_Match_hgmdMatch'
+      - name:  '_HGMD_Mutation_type_hgmdMutationType'
+      - name:  '_HGMD_PubMed_reference_hgmdPMID'
+      - name:  '_HGMD_Variant_type_hgmdVariantType'
+      - name:  '_HGMD_accession_number_hgmdAccession'
+      - name:  '_LRT_omega_LRTomega'
+      - name:  '_LRT_prediction_LRTprediction'
+      - name:  '_LRT_score_LRTscore'
+      - name:  '_Mapping_quality_infoMQ'
+      - name:  '_MutationAssessor_prediction_MutationAssessorPrediction'
+      - name:  '_MutationAssessor_score_MutationAssessorScore'
+      - name:  '_MutationTaster_prediction_MutationTasterPrediction'
+      - name:  '_MutationTaster_score_MutationTasterScore'
+      - name:  '_NCBI_gene_ID_clinVarGeneId'
+      - name:  '_OMIMR_Morbid_gene_MIM_omimMorbidGeneMIM'
+      - name:  '_OMIMR_Morbid_phenotype_omimMorbidPhenotype'
+      - name:  '_PHAST_conservation_score_phastCons'
+      - name:  '_PROVEAN_Score_PROVEANScore'
+      - name:  '_PROVEAN_prediction_PROVEANPrediction'
+      - name:  '_PhyloP_score_phyloP'
+      - name:  '_PolyPhen2_prediction_PPH2prediction'
+      - name:  '_PolyPhen2_prediction_HumDiv_PPH2HumDivPrediction'
+      - name:  '_PolyPhen2_prediction_HumVar_PPH2HumVarPrediction'
+      - name:  '_PolyPhen2_score_HumDiv_PPH2HumDivScore'
+      - name:  '_PolyPhen2_score_HumVar_PPH2HumVarScore'
+      - name:  '_Read_depth_infoDP'
+      - name:  '_SIFT_score_SIFTweight'
+      - name:  '_SiPhy_score_SiPhyScore'
+      - name:  '_dbSNP_151_allele_origin_rsAlleleOrigin'
+      - name:  '_dbSNP_151_average_heterozygosity_rsHeterozygosity'
+      - name:  '_dbSNP_151_build_created_rsBuildCreated'
+      - name:  '_dbSNP_151_build_last_updated_rsBuildUpdated'
+      - name:  '_dbSNP_151_clinical_significance_rsClinicalSignificance'
+      - name:  '_dbSNP_151_global_Minor_Allele_Frequency_rsMAF'
+      - name:  '_dbSNP_151_rsId_rsId'
+      - name:  '_dbSNP_151_suspect_false_snp_rsSuspectFalse'
+      - name:  '_dbSNP_151_validated_rsValidated'
+      - name:  '_gnomAD_allele_frequency_Admixed_American_gnomAD_alleleFrequencyAMR'
+      - name:  '_gnomAD_allele_frequency_African_African_American_gnomAD_alleleFrequencyAFR'
+      - name:  '_gnomAD_allele_frequency_Ashkenazi_Jewish_gnomAD_alleleFrequencyASJ'
+      - name:  '_gnomAD_allele_frequency_East_Asian_gnomAD_alleleFrequencyEAS'
+      - name:  '_gnomAD_allele_frequency_Finnish_gnomAD_alleleFrequencyFIN'
+      - name:  '_gnomAD_allele_frequency_Non_Finnish_European_gnomAD_alleleFrequencyNFE'
+      - name:  '_gnomAD_allele_frequency_South_Asian_gnomAD_alleleFrequencySAS'
+      - name:  '_gnomAD_allele_frequency_all_gnomAD_alleleFrequencyAll'
+      - name:  '_gnomAD_allele_frequency_other_gnomAD_alleleFrequencyOTH'
+      - name:  '_gnomAD_genotype_frequency_Admixed_American_gnomAD_genotypeFrequencyAMR'
+      - name:  '_gnomAD_genotype_frequency_African_African_American_gnomAD_genotypeFrequencyAFR'
+      - name:  '_gnomAD_genotype_frequency_Ashkenazi_Jewish_gnomAD_genotypeFrequencyASJ'
+      - name:  '_gnomAD_genotype_frequency_East_Asian_gnomAD_genotypeFrequencyEAS'
+      - name:  '_gnomAD_genotype_frequency_Finnish_gnomAD_genotypeFrequencyFIN'
+      - name:  '_gnomAD_genotype_frequency_Non_Finnish_European_gnomAD_genotypeFrequencyNFE'
+      - name:  '_gnomAD_genotype_frequency_South_Asian_gnomAD_genotypeFrequencySAS'
+      - name:  '_gnomAD_genotype_frequency_all_gnomAD_genotypeFrequencyAll'
+      - name:  '_gnomAD_genotype_frequency_other_gnomAD_genotypeFrequencyOTH'
+      
+      # flatten nested object: `platformDatasets`
+      - name: _BLOSUM45_BLOSUM45
+      - name: _BLOSUM62_BLOSUM62
+      - name: _BLOSUM80_BLOSUM80
+      - name: _Effect_codingEffect
+      - name: _Exon_exon
+      - name: _Gene_ensemblGene
+      - name: _Gene_gene
+      - name: _HGVS_cDNA_level_nomenclature_fullCNomen
+      - name: _HGVS_genomic_level_nomenclature_fullGNomen
+      - name: _HGVS_protein_level_nomenclature_fullPNomen
+      - name: _HGVS_protein_level_nomenclature_pNomen3LetterAA
+      - name: _Location_varLocation
+      - name: _Location_varLocationMito
+      - name: _Nearest_splice_site_type_nearestSSType
+      - name: _Positions_from_nearest_splice_site_distNearestSS
+      - name: _Protein_pNomen
+      - name: _RefSeqGene_refSeqGene
+      - name: _Reference_amino_acid_wtAA_1
+      - name: _Strand_strand
+      - name: _Sum_of_exon_lengths_transLength
+      - name: _Type_varType
+      - name: _Variant_amino_acid_varAA_1
+      - name: _cDNA_cNomen
+      
+      # extra column(s) for molgenis
+      - name: _id
+        description: auto generated row identifier
+        idAttribute: true
+        auto: true
+        nillable: false
+        lookupAttribute: true
+        tags: NCIT_C25364 http://purl.obolibrary.org/obo/NCIT_C25364
