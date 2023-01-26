@@ -17,3 +17,9 @@ portal.convert()
 portal.compileSemanticTags()
 portal.write(name="cosasportal", outDir="dist")
 
+
+# render alissa
+alissa = Convert(files = ['model/alissa.yaml'])
+alissa.convert()
+alissa.compileSemanticTags()
+alissa.write(name='alissa', outDir='dist')
