@@ -2,7 +2,7 @@
 #' FILE: cartagenia_query.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-03-23
-#' MODIFIED: 2022-10-10
+#' MODIFIED: 2023-01-30
 #' PURPOSE: run query for cartagenia data
 #' STATUS: stable
 #' PACKAGES: **see below**
@@ -19,13 +19,6 @@ import tempfile
 import pytz
 import csv
 import re
-
-# only for local dev
-# from dotenv import load_dotenv
-# from os import environ
-# load_dotenv()
-# apiUrl = environ['CNV_API_HOST']
-# apiToken = environ['CNV_API_TOKEN']
 
 def now():
   return datetime.datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime('%H:%M:%S.%f')[:-3]
@@ -84,11 +77,11 @@ class Cartagenia:
   def __init__(self, url, token):
     self.session = requests.Session()
     self._api_url = url
-    self._api_token = token
+    self._api_token = token 
+    self._headers = {'x-api-key': self._api_token}
 
   def getData(self):
-    headers = {'x-api-key': self._api_token}
-    response = self.session.get(url=self._api_url, headers=headers)
+    response = self.session.get(url=self._api_url, headers=self._headers)
     response.raise_for_status()
     data = response.json()
     if 'Output' not in data:
@@ -128,30 +121,21 @@ def extractIdsFromValue(value):
 # ~ 0 ~
 # init db connections
 
+# ~ For Deployment ~
 cosas = Molgenis(url='http://localhost/api/', token = '${molgenisToken}')
+apiUrl = cosas.get('sys_sec_Token',attributes='token',q='description=="cartagenia-api-url"')[0]['token']
+apiToken = cosas.get('sys_sec_Token',attributes='token',q='description=="cartagenia-api-token"')[0]['token']
+cartagenia = Cartagenia(url = apiUrl, token = apiToken)
 
-# for local dev
+# ~ for local development ~
+# After connecting to the database, run the apiUrl and apiToken lines
 # from dotenv import load_dotenv
 # from os import environ
 # load_dotenv()
 # cosas = Molgenis(url=environ['MOLGENIS_ACC_HOST'])
 # cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
+# cartagenia = Cartagenia(apiUrl, apiToken)
 
-# get login information for Cartagenia
-# get login information for Cartagenia
-apiUrl = cosas.get(
-  entity = 'sys_sec_Token',
-  attributes='token',
-  q='description=="cartagenia-api-url"'
-)[0]['token']
-
-apiToken = cosas.get(
-  entity = 'sys_sec_Token',
-  attributes='token',
-  q='description=="cartagenia-api-token"'
-)[0]['token']
-
-cartagenia = Cartagenia(url = apiUrl, token = apiToken)
 
 # ~ 1 ~
 # Build Phenotype Dataset
@@ -224,13 +208,13 @@ benchcnv = rawBenchCnv[f.keep, :][
 # Transform columns
 print2('Formatting columns....')
 
-# format IDs: remove white space
+# format IDs: trim, remove white space, and make sure string is uppercased
 benchcnv['primid'] = dt.Frame([
-  d.strip().replace(' ','')
+  d.strip().replace(' ','').upper()
   for d in benchcnv['primid'].to_list()[0]
 ])
 
-# Format HPO terms
+# Format HPO terms: split, trim, and get unique values
 benchcnv['phenotype'] = dt.Frame([
   ','.join(list(set(d.strip().split())))
   for d in benchcnv['phenotype'].to_list()[0]
@@ -245,19 +229,16 @@ benchcnv['isFetus'] = dt.Frame([
 # extract subjectID, belongsToMother (maternal ID), and alternative IDs from
 # Cartagenia identifier 'primid'.
 benchcnv[['subjectID','belongsToMother','alternativeIdentifiers']] = dt.Frame([
-  extractIdsFromValue(d[0].strip())
-  if d[1] else (d[0],None,None)
-  for d in benchcnv[:, (f.primid, f.isFetus)].to_tuples()
+  extractIdsFromValue(row[0].strip())
+  if row[1] else (row[0],None,None)
+  for row in benchcnv[:, (f.primid, f.isFetus)].to_tuples()
 ])
 
 # check for duplicate entries
 if dt.unique(benchcnv['primid']).nrows != benchcnv.nrows:
   raise SystemError(
     'Total number of distinct identifiers ({}) must match row numbers ({})'
-    .format(
-      dt.unique(benchcnv['primid']).nrows,
-      benchcnv.nrows
-    )
+    .format(dt.unique(benchcnv['primid']).nrows, benchcnv.nrows)
   )
 
 # ~ 1e ~
