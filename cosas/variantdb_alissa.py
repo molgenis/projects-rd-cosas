@@ -2,7 +2,7 @@
 # FILE: alissa.py
 # AUTHOR: David Ruvolo
 # CREATED: 2022-04-19
-# MODIFIED: 2023-01-26
+# MODIFIED: 2023-02-07
 # PURPOSE: fetch data from alissa
 # STATUS: experimental
 # PACKAGES: cosas.api.alissa, dotenv, os, requests
@@ -31,14 +31,23 @@ from cosas.api.molgenis2 import Molgenis
 from cosas.alissa.client import Alissa
 from dotenv import load_dotenv
 from datetime import datetime
-from datatable import dt, f
+from datatable import dt, f, as_type
 from os import environ
 from tqdm import tqdm
 import requests
+import json
+import re
 load_dotenv()
 
 def now():
   return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+  
+def today():
+  return datetime.today().strftime('%Y-%m-%d')
+  
+def cleanKeyName(value):
+  val = re.sub(r'[()\+]', '', value)
+  return re.sub(r'(\s+|[-/])', '_', val)
 
 # Connect to COSAS database
 cosas = Molgenis(environ['MOLGENIS_ACC_HOST'])
@@ -170,14 +179,150 @@ for variantRow in tqdm(variantExportsByAnalyses):
   except requests.exceptions.HTTPError as error:
     pass
 
+# save to file so you don't have to rerun the script
+# with open('private/alissa_variant_export_20220206.json', 'w') as file:
+#   json.dump(variantExport,file)
 
 #///////////////////////////////////////////////////////////////////////////////
 
-test = variantExport[0]
+# ~ 5 ~
+# PROCESS VARIANT EXPORT DATA
+# Even though you may have retrieved a variant export identifier for all
+# analyses, variant data may not be retrievable. If this is the case, note the
+# error and store it in the table.
 
-for variant in test:
-  if not bool(variant['variantAssessmentLabels']):
-    variant['variantAssessmentLabels'] = None
+# with open('private/alissa_variant_export_20220206.json', 'r') as file:
+#   variantExport = json.load(file)
+# file.close()
+
+variantdata = []
+
+for row in tqdm(variantExport):
   
-  if not bool(variant['variantAssessmentNotes']):
-    variant['variantAssessmentNotes'] = None
+  # log errors in the table
+  if 'errorCode' in row.keys():
+    newRow = {
+      'patientId': row['patientId'],
+      'analysisId': row['analysisId'],
+      'variantExportId': row['variantExportId'],
+      'hasError': True,
+      'error.type': row['errorCode'],
+      'dateFirstRun': today(),
+      'dateLastUpdated': today(),
+      'comments': row['errorMessage']
+    }
+    variantdata.append(newRow)
+    
+  # process results
+  else:
+    newRow = row
+    if not bool(newRow['variantAssessmentLabels']):
+      newRow['variantAssessmentLabels'] = None
+    
+    if not bool(newRow['variantAssessmentNotes']):
+      newRow['variantAssessmentNotes'] = None
+    
+    # flatten databaseReferences
+    if 'databaseReferences' in newRow:
+      if bool(newRow['databaseReferences']):
+        for key in newRow['databaseReferences'].keys():
+          newRow[f'databaseReferences_{key}'] = newRow['databaseReferences'][key]
+        del newRow['databaseReferences']
+    
+    # flatten classification tree labels
+    if 'classificationTreeLabelsScore' in newRow:
+      if bool(newRow['classificationTreeLabelsScore']):
+        newRow['classificationTreeLabels'] = newRow['classificationTreeLabelsScore']['labels']
+        newRow['classificationTreeScores'] = newRow['classificationTreeLabelsScore']['score']
+        del newRow['classificationTreeLabelsScore']
+      
+    # for now, convert customfields to a json stringified object
+    if 'customFields' in newRow:
+      if bool(newRow['customFields']):
+        newRow['customFields'] = json.dumps(newRow['customFields'])
+    
+    # flatten externalDatabases
+    if 'externalDatabases' in newRow:
+      if bool(newRow['externalDatabases']):
+        for key in newRow['externalDatabases'].keys():
+          newKey = cleanKeyName(key)
+          newRow[f'_{newKey}'] = newRow['externalDatabases'][key]
+        del newRow['externalDatabases']
+    
+    # flatten platformDatasets
+    if 'platformDatasets' in newRow:
+      if bool(newRow['platformDatasets']):
+        for key in newRow['platformDatasets'].keys():
+          newKey = cleanKeyName(key)
+          newRow[f'_{newKey}'] = newRow['platformDatasets'][key]
+        del newRow['platformDatasets']
+  
+    # set api records
+    newRow['hasError'] = False
+    newRow['dateFirstRun'] = today()
+    newRow['dateLastUpdated'] = today()
+
+    variantdata.append(newRow)
+    
+# convert to datatable object
+variantsDT = dt.Frame(variantdata)
+variantsDT[:, dt.update(patientId=as_type(f.patientId, str))]
+
+#///////////////////////////////////////////////////////////////////////////////
+
+# ~ 6 ~ 
+# Merge datasets
+
+# ~ 6a ~
+# merge patient info
+patientIDs = patientsDT['alissaInternalID'].to_list()[0]
+variantPatientIDs = variantsDT['patientId'].to_list()[0]
+
+for id in tqdm(variantPatientIDs):
+  if id in patientIDs:
+    refRow = patientsDT[f.alissaInternalID==id, :]
+    variantsDT[f.patientId==id,'umcgNr'] = refRow['umcgNr'].to_list()[0]
+    variantsDT[f.patientId==id,'accessionNumber'] = refRow['accessionNr'].to_list()[0]
+  else:
+    raise SystemError(f'Error: {id} not found in patients dataset')
+
+# ~ 6b ~
+# merge analysis info
+
+# prep analyses dataset
+for row in analysesByPatient:
+  if 'targetPanelNames' in row:
+    if isinstance(row['targetPanelNames'], list):
+      row['targetPanelNames'] = ','.join(row['targetPanelNames'])
+analysisDT = dt.Frame(analysesByPatient)
+
+
+analysisDT[:, dt.update(analysisId = as_type(f.analysisId, str))]
+variantsDT[:, dt.update(analysisId = as_type(f.analysisId, str))]
+
+analysisIDs = analysisDT['analysisId'].to_list()[0]
+variantAnalysisIDs = variantsDT['analysisId'].to_list()[0]
+
+
+for id in tqdm(variantAnalysisIDs):
+  if id in analysisIDs:
+    refRow = analysisDT[f.analysisId==id,:]
+    variantsDT[f.analysisId==id,'analysisReference'] = refRow['reference'].to_list()[0]
+    variantsDT[f.analysisId==id,'analysisType'] = refRow['analysisType'].to_list()[0]
+    variantsDT[f.analysisId==id,'status'] = refRow['status'].to_list()[0]
+    variantsDT[f.analysisId==id,'domainName'] = refRow['domainName'].to_list()[0]
+    variantsDT[f.analysisId==id,'genomeBuild'] = refRow['genomeBuild'].to_list()[0]
+    variantsDT[f.analysisId==id,'analysisPipelineName'] = refRow['analysisPipelineName'].to_list()[0]
+    variantsDT[f.analysisId==id,'classificationTreeName'] = refRow['classificationTreeName'].to_list()[0]
+    variantsDT[f.analysisId==id,'targetPanelNames'] = refRow['targetPanelNames'].to_list()[0]
+  else:
+    raise SystemError(f"Error '{id}' not found in analysis dataset")
+
+variantsDT['dateRetrieved'] = today()
+
+# import 
+# cosas.delete('alissa_variantexports')
+cosas.importDatatableAsCsv(
+  pkg_entity='alissa_variantexports',
+  data = variantsDT
+)
