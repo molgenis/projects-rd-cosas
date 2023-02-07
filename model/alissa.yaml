@@ -11,8 +11,8 @@
 name: alissa
 label: Alissa Interpret
 description: Information for interacting with the Alissa Interpret API and variant exports
-date: 2023-01-26
-version: 0.9.0
+date: 2023-02-07
+version: 0.9.2
 
 defaults:
   dataType: string
@@ -119,6 +119,7 @@ entities:
       - name: toReview
       - name: includeInReport
       - name: variantAssessment
+        dataType: text
       - name: variantAssessmentLabels
       - name: variantAssessmentNotes
       - name: thirdPartyStatus
@@ -128,169 +129,335 @@ entities:
       - name: cdna
       
       # flatten nested object: `databaseReferences`
+      - name: databaseReferences
+        dataType: compound
       - name: databaseReferences_dbSNP
+        partOfAttribute: databaseReferences
       - name: databaseReferences_omimRefs
+        partOfAttribute: databaseReferences
       - name: databaseReferences_omimMorbidRefs
+        partOfAttribute: databaseReferences
       
       # flatten nested object: `classificationTreeLabelsScore`
       - name: classificationTreeLabels
       - name: classificationTreeScores
       
       - name: geneProfileReport
+        dataType: text
       
       # flatten nessted object: `customFields` ?
       - name: customFields
+        dataType: text
       
       # flatten nested object: `externalDatabases`?
+      - name: externalDatabases
+        dataType: compound
       - name: '_1000_genomes_phase_1_allele_frequency_African_1000Gp1_FreqAFR'
+        partOfAttribute: externalDatabases
       - name:  '_1000_genomes_phase_1_allele_frequency_American_1000Gp1_FreqAMR'
+        partOfAttribute: externalDatabases
       - name:  '_1000_genomes_phase_1_allele_frequency_Asian_1000Gp1_FreqASN'
+        partOfAttribute: externalDatabases
       - name:  '_1000_genomes_phase_1_allele_frequency_European_1000Gp1_FreqEUR'
+        partOfAttribute: externalDatabases
       - name:  '_1000_genomes_phase_1_allele_frequency_all_1000Gp1_FreqAll'
+        partOfAttribute: externalDatabases
       - name:  '_1000_genomes_phase_3_allele_frequency_African_1000Gp3_FreqAFR'
+        partOfAttribute: externalDatabases
       - name:  '_1000_genomes_phase_3_allele_frequency_American_1000Gp3_FreqAMR'
+        partOfAttribute: externalDatabases
       - name:  '_1000_genomes_phase_3_allele_frequency_East_Asian_1000Gp3_FreqEAS'
+        partOfAttribute: externalDatabases
       - name:  '_1000_genomes_phase_3_allele_frequency_European_1000Gp3_FreqEUR'
+        partOfAttribute: externalDatabases
       - name:  '_1000_genomes_phase_3_allele_frequency_South_Asian_1000Gp3_FreqSAS'
+        partOfAttribute: externalDatabases
       - name:  '_1000_genomes_phase_3_allele_frequency_all_1000Gp3_FreqAll'
+        partOfAttribute: externalDatabases
       - name:  '_ALT_allele_depth_infoAltAD'
+        partOfAttribute: externalDatabases
       - name:  '_CIViC_Diagnostic_evidence_civicDiagnosticEvidence'
+        partOfAttribute: externalDatabases
       - name:  '_CIViC_Disease_civicDisease'
+        partOfAttribute: externalDatabases
       - name:  '_CIViC_Drugs_civicDrugs'
+        partOfAttribute: externalDatabases
       - name:  '_CIViC_Gene_civicGene'
+        partOfAttribute: externalDatabases
       - name:  '_CIViC_Predictive_evidence_civicPredictiveEvidence'
+        partOfAttribute: externalDatabases
       - name:  '_CIViC_Prognostic_evidence_civicPrognosticEvidence'
+        partOfAttribute: externalDatabases
       - name:  '_CIViC_Variant_civicVariant'
+        partOfAttribute: externalDatabases
       - name:  '_COSMIC_CGC_Cancer_syndrome_cgcCancerSyndrome'
+        partOfAttribute: externalDatabases
       - name:  '_COSMIC_CGC_Gene_cgcGene'
+        partOfAttribute: externalDatabases
       - name:  '_COSMIC_CGC_Germline_cgcGermline'
+        partOfAttribute: externalDatabases
       - name:  '_COSMIC_CGC_Molecular_genetics_cgcMolecularGenetics'
+        partOfAttribute: externalDatabases
       - name:  '_COSMIC_CGC_Other_syndrome_cgcOtherSyndrome'
+        partOfAttribute: externalDatabases
       - name:  '_COSMIC_CGC_Somatic_cgcSomatic'
+        partOfAttribute: externalDatabases
       - name:  '_COSMIC_CGC_Tissue_types_cgcTissueTypes'
+        partOfAttribute: externalDatabases
       - name:  '_COSMIC_CGC_Translocation_partner_cgcTranslocationPartner'
+        partOfAttribute: externalDatabases
       - name:  '_COSMIC_CGC_Tumor_types_Germline_cgcTumorTypesGermline'
+        partOfAttribute: externalDatabases
       - name:  '_COSMIC_CGC_Tumor_types_Somatic_cgcTumorTypesSomatic'
+        partOfAttribute: externalDatabases
       - name:  '_COSMIC_Id_cosmicId'
+        partOfAttribute: externalDatabases
       - name:  '_COSMIC_sample_count_cosmicSampleCount'
+        partOfAttribute: externalDatabases
       - name:  '_COSMIC_tumor_type_sample_count_cosmicTumorTypeSampleCount'
+        partOfAttribute: externalDatabases
       - name:  '_Call_quality_quality'
+        partOfAttribute: externalDatabases
       - name:  '_ClinVar_Id_clinVarId'
+        partOfAttribute: externalDatabases
       - name:  '_ClinVar_clinical_significance_clinVarClinicalSignificance'
+        dataType: text
+        partOfAttribute: externalDatabases
       - name:  '_ClinVar_disease_clinVarDisease'
+        dataType: text
+        partOfAttribute: externalDatabases
       - name:  '_ClinVar_disease_clinVarGeneDisease'
+        dataType: text
+        partOfAttribute: externalDatabases
       - name:  '_ClinVar_linkouts_clinVarLinkouts'
+        dataType: text
+        partOfAttribute: externalDatabases
       - name:  '_ESP6500_allele_frequency_African_American_ESP6500_alleleFrequencyAA'
+        partOfAttribute: externalDatabases
       - name:  '_ESP6500_allele_frequency_European_American_ESP6500_alleleFrequencyEA'
+        partOfAttribute: externalDatabases
       - name:  '_ESP6500_allele_frequency_all_ESP6500_alleleFrequencyAll'
+        partOfAttribute: externalDatabases
       - name:  '_ESP6500_genotype_frequency_African_American_ESP6500_genotypeFrequencyAA'
+        partOfAttribute: externalDatabases
       - name:  '_ESP6500_genotype_frequency_European_American_ESP6500_genotypeFrequencyEA'
+        partOfAttribute: externalDatabases
       - name:  '_ESP6500_genotype_frequency_all_ESP6500_genotypeFrequencyAll'
+        partOfAttribute: externalDatabases
       - name:  '_ExAC_allele_frequency_African_African_American_ExAC_alleleFrequencyAFR'
+        partOfAttribute: externalDatabases
       - name:  '_ExAC_allele_frequency_East_Asian_ExAC_alleleFrequencyEAS'
+        partOfAttribute: externalDatabases
       - name:  '_ExAC_allele_frequency_Finnish_ExAC_alleleFrequencyFIN'
+        partOfAttribute: externalDatabases
       - name:  '_ExAC_allele_frequency_Latino_ExAC_alleleFrequencyAMR'
+        partOfAttribute: externalDatabases
       - name:  '_ExAC_allele_frequency_Non_Finnish_European_ExAC_alleleFrequencyNFE'
+        partOfAttribute: externalDatabases
       - name:  '_ExAC_allele_frequency_South_Asian_ExAC_alleleFrequencySAS'
+        partOfAttribute: externalDatabases
       - name:  '_ExAC_allele_frequency_all_ExAC_alleleFrequencyAll'
+        partOfAttribute: externalDatabases
       - name:  '_ExAC_allele_frequency_other_ExAC_alleleFrequencyOTH'
+        partOfAttribute: externalDatabases
       - name:  '_ExAC_genotype_frequency_African_African_American_ExAC_genotypeFrequencyAFR'
+        partOfAttribute: externalDatabases
       - name:  '_ExAC_genotype_frequency_East_Asian_ExAC_genotypeFrequencyEAS'
+        partOfAttribute: externalDatabases
       - name:  '_ExAC_genotype_frequency_Finnish_ExAC_genotypeFrequencyFIN'
+        partOfAttribute: externalDatabases
       - name:  '_ExAC_genotype_frequency_Latino_ExAC_genotypeFrequencyAMR'
+        partOfAttribute: externalDatabases
       - name:  '_ExAC_genotype_frequency_Non_Finnish_European_ExAC_genotypeFrequencyNFE'
+        partOfAttribute: externalDatabases
       - name:  '_ExAC_genotype_frequency_South_Asian_ExAC_genotypeFrequencySAS'
+        partOfAttribute: externalDatabases
       - name:  '_ExAC_genotype_frequency_all_ExAC_genotypeFrequencyAll'
+        partOfAttribute: externalDatabases
       - name:  '_ExAC_genotype_frequency_other_ExAC_genotypeFrequencyOTH'
+        partOfAttribute: externalDatabases
       - name:  '_FATHMM_Score_FATHMMScore'
+        partOfAttribute: externalDatabases
       - name:  '_Filter_status_filter'
+        partOfAttribute: externalDatabases
       - name:  '_GERP_conservation_score_gerpConsScore'
+        partOfAttribute: externalDatabases
       - name:  '_GERP_RS_score_gerpPPRSScore'
+        partOfAttribute: externalDatabases
       - name:  '_GERP_neutral_rate_gerpPPNeutralRate'
+        partOfAttribute: externalDatabases
       - name:  '_Genotype_quality_infoGQ'
+        partOfAttribute: externalDatabases
       - name:  '_Grantham_distance_granthamDist'
+        partOfAttribute: externalDatabases
       - name:  '_HGMD_Confidence_hgmdConfidence'
+        partOfAttribute: externalDatabases
       - name:  '_HGMD_Disease_hgmdDisease'
+        dataType: text
+        partOfAttribute: externalDatabases
       - name:  '_HGMD_Match_hgmdMatch'
+        partOfAttribute: externalDatabases
       - name:  '_HGMD_Mutation_type_hgmdMutationType'
+        partOfAttribute: externalDatabases
       - name:  '_HGMD_PubMed_reference_hgmdPMID'
+        dataType: text
+        partOfAttribute: externalDatabases
       - name:  '_HGMD_Variant_type_hgmdVariantType'
+        partOfAttribute: externalDatabases
       - name:  '_HGMD_accession_number_hgmdAccession'
+        partOfAttribute: externalDatabases
       - name:  '_LRT_omega_LRTomega'
+        partOfAttribute: externalDatabases
       - name:  '_LRT_prediction_LRTprediction'
+        partOfAttribute: externalDatabases
       - name:  '_LRT_score_LRTscore'
+        partOfAttribute: externalDatabases
       - name:  '_Mapping_quality_infoMQ'
+        partOfAttribute: externalDatabases
       - name:  '_MutationAssessor_prediction_MutationAssessorPrediction'
+        partOfAttribute: externalDatabases
       - name:  '_MutationAssessor_score_MutationAssessorScore'
+        partOfAttribute: externalDatabases
       - name:  '_MutationTaster_prediction_MutationTasterPrediction'
+        partOfAttribute: externalDatabases
       - name:  '_MutationTaster_score_MutationTasterScore'
+        partOfAttribute: externalDatabases
       - name:  '_NCBI_gene_ID_clinVarGeneId'
+        partOfAttribute: externalDatabases
       - name:  '_OMIMR_Morbid_gene_MIM_omimMorbidGeneMIM'
+        dataType: text
+        partOfAttribute: externalDatabases
       - name:  '_OMIMR_Morbid_phenotype_omimMorbidPhenotype'
+        dataType: text
+        partOfAttribute: externalDatabases
       - name:  '_PHAST_conservation_score_phastCons'
+        partOfAttribute: externalDatabases
       - name:  '_PROVEAN_Score_PROVEANScore'
+        partOfAttribute: externalDatabases
       - name:  '_PROVEAN_prediction_PROVEANPrediction'
+        partOfAttribute: externalDatabases
       - name:  '_PhyloP_score_phyloP'
+        partOfAttribute: externalDatabases
       - name:  '_PolyPhen2_prediction_PPH2prediction'
+        partOfAttribute: externalDatabases
       - name:  '_PolyPhen2_prediction_HumDiv_PPH2HumDivPrediction'
+        partOfAttribute: externalDatabases
       - name:  '_PolyPhen2_prediction_HumVar_PPH2HumVarPrediction'
+        partOfAttribute: externalDatabases
       - name:  '_PolyPhen2_score_HumDiv_PPH2HumDivScore'
+        partOfAttribute: externalDatabases
       - name:  '_PolyPhen2_score_HumVar_PPH2HumVarScore'
+        partOfAttribute: externalDatabases
       - name:  '_Read_depth_infoDP'
+        partOfAttribute: externalDatabases
       - name:  '_SIFT_score_SIFTweight'
+        partOfAttribute: externalDatabases
       - name:  '_SiPhy_score_SiPhyScore'
+        partOfAttribute: externalDatabases
       - name:  '_dbSNP_151_allele_origin_rsAlleleOrigin'
+        partOfAttribute: externalDatabases
       - name:  '_dbSNP_151_average_heterozygosity_rsHeterozygosity'
+        partOfAttribute: externalDatabases
       - name:  '_dbSNP_151_build_created_rsBuildCreated'
+        partOfAttribute: externalDatabases
       - name:  '_dbSNP_151_build_last_updated_rsBuildUpdated'
+        partOfAttribute: externalDatabases
       - name:  '_dbSNP_151_clinical_significance_rsClinicalSignificance'
+        partOfAttribute: externalDatabases
       - name:  '_dbSNP_151_global_Minor_Allele_Frequency_rsMAF'
+        partOfAttribute: externalDatabases
       - name:  '_dbSNP_151_rsId_rsId'
+        partOfAttribute: externalDatabases
       - name:  '_dbSNP_151_suspect_false_snp_rsSuspectFalse'
+        partOfAttribute: externalDatabases
       - name:  '_dbSNP_151_validated_rsValidated'
+        partOfAttribute: externalDatabases
       - name:  '_gnomAD_allele_frequency_Admixed_American_gnomAD_alleleFrequencyAMR'
+        partOfAttribute: externalDatabases
       - name:  '_gnomAD_allele_frequency_African_African_American_gnomAD_alleleFrequencyAFR'
+        partOfAttribute: externalDatabases
       - name:  '_gnomAD_allele_frequency_Ashkenazi_Jewish_gnomAD_alleleFrequencyASJ'
+        partOfAttribute: externalDatabases
       - name:  '_gnomAD_allele_frequency_East_Asian_gnomAD_alleleFrequencyEAS'
+        partOfAttribute: externalDatabases
       - name:  '_gnomAD_allele_frequency_Finnish_gnomAD_alleleFrequencyFIN'
+        partOfAttribute: externalDatabases
       - name:  '_gnomAD_allele_frequency_Non_Finnish_European_gnomAD_alleleFrequencyNFE'
+        partOfAttribute: externalDatabases
       - name:  '_gnomAD_allele_frequency_South_Asian_gnomAD_alleleFrequencySAS'
+        partOfAttribute: externalDatabases
       - name:  '_gnomAD_allele_frequency_all_gnomAD_alleleFrequencyAll'
+        partOfAttribute: externalDatabases
       - name:  '_gnomAD_allele_frequency_other_gnomAD_alleleFrequencyOTH'
+        partOfAttribute: externalDatabases
       - name:  '_gnomAD_genotype_frequency_Admixed_American_gnomAD_genotypeFrequencyAMR'
+        partOfAttribute: externalDatabases
       - name:  '_gnomAD_genotype_frequency_African_African_American_gnomAD_genotypeFrequencyAFR'
+        partOfAttribute: externalDatabases
       - name:  '_gnomAD_genotype_frequency_Ashkenazi_Jewish_gnomAD_genotypeFrequencyASJ'
+        partOfAttribute: externalDatabases
       - name:  '_gnomAD_genotype_frequency_East_Asian_gnomAD_genotypeFrequencyEAS'
+        partOfAttribute: externalDatabases
       - name:  '_gnomAD_genotype_frequency_Finnish_gnomAD_genotypeFrequencyFIN'
+        partOfAttribute: externalDatabases
       - name:  '_gnomAD_genotype_frequency_Non_Finnish_European_gnomAD_genotypeFrequencyNFE'
+        partOfAttribute: externalDatabases
       - name:  '_gnomAD_genotype_frequency_South_Asian_gnomAD_genotypeFrequencySAS'
+        partOfAttribute: externalDatabases
       - name:  '_gnomAD_genotype_frequency_all_gnomAD_genotypeFrequencyAll'
+        partOfAttribute: externalDatabases
       - name:  '_gnomAD_genotype_frequency_other_gnomAD_genotypeFrequencyOTH'
+        partOfAttribute: externalDatabases
       
       # flatten nested object: `platformDatasets`
+      - name: platformDatasets
+        dataType: compound
       - name: _BLOSUM45_BLOSUM45
+        partOfAttribute: platformDatasets
       - name: _BLOSUM62_BLOSUM62
+        partOfAttribute: platformDatasets
       - name: _BLOSUM80_BLOSUM80
+        partOfAttribute: platformDatasets
       - name: _Effect_codingEffect
+        partOfAttribute: platformDatasets
       - name: _Exon_exon
+        partOfAttribute: platformDatasets
       - name: _Gene_ensemblGene
+        partOfAttribute: platformDatasets
       - name: _Gene_gene
+        partOfAttribute: platformDatasets
       - name: _HGVS_cDNA_level_nomenclature_fullCNomen
+        partOfAttribute: platformDatasets
       - name: _HGVS_genomic_level_nomenclature_fullGNomen
+        partOfAttribute: platformDatasets
       - name: _HGVS_protein_level_nomenclature_fullPNomen
+        partOfAttribute: platformDatasets
       - name: _HGVS_protein_level_nomenclature_pNomen3LetterAA
+        partOfAttribute: platformDatasets
       - name: _Location_varLocation
+        partOfAttribute: platformDatasets
       - name: _Location_varLocationMito
+        partOfAttribute: platformDatasets
       - name: _Nearest_splice_site_type_nearestSSType
+        partOfAttribute: platformDatasets
       - name: _Positions_from_nearest_splice_site_distNearestSS
+        partOfAttribute: platformDatasets
       - name: _Protein_pNomen
+        partOfAttribute: platformDatasets
       - name: _RefSeqGene_refSeqGene
+        partOfAttribute: platformDatasets
       - name: _Reference_amino_acid_wtAA_1
+        partOfAttribute: platformDatasets
       - name: _Strand_strand
+        partOfAttribute: platformDatasets
       - name: _Sum_of_exon_lengths_transLength
+        partOfAttribute: platformDatasets
       - name: _Type_varType
+        partOfAttribute: platformDatasets
       - name: _Variant_amino_acid_varAA_1
+        partOfAttribute: platformDatasets
       - name: _cDNA_cNomen
+        partOfAttribute: platformDatasets
       
       # extra column(s) for molgenis
       - name: _id
@@ -300,3 +467,21 @@ entities:
         nillable: false
         lookupAttribute: true
         tags: NCIT_C25364 http://purl.obolibrary.org/obo/NCIT_C25364
+        
+      # api information
+      - name: api
+        dataType: compound
+      - name: dateFirstRun
+        partOfAttribute: api
+      - name: dateLastUpdated
+        partOfAttribute: api
+      - name: hasError
+        dataType: bool
+        partOfAttribute: api
+      - name: errorType
+        partOfAttribute: api
+      - name: errorMessage
+        partOfAttribute: api
+      - name: comments
+        dataType: text
+        partOfAttribute: api
