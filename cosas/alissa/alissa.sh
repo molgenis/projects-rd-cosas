@@ -36,70 +36,131 @@ ACCESS_TOKEN=$(jq -r '.access_token' <<< "${TOKEN}")
 TOKEN_HEADER="Authorization: ${TOKEN_TYPE} ${ACCESS_TOKEN}"
 echo "${TOKEN_HEADER}"
 
-#//////////////////////////////////////
+# //////////////////////////////////////
 
-# ~ 1 ~
-# For the test, extract one subject ID, one analysis ID, and one export ID.
+# SET PATIENT ID and grab data
+patientID=''
+patientData=$(curl -H "${TOKEN_HEADER}" -X GET "${API_ROOT}/patients/${patientID}" | jq '.' ) 
 
-# ~ 1a ~
-# Pull a snapshop of patients in the test environment
-createdBefore="2021-02-20T00:00:00.000Z"
-createdAfter="2021-02-18T00:00:00.000Z"
-QUERY="createdAfter=${createdAfter}&createdBefore=${createdBefore}"
-PATIENTS=$( curl -H "${TOKEN_HEADER}" -X GET "${API_ROOT}/patients?${QUERY}" )
-echo "${PATIENTS}"
+outputDir="private/alissa_export/${patientID}"
+if [ ! -d $"${outputDir}" ]; then
+  mkdir "${outputDir}"
+fi
 
-PATIENT_IDS=$(jq -r '.[].id' <<< "${PATIENTS}")
-echo "${PATIENT_IDS}"
+echo "${patientData}" >> "private/alissa_export/${patientID}/${patientID}_patient.json"
 
-TEST_ID=$( sed -n '3p' <<< "${PATIENT_IDS}" )
-echo "${TEST_ID}"
+# retrieve all analyses and extract identifiers
+patientAnalyses=$(curl -H "${TOKEN_HEADER}" "${API_ROOT}/patients/${patientID}/analyses" | jq '.')
+echo "${patientAnalyses}" >> "private/alissa_export/${patientID}/${patientID}_analyses.json"
+patientAnalysisIDs=$(jq -r '.[].id' <<< "${patientAnalyses}")
 
-# ============OPTIONAL============
-# ~ 1b ~
-# get test patient info --- this isn"t necessary, but good to check what"s available
-#
-# TEST_PATIENT=$(curl -H "${TOKEN_HEADER}" -X GET "${API_ROOT}/patients/${TEST_ID}")
-# TEST_PATIENT_ID=$(jq -r '.id' <<< "${TEST_PATIENT}")
-# echo "${TEST_PATIENT}"
-# echo "${TEST_PATIENT_ID}"
-#
-#=================================
+# get analysis ID repeat for each analysis in patientAnalysisIDs
+echo "${patientAnalysisIDs}"
+analysisID=$( sed -n '1p' <<< "${patientAnalysisIDs}" )  # CHANGE THIS FOR EACH ID
+echo "${analysisID}"
 
-# ~ 1c ~
-# get analyses -- you may need to repeat the 'test_id' step until you get a good id
-TEST_PATIENT_ANALYSES=$(curl -H "${TOKEN_HEADER}" "${API_ROOT}/patients/${TEST_ID}/analyses")
-echo "${TEST_PATIENT_ANALYSES}"
-
-PATIENT_ANALYSIS_IDS=$(jq -r '.[].id' <<< "${TEST_PATIENT_ANALYSES}")
-TEST_ANALYSIS_ID=$( sed -n '1p' <<< "${PATIENT_ANALYSIS_IDS}" )
-echo "${PATIENT_ANALYSIS_IDS}"
-echo "${TEST_ANALYSIS_ID}"
-
-# note: none of the ids worked :-p
-# so i manually picked an id in alissa and put it here
-TEST_ANALYSIS_ID="...."
-
-# ~ 1d ~
-# get variants export ids
-
-TEST_PATIENT_VARIANT_EXPORT=$( \
-  curl --request POST "${API_ROOT}/patient_analyses/${TEST_ANALYSIS_ID}/molecular_variants/exports" \
+# retrieve variant exports
+patientVariantExports=$( \
+  curl --request POST "${API_ROOT}/patient_analyses/${analysisID}/molecular_variants/exports" \
   -H "Content-Type: application/json" \
   -H "${TOKEN_HEADER}" \
   --data '{"markedForReview":true, "markedIncludeInReport": false}' \
+  | jq '.' \
 )
 
-echo "${TEST_PATIENT_VARIANT_EXPORT}"
+echo "${patientVariantExports}" >> "private/alissa_export/${patientID}/${patientID}_${analysisID}_variant_export_ids.json"
 
-TEST_VARIANT_EXPORT_ID=$(jq -r '.exportId' <<< "${TEST_PATIENT_VARIANT_EXPORT}")
-echo "${TEST_VARIANT_EXPORT_ID}"
+
+# get export data
+variantExportID=$(jq -r '.exportId' <<< "${patientVariantExports}")
+variantExportData=$( \
+  curl -H "${TOKEN_HEADER}" \
+  -X GET "${API_ROOT}/patient_analyses/${analysisID}/molecular_variants/exports/${variantExportID}" \
+  | jq '.'
+)
+
+echo "${variantExportData}" >> "private/alissa_export/${patientID}/${patientID}_${analysisID}_variant_export_data.json"
+
+
+
+
+
+
+
+
+# retrieve all variant exports
+# echo "${patientAnalysisIDs}" | jq -c -r '.' | while read analysisID; do
+#   echo "Retrieving variant export for analysis ${analysisID}"
+  
+#   patientVariantExports=$( \
+#     curl --request POST "${API_ROOT}/patient_analyses/${analysisID}/molecular_variants/exports" \
+#     -H "Content-Type: application/json" \
+#     -H "${TOKEN_HEADER}" \
+#     --data '{"markedForReview":true, "markedIncludeInReport": false}' \
+#     | jq '.' \
+#   )
+  
+#   # save export ids to file for future use
+#   echo "${patientVariantExports}" >> "private/alissa_export/${patientID}/${patientID}_${analysisID}_variant_export_ids.json"
+  
+#   # extract export identifier
+#   variantExportID=$(jq -r '.exportId' <<< "${patientVariantExport}")
+
+#   # retrieve variant data with a quick pause just to make sure Alissa has time to generate the report
+#   sleep 3
+  
+#   variantExportData=$( \
+#     curl -H "${TOKEN_HEADER}" \
+#     -X GET "${API_ROOT}/patient_analyses/${analysisID}/molecular_variants/exports/${variantExportID}" \
+#     | jq '.' \
+#   )
+
+#   echo "${variantExportData}" >> "private/alissa_export/${patientID}/${patientID}_${analysisID}_variant_export_data.json"
+  
+# done
+
+
+
+# ////////////////////////////////////////////////////////////////////////////
+
+# OLD CODE
+
+# ~ 1a ~
+# Pull a snapshop of patients in the test environment
+# createdBefore="2021-02-20T00:00:00.000Z"
+# createdAfter="2021-02-18T00:00:00.000Z"
+# QUERY="createdAfter=${createdAfter}&createdBefore=${createdBefore}"
+# PATIENTS=$( curl -H "${TOKEN_HEADER}" -X GET "${API_ROOT}/patients?${QUERY}" )
+# echo "${PATIENTS}"
+# PATIENT_IDS=$(jq -r '.[].id' <<< "${PATIENTS}")
+# echo "${PATIENT_IDS}"
+# patientID=$( sed -n '3p' <<< "${PATIENT_IDS}" )
+# echo "${patientID}"
+
+
+# TEST_PATIENT_ID=$(jq -r '.id' <<< "${TEST_PATIENT}")
+# echo "${TEST_PATIENT_ID}"
+#
+
+# TEST_ANALYSIS_ID=$( sed -n '1p' <<< "${patientAnalysisIDs}" )
+
+# patientVariantExport=$( \
+#   curl --request POST "${API_ROOT}/patient_analyses/${TEST_ANALYSIS_ID}/molecular_variants/exports" \
+#   -H "Content-Type: application/json" \
+#   -H "${TOKEN_HEADER}" \
+#   --data '{"markedForReview":true, "markedIncludeInReport": false}' \
+# )
+
+# echo "${patientVariantExport}"
+
+# patientVariantExportId=$(jq -r '.exportId' <<< "${patientVariantExport}")
+# echo "${patientVariantExportId}"
 
 # ~ 1e ~
 # get export id
-TEST_VARIANT_EXPORT=$( \
-  curl -H "${TOKEN_HEADER}" \
-  -X GET "${API_ROOT}/patient_analyses/${TEST_ANALYSIS_ID}/molecular_variants/exports/${TEST_VARIANT_EXPORT_ID}" \
-)
+# TEST_VARIANT_EXPORT=$( \
+#   curl -H "${TOKEN_HEADER}" \
+#   -X GET "${API_ROOT}/patient_analyses/${TEST_ANALYSIS_ID}/molecular_variants/exports/${patientVariantExportId}" \
+# )
 
-echo "${TEST_VARIANT_EXPORT}" >> test_variant.json
+# echo "${TEST_VARIANT_EXPORT}" >> test_variant.json
