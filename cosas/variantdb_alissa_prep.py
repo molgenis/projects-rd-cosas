@@ -2,40 +2,268 @@
 # FILE: variantdb_alissa_prep.py
 # AUTHOR: David Ruvolo
 # CREATED: 2023-01-26
-# MODIFIED: 2023-01-26
+# MODIFIED: 2023-03-20
 # PURPOSE: compile a list of information necessary for querying the alissa API
 # STATUS: stable
 # PACKAGES: **see below**
 # COMMENTS: NA
 #///////////////////////////////////////////////////////////////////////////////
 
-from cosas.api.molgenis2 import Molgenis
-from cosas.alissa.client import Alissa
+from oauthlib.oauth2 import LegacyApplicationClient
+from requests_oauthlib import OAuth2Session
 from datatable import dt, f, as_type
-from dotenv import load_dotenv
+import molgenis.client as molgenis
 from datetime import datetime
-from os import environ
+from os.path import abspath
 from time import sleep
-from tqdm import tqdm
+import numpy as np
 import requests
-load_dotenv()
+import tempfile
+import pytz
+import csv
 
-db = Molgenis(environ['MOLGENIS_ACC_HOST'])
-db.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
+def now():
+  return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+  
+def today():
+  return datetime.today().strftime('%Y-%m-%d')
+
+def print2(*args):
+  message = ' '.join(map(str, args))
+  time = datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime('%H:%M:%S.%f')[:-3]
+  print(f'[{time}] {message}')
+  
+class Alissa:
+  """Alissa Interpret Public API (v5.3)"""
+  
+  def __init__(self, host, clientId, clientSecret, username, password):
+    """Create new instance of the client
+    A mini api client to get molecular variant information per patient.
+
+    @param host The url of your Alissa Interpret instance
+    @param clientId provided by Alissa Support
+    @param clientSecret provided by Alissa Support
+    @param username username of the API account
+    @param password password of the API account
+    
+    @reference Alissa Interpret Public API documentation v5.3
+    @return class
+    """
+    self.host=host
+    self.apiUrl=f"{host}/interpret/api/2"
+    self.session=OAuth2Session(client=LegacyApplicationClient(client_id=clientId))
+    self.session.fetch_token(
+      token_url=f"{host}/auth/oauth/token",
+      username=username,
+      password=password,
+      client_id=clientId,
+      client_secret=clientSecret
+    )
+
+    if self.session.access_token:
+      print('Connected to', host, 'as', username)
+    else:
+      print('Unable to connect to', host, 'as', username)
+      
+
+  def _formatOptionalParams(self, params: dict=None) -> dict:
+    """Format Optional Parameters
+    
+    @param params dictionary containg one or more parameter
+    @return dict
+    """
+    return {
+      key: params[key]
+      for key in params.keys()
+      if (key != 'self') and (params[key] is not None)
+    }
+  
+  def _get(self, endpoint, params=None, **kwargs):
+    """GET
+
+    @param endpoint the Alissa Interpret endpoint where data should be
+        sent to. The path "/interpret/api/2" is prefilled.
+    @param params Optional parameters to add to the request
+
+    """
+    uri = f'{self.apiUrl}/{endpoint}'
+    response = self.session.get(uri, params=params, **kwargs)
+    response.raise_for_status()
+    return response.json()
+      
+  def _post(self, endpoint, data=None, json=None, **kwargs):
+    """POST
+    
+    @param endpoint the Alissa Interpret endpoint where data should be
+        sent to. The path "/interpret/api/2" is prefilled.
+    @param data Optional dictionary, list of tuples, bytes, or file-like
+        object
+    @param json Optional json data
+    """
+    uri = f'{self.apiUrl}/{endpoint}'
+    response = self.session.post(uri, data, json, **kwargs)
+    response.raise_for_status()
+    return response.json()
+
+  def getPatients(
+    self,
+    accessionNumber: str = None,
+    createdAfter: str = None,
+    createdBefore: str = None,
+    createdBy: str = None,
+    familyIdentifier: str = None,
+    lastUpdatedAfter: str = None,
+    lastUpdatedBefore: str = None,
+    lastUpdatedBy: str = None
+  ) -> dict:
+    """Get Patients
+    Get all patients. When filter criteria are provided, the result is
+    limited to the patients matching the criteria.
+
+    @param accessionNumber The unique identifier of the patient
+    @param createdAfter Filter patients with a creation date after the
+        specific date time (ISO 8601 date time format)
+    @param createdBefore Filter patients with a creation date before the
+        specific date time (ISO 8601 date time format)
+    @param createdBy User that created the patient
+    @param familyIdentifier The unique identifier of the family.
+    @param lastUpdatedAfter Filter patients with a last updated date after
+        the specified date time (ISO 8601 date time format)
+    @param lastUpdatedBefore Filter patients with a last updated date
+        before the specified date time (ISO 8601 date time format)
+    @param lastUpdatedBy User that updated the patient.
+    
+    @reference Alissa Interpret Public API (v5.3; p21)
+    @return dictionary containing one or more patient records
+    """
+    params = self._formatOptionalParams(params=locals())
+    return self._get(endpoint='patients', params=params)
+
+class Molgenis(molgenis.Session):
+  def __init__(self, *args, **kwargs):
+    super(Molgenis, self).__init__(*args, **kwargs)
+    self.fileImportEndpoint = f"{self._root_url}plugin/importwizard/importFile"
+  
+  def _datatableToCsv(self, path, datatable):
+    """To CSV
+    Write datatable object as CSV file
+
+    @param path location to save the file
+    @param data datatable object
+    """
+    data = datatable.to_pandas().replace({np.nan: None})
+    data.to_csv(path, index=False, quoting=csv.QUOTE_ALL)
+  
+  def importDatatableAsCsv(self, pkg_entity: str, data):
+    """Import Datatable As CSV
+    Save a datatable object to as csv file and import into MOLGENIS using the
+    importFile api.
+    
+    @param pkg_entity table identifier in emx format: package_entity
+    @param data a datatable object
+    @param label a description to print (e.g., table name)
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+      filepath=f"{tmpdir}/{pkg_entity}.csv"
+      self._datatableToCsv(filepath, data)
+      with open(abspath(filepath),'r') as file:
+        response = self._session.post(
+          url = self.fileImportEndpoint,
+          headers = self._headers.token_header,
+          files = {'file': file},
+          params = {'action': 'add_update_existing', 'metadataAction': 'ignore'}
+        )
+        if (response.status_code // 100 ) != 2:
+          print2('Failed to import data into', pkg_entity, '(', response.status_code, ')')
+        else:
+          print2('Imported data into', pkg_entity)
+        return response
+
+
+def filterList(data, key, condition):
+  return [row for row in data if row[key] == condition][0]
+
+#///////////////////////////////////////////////////////////////////////////////
+
+# ~ 0 ~
+# Connect to Alissa and MOLGENIS
+print2('Starting sessions with API....')
+
+# ~ DEV ~
+# for local dev
+# from dotenv import load_dotenv
+# load_dotenv()
+# from os import environ
+
+# cosas = Molgenis(environ['MOLGENIS_ACC_HOST'])
+# cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
+# alissa = Alissa(
+#   host=environ['ALISSA_HOST'],
+#   clientId=environ['ALISSA_CLIENT_ID'],
+#   clientSecret=environ['ALISSA_CLIENT_SECRET'],
+#   username=environ['ALISSA_API_USR'],
+#   password=environ['ALISSA_API_PWD']
+# )
 
 #///////////////////////////////////////
 
+# ~ DEPLOY ~
+# for deployment
+print2('\tConnecting to MOLGENIS....')
+
+cosas = Molgenis('http://localhost/api/', token='${molgenisToken}')
+
+print2('\tRetrieving credentials for Alissa....')
+credentials = cosas.get(
+  'sys_sec_Token',
+  q='description=like="alissa-api-"',
+  attributes='token,description'
+)
+
+host=filterList(credentials,'description','alissa-api-host')['token']
+clientId=filterList(credentials,'description','alissa-api-client-id')['token']
+clientSecret=filterList(credentials,'description', 'alissa-api-client-secret')['token']
+apiUser=filterList(credentials,'description','alissa-api-username')['token']
+apiPwd=filterList(credentials,'description','alissa-api-password')['token']
+
+
+print2('\tConnecting to Alissa umcg53....')
+alissa = Alissa(
+  host=host,
+  clientId=clientId,
+  clientSecret=clientSecret,
+  username=apiUser,
+  password=apiPwd
+)
+
+#///////////////////////////////////////////////////////////////////////////////
+
 # ~ 1 ~
 # Pull Information from the Portal
+
+# ~ 1a ~
+# Retrieve existing metadata from alissa_patients
+print2('Pulling existing Alissa Patients....')
+alissaPatients = dt.Frame(
+  cosas.get(
+    entity='alissa_patients',
+    batch_size=10000
+  )
+)
+
+del alissaPatients['_href']
+
+
+# ~ 1b ~
+# Pull Patients from the portal
 # In order to retrieve data from Alissa, we need to create the identifiers that
 # we can use to retrieve data via the API. Using the information stored in
 # `cosasportal_labs_ngs_adlas`, we can create a list of patients and samples to
 # use in the Alissa search.
+print2('Retrieving the latest patientIDs from ADLAS-NGS datasets....')
 
-# pull patients listed in the `cosasportal_labs_ngs_adlas` and select distinct
-# records
 subjectsDT = dt.Frame(
-  db.get(
+  cosas.get(
     entity='cosasportal_labs_ngs_adlas',
     attributes='UMCG_NUMBER',
     batch_size=10000
@@ -43,11 +271,15 @@ subjectsDT = dt.Frame(
 )[:, dt.first(f[:]), dt.by(f.UMCG_NUMBER)]['UMCG_NUMBER']
 
 
+# ~ 1c ~
+# Retrieve family information
 # pull patient info from patients portal table (i.e., `cosasportal_patients`)
 # For the API, we need the familyID. We will merge the samples data with the
 # family information. First, pull the data and select distinct rows only
+print2('Retrieving latest family information.....')
+
 familyInfoDT = dt.Frame(
-  db.get(
+  cosas.get(
     entity='cosasportal_patients',
     attributes='UMCG_NUMBER,FAMILIENUMMER',
     batch_size=10000
@@ -63,7 +295,21 @@ subjectsDT.key = 'UMCG_NUMBER'
 familyInfoDT.key = 'UMCG_NUMBER'
 subjectsDT = subjectsDT[:, :, dt.join(familyInfoDT)]
 
-#///////////////////////////////////////
+# add new subjects to existing alissa subjects metadata
+print2('Combining new patients with existing patients....')
+subjectsDT['isNew'] = dt.Frame([
+  value not in alissaPatients['umcgNr'].to_list()[0]
+  for value in subjectsDT['UMCG_NUMBER'].to_list()[0]
+])
+
+# filter to new subjects only
+subjectsDT = subjectsDT[f.isNew, :]
+subjectsDT.names = {'UMCG_NUMBER': 'umcgNr', 'FAMILIENUMMER': 'familieNr'}
+subjectsDT = dt.rbind(alissaPatients, subjectsDT[f.isNew,:], force=True)
+
+del subjectsDT['isNew']
+
+#///////////////////////////////////////////////////////////////////////////////
 
 # ~ 2 ~
 # Create Alissa Information
@@ -71,27 +317,24 @@ subjectsDT = subjectsDT[:, :, dt.join(familyInfoDT)]
 # when we we run the full variant script.
 
 # FOR TESTING ONLY --- TRIM DATASET TO 100 SUBJECTS ONLY
-subjectsDT = subjectsDT[range(0,100),:]
+subjectsDT = subjectsDT[
+  (f.dateFirstRun == None ) | (f.dateFirstRun == '') | (f.hasError),
+  :
+][range(0,100), :]
 
+# ~ 2a ~
 # CREATE ACCESSIONNUMBER
 # we will use this information to search for patients in alissa in order to
 # retrieve the internal identifier
+print2('Creating accession number....')
+
 subjectsDT['accessionNr'] = dt.Frame([
   '_'.join(row)
-  for row in subjectsDT[:, (f.FAMILIENUMMER, f.UMCG_NUMBER)].to_tuples()
+  for row in subjectsDT[:, (f.familieNr, f.umcgNr)].to_tuples()
 ])
 
 # RETRIEVE ALISSA INTERNAL ID
-# Connect to Alissa and search for patients using the accession number
-alissa = Alissa(
-  host=environ['ALISSA_HOST'],
-  clientId=environ['ALISSA_CLIENT_ID'],
-  clientSecret=environ['ALISSA_CLIENT_SECRET'],
-  username=environ['ALISSA_API_USR'],
-  password=environ['ALISSA_API_PWD']
-)
-
-# init additional columns
+print2('Initialising columns for alissa API responses...')
 subjectsDT[:, dt.update(
   alissaInternalID=as_type(None, str),
   dateFirstRun = datetime.now().strftime('%Y-%m-%d'),
@@ -101,15 +344,10 @@ subjectsDT[:, dt.update(
   comments=as_type(None, str)
 )]
 
-# rename current columns
-subjectsDT.names={
-  'UMCG_NUMBER': 'umcgNr',
-  'FAMILIENUMMER': 'familieNr'
-}
-
 # retireve internal identifier from Alissa
+print2('Querying Alissa for internal patient information....')
 ids = subjectsDT['accessionNr'].to_list()[0]
-for id in tqdm(ids):
+for id in ids:
   try:
     patientInfo = alissa.getPatients(accessionNumber=id)
     if patientInfo:
@@ -118,6 +356,12 @@ for id in tqdm(ids):
       # we extract the correct ID using an extact match.
       for row in patientInfo:
         if row['accessionNumber'] == id:
+          
+          # if previously failed cases are now resolved, updated date solved
+          if subjectsDT[f.accessionNr==id, f.hasError] == True:
+            subjectsDT[f.accessionNr==id, f.dateLastUpdated] = datetime.now().strftime('%Y-%m-%d')
+            subjectsDT[f.accessionNr==id, (f.errorType, f.errorMessage)] = None
+
           subjectsDT[f.accessionNr==id, f.hasError] = False
           subjectsDT[f.accessionNr==id, f.alissaInternalID] = str(row['id'])
           
@@ -158,28 +402,9 @@ for id in tqdm(ids):
     subjectsDT[f.accessionNr==id, f.errorMessage] = e.args[1]
   sleep(0.12)
 
+#///////////////////////////////////////
+
+# ~ 3 ~
 # import data
-db.importDatatableAsCsv(
-  pkg_entity='alissa_patients',
-  data = subjectsDT
-)
-
-
-#///////////////////////////////////////////////////////////////////////////////
-
-# Misc Alissa Prep
-variantExport = []  # retrieve data from the variant API to replicate this
-
-# clean nested column names for a flattened structure
-import re
-
-labels = list(variantExport[0]['externalDatabases'].keys())
-# labels = list(variantExport[0]['platformDatasets'].keys())
-# labels = list(variantExport[0]['customFields'])
-
-for index,label in enumerate(labels):
-  lab1 = re.sub(r'[()\+]','',label)
-  lab2 = re.sub(r'(\s+|[-/])', '_', lab1)
-  labels[index] = f"_{lab2}"
-  
-[print(f"- name: {label}") for label in labels]
+print2('Importing data into alissa_patients....')
+cosas.importDatatableAsCsv(pkg_entity='alissa_patients', data = subjectsDT)

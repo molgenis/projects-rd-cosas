@@ -2,7 +2,7 @@
 # FILE: alissa.py
 # AUTHOR: David Ruvolo
 # CREATED: 2022-04-19
-# MODIFIED: 2023-03-15
+# MODIFIED: 2023-03-16
 # PURPOSE: fetch data from alissa
 # STATUS: stable
 # PACKAGES: **see below**
@@ -84,9 +84,9 @@ class Alissa:
     )
 
     if self.session.access_token:
-      print('Connected to', host, 'as', username)
+      print2('Connected to',host,'as',username)
     else:
-      print('Unable to connect to', host, 'as', username)
+      print2('Unable to connect to',host,'as',username)
       
 
   def _formatOptionalParams(self, params: dict=None) -> dict:
@@ -96,9 +96,7 @@ class Alissa:
     @return dict
     """
     return {
-      key: params[key]
-      for key in params.keys()
-      if (key != 'self') and (params[key] is not None)
+      key: params[key] for key in params.keys() if (key != 'self') and (params[key] is not None)
     }
   
   def _get(self, endpoint, params=None, **kwargs):
@@ -276,6 +274,7 @@ def filterList(data, key, condition):
 # username and password. This information can be generated if you have been
 # given admin rights in Alissa. Contact agilent support if you have any
 # questions or if you encounter any issues.
+print2('Establishing connecting to COSAS and Alissa....')
 
 # ~ 0a ~
 # For local molgenis development
@@ -324,6 +323,7 @@ alissa = Alissa(
 # GET ANALYSES ASSOCIATED WITH EACH PATIENT
 # Using the information stored in `alissa_patients`, retrieve a list of
 # analysis identifiers associated with each patient
+print2('Pulling reference data for Alissa patients....')
 
 # pull patient info from the database
 patientsDT = dt.Frame(
@@ -347,9 +347,10 @@ patientIdentifiers=patientsDT['alissaInternalID'].to_list()[0]
 # would like to get information for a specific analysis type, then apply
 # filters in the 'for' loop. If no analyses were found for patient, then they
 # aren't included in the remaining steps.
+print2('Alissa: Retrieving analyses by patient....')
 
 analysesByPatient = []
-for id in tqdm(patientIdentifiers):
+for id in patientIdentifiers:
   analysisResponse = alissa.getPatientAnalyses(patientId=id)
   if analysisResponse:
     for analysis in analysisResponse:
@@ -376,9 +377,10 @@ for id in tqdm(patientIdentifiers):
 # error. Either way, the patient and analysis IDs are printed so you can
 # follow up with this. These patients-analyses aren't included in the
 # remaining steps.
+print2('Alissa: geting variant-export-ids.....')
 
 variantExportsByAnalyses = []
-for analysisRow in tqdm(analysesByPatient):
+for analysisRow in analysesByPatient:
   try:
     variantResponse = alissa.getPatientVariantExportId(
       analysisId=analysisRow['analysisId'],
@@ -407,9 +409,10 @@ for analysisRow in tqdm(analysesByPatient):
 # GET VARIANT EXPORT REPORTS
 # Now that a list of variant export reports has been compiled, it is possible
 # to retrieve the variant export report for the patient and analysis.
+print2('Alissa: retrieving variant-exports....')
 
 variantExport = []
-for variantRow in tqdm(variantExportsByAnalyses):
+for variantRow in variantExportsByAnalyses:
   try:
     exportResponse = alissa.getPatientVariantExportData(
       analysisId=variantRow['analysisId'],
@@ -430,10 +433,6 @@ for variantRow in tqdm(variantExportsByAnalyses):
   except requests.exceptions.HTTPError as error:
     pass
 
-# save to file so you don't have to rerun the script
-# with open('private/alissa_variantexport.json', 'w') as file:
-#   json.dump(variantExport,file)
-
 #///////////////////////////////////////////////////////////////////////////////
 
 # ~ 5 ~
@@ -441,14 +440,11 @@ for variantRow in tqdm(variantExportsByAnalyses):
 # Even though you may have retrieved a variant export identifier for all
 # analyses, variant data may not be retrievable. If this is the case, note the
 # error and store it in the table.
-
-# with open('private/alissa_variant_export_20220206.json', 'r') as file:
-#   variantExport = json.load(file)
-# file.close()
+print2('Processing variant export data....')
 
 variantdata = []
 
-for row in tqdm(variantExport):
+for row in variantExport:
   
   # log errors in the table
   if 'errorCode' in row.keys():
@@ -539,21 +535,24 @@ for row in tqdm(variantExport):
 
     variantdata.append(newRow)
     
-# convert to datatable object
-variantsDT = dt.Frame(variantdata)
-variantsDT[:, dt.update(patientId=as_type(f.patientId, str))]
 
 #///////////////////////////////////////////////////////////////////////////////
 
 # ~ 6 ~ 
 # Merge datasets
+print2('Building datasets....')
+
+# convert to datatable object
+variantsDT = dt.Frame(variantdata)
+variantsDT[:, dt.update(patientId=as_type(f.patientId, str))]
 
 # ~ 6a ~
 # merge patient info
+print2('Merging patient data with variants....')
 patientIDs = patientsDT['alissaInternalID'].to_list()[0]
 variantPatientIDs = variantsDT['patientId'].to_list()[0]
 
-for id in tqdm(variantPatientIDs):
+for id in variantPatientIDs:
   if id in patientIDs:
     refRow = patientsDT[f.alissaInternalID==id, :]
     variantsDT[f.patientId==id,'umcgNr'] = refRow['umcgNr'].to_list()[0]
@@ -563,21 +562,25 @@ for id in tqdm(variantPatientIDs):
 
 # ~ 6b ~
 # merge analysis info
+print2('Merging analaysis data with variants....')
 
 # prep analyses dataset
+print2('\tflattening analysis data before merge....')
 for row in analysesByPatient:
   if 'targetPanelNames' in row:
     if isinstance(row['targetPanelNames'], list):
       row['targetPanelNames'] = ','.join(row['targetPanelNames'])
 analysisDT = dt.Frame(analysesByPatient)
 
+print2('\tFixing dataTypes....')
 analysisDT[:, dt.update(analysisId = as_type(f.analysisId, str))]
 variantsDT[:, dt.update(analysisId = as_type(f.analysisId, str))]
 
 analysisIDs = analysisDT['analysisId'].to_list()[0]
 variantAnalysisIDs = variantsDT['analysisId'].to_list()[0]
 
-for id in tqdm(variantAnalysisIDs):
+print2('\tMerging data....')
+for id in variantAnalysisIDs:
   if id in analysisIDs:
     refRow = analysisDT[f.analysisId==id,:]
     variantsDT[f.analysisId==id,'analysisReference'] = refRow['reference'].to_list()[0]
@@ -591,22 +594,15 @@ for id in tqdm(variantAnalysisIDs):
   else:
     raise SystemError(f"Error '{id}' not found in analysis dataset")
 
+print2('\tSetting date retrieved....')
 variantsDT['dateRetrieved'] = today()
 
-
-# variantsDT.to_csv('private/alissa_variantexport.csv')
 #///////////////////////////////////////////////////////////////////////////////
 
 # ~ 7 ~
 # Import data
 # cosas.delete('alissa_variantexports')
+print2('Importing data patient and variants data....')
 
-cosas.importDatatableAsCsv(
-  pkg_entity='alissa_patients',
-  data = patientsDT
-)
-
-cosas.importDatatableAsCsv(
-  pkg_entity='alissa_variantexports',
-  data = variantsDT
-)
+cosas.importDatatableAsCsv(pkg_entity='alissa_patients', data=patientsDT)
+cosas.importDatatableAsCsv(pkg_entity='alissa_variantexports', data=variantsDT)
