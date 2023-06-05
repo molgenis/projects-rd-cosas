@@ -2,7 +2,7 @@
 # FILE: alissa.py
 # AUTHOR: David Ruvolo
 # CREATED: 2022-04-19
-# MODIFIED: 2023-03-16
+# MODIFIED: 2023-06-05
 # PURPOSE: fetch data from alissa
 # STATUS: stable
 # PACKAGES: **see below**
@@ -276,15 +276,15 @@ def filterList(data, key, condition):
 # questions or if you encounter any issues.
 print2('Establishing connecting to COSAS and Alissa....')
 
-# ~ 0a ~
+# ~ LOCAL DEV ~
 # For local molgenis development
 # Connect to COSAS database
-# from dotenv import load_dotenv
-# from os import environ
-# load_dotenv()
+from dotenv import load_dotenv
+from os import environ
+load_dotenv()
 
-# cosas = Molgenis(environ['MOLGENIS_ACC_HOST'])
-# cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
+cosas = Molgenis(environ['MOLGENIS_ACC_HOST'])
+cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
 
 # alissa = Alissa(
 #   host=environ['ALISSA_HOST'],
@@ -293,6 +293,8 @@ print2('Establishing connecting to COSAS and Alissa....')
 #   username=environ['ALISSA_API_USR'],
 #   password=environ['ALISSA_API_PWD']
 # )
+
+#///////////////////////////////////////
 
 # ~ PROD ~
 cosas = Molgenis('http://localhost/api/', token='${molgenisToken}')
@@ -317,6 +319,27 @@ alissa = Alissa(
   password=apiPwd
 )
 
+#///////////////////////////////////////
+
+# ~ 0b ~
+# Grab additional metadata
+
+# Retrieve the column names of the variant export table
+tableAttribs = dt.Frame(cosas.get(
+  entity='sys_md_Attribute',
+  q="entity==alissa_variantexports",
+  sort_column='sequenceNr',
+  attributes='name'
+))['name'].to_list()[0]
+
+
+# retrieve existing export identifiers
+existingReports = dt.Frame(cosas.get(
+  entity='alissa_variantexports',
+  attributes='id',
+  batch_size=10000
+))
+
 #///////////////////////////////////////////////////////////////////////////////
 
 # ~ 1 ~
@@ -330,7 +353,8 @@ patientsDT = dt.Frame(
   cosas.get(
     'alissa_patients',
     q="hasError==false",
-    batch_size=10000
+    batch_size=10000,
+    num=100
   )
 )
 
@@ -358,6 +382,7 @@ for id in patientIdentifiers:
       del analysis['id']
       analysesByPatient.append(analysis)
 
+print2('Returned',len(analysesByPatient),'results')
 
 #///////////////////////////////////////////////////////////////////////////////
             
@@ -402,6 +427,7 @@ for analysisRow in analysesByPatient:
   except requests.exceptions.HTTPError as error:
     pass
 
+print2('Returned',len(variantExportsByAnalyses),'export identifiers')
 
 #///////////////////////////////////////////////////////////////////////////////
 
@@ -433,6 +459,9 @@ for variantRow in variantExportsByAnalyses:
   except requests.exceptions.HTTPError as error:
     pass
 
+
+print2('Returned metadata for',len(variantExport),'reports')
+
 #///////////////////////////////////////////////////////////////////////////////
 
 # ~ 5 ~
@@ -462,7 +491,7 @@ for row in variantExport:
     
   # process results
   else:
-    newRow = row
+    newRow = dict(row)
     
     if bool(newRow['variantAssessment']):
       newRow['variantAssessment'] = json.dumps(newRow['variantAssessment'])
@@ -546,6 +575,16 @@ print2('Building datasets....')
 variantsDT = dt.Frame(variantdata)
 variantsDT[:, dt.update(patientId=as_type(f.patientId, str))]
 
+# clean columns
+for column in variantsDT.names:
+  if variantsDT[column].type == dt.Type.str32:
+    variantsDT[column] = dt.Frame([
+      re.sub(r'([-]{1,}\s+)|(\<br\>)|([\\"])', '', value) if value else value
+      for value in variantsDT[column].to_list()[0]
+    ])
+
+#///////////////////////////////////////
+
 # ~ 6a ~
 # merge patient info
 print2('Merging patient data with variants....')
@@ -560,6 +599,8 @@ for id in variantPatientIDs:
   else:
     raise SystemError(f'Error: {id} not found in patients dataset')  
 
+#///////////////////////////////////////
+
 # ~ 6b ~
 # merge analysis info
 print2('Merging analaysis data with variants....')
@@ -572,30 +613,72 @@ for row in analysesByPatient:
       row['targetPanelNames'] = ','.join(row['targetPanelNames'])
 analysisDT = dt.Frame(analysesByPatient)
 
+
+# merge analysis information and variant export
 print2('\tFixing dataTypes....')
 analysisDT[:, dt.update(analysisId = as_type(f.analysisId, str))]
 variantsDT[:, dt.update(analysisId = as_type(f.analysisId, str))]
 
+print2('\tMerging data....')
 analysisIDs = analysisDT['analysisId'].to_list()[0]
 variantAnalysisIDs = variantsDT['analysisId'].to_list()[0]
 
-print2('\tMerging data....')
 for id in variantAnalysisIDs:
   if id in analysisIDs:
     refRow = analysisDT[f.analysisId==id,:]
     variantsDT[f.analysisId==id,'analysisReference'] = refRow['reference'].to_list()[0]
-    variantsDT[f.analysisId==id,'analysisType'] = refRow['analysisType'].to_list()[0]
     variantsDT[f.analysisId==id,'status'] = refRow['status'].to_list()[0]
-    variantsDT[f.analysisId==id,'domainName'] = refRow['domainName'].to_list()[0]
-    variantsDT[f.analysisId==id,'genomeBuild'] = refRow['genomeBuild'].to_list()[0]
-    variantsDT[f.analysisId==id,'analysisPipelineName'] = refRow['analysisPipelineName'].to_list()[0]
-    variantsDT[f.analysisId==id,'classificationTreeName'] = refRow['classificationTreeName'].to_list()[0]
     variantsDT[f.analysisId==id,'targetPanelNames'] = refRow['targetPanelNames'].to_list()[0]
+    variantsDT[f.analysisId==id,'genomeBuild'] = refRow['genomeBuild'].to_list()[0]
+    # variantsDT[f.analysisId==id,'analysisType'] = refRow['analysisType'].to_list()[0]
+    # variantsDT[f.analysisId==id,'domainName'] = refRow['domainName'].to_list()[0]
+    # variantsDT[f.analysisId==id,'analysisPipelineName'] = refRow['analysisPipelineName'].to_list()[0]
+    # variantsDT[f.analysisId==id,'classificationTreeName'] = refRow['classificationTreeName'].to_list()[0]
   else:
     raise SystemError(f"Error '{id}' not found in analysis dataset")
+  
+# drop columns where status is complete
+variantsDT = variantsDT[f.status=='COMPLETED',:]
 
+
+#///////////////////////////////////////
+
+# set row identifier
+print2('Creating row identifier...')
+variantsDT['id'] = dt.Frame([
+  f"{row[0]}_{row[1]}_{row[2].split('.')[0]}_{row[3]}"
+  for row in variantsDT[:, (f.umcgNr,f.start,f.transcript,f.reference)].to_tuples()
+])
+
+# set run date
 print2('\tSetting date retrieved....')
 variantsDT['dateRetrieved'] = today()
+
+# select columns of interest
+for column in variantsDT.names:
+  if column not in tableAttribs:
+    del variantsDT[column]
+
+
+# reduce data to new variant exports only
+if existingReports.nrows > 0:
+  
+  reportIDs = existingReports['id'].to_list()[0]
+  
+  variantsDT['isNew'] = dt.Frame([
+    value not in reportIDs
+    for value in variantsDT['id'].to_list()[0]
+  ])
+  
+  variantsDT = variantsDT[f.isNew,:]
+  
+  
+# is duplicated
+variantsDT['isDuplicated'] = dt.Frame([
+  variantsDT[f.id==value,:].nrows > 1
+  for value in variantsDT['id'].to_list()[0]
+])
+
 
 #///////////////////////////////////////////////////////////////////////////////
 
