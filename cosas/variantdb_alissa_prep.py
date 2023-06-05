@@ -2,7 +2,7 @@
 # FILE: variantdb_alissa_prep.py
 # AUTHOR: David Ruvolo
 # CREATED: 2023-01-26
-# MODIFIED: 2023-03-20
+# MODIFIED: 2023-06-05
 # PURPOSE: compile a list of information necessary for querying the alissa API
 # STATUS: stable
 # PACKAGES: **see below**
@@ -227,7 +227,7 @@ apiUser=filterList(credentials,'description','alissa-api-username')['token']
 apiPwd=filterList(credentials,'description','alissa-api-password')['token']
 
 
-print2('\tConnecting to Alissa umcg53....')
+print2('\tConnecting to Alissa UMCG....')
 alissa = Alissa(
   host=host,
   clientId=clientId,
@@ -241,20 +241,8 @@ alissa = Alissa(
 # ~ 1 ~
 # Pull Information from the Portal
 
+
 # ~ 1a ~
-# Retrieve existing metadata from alissa_patients
-print2('Pulling existing Alissa Patients....')
-alissaPatients = dt.Frame(
-  cosas.get(
-    entity='alissa_patients',
-    batch_size=10000
-  )
-)
-
-del alissaPatients['_href']
-
-
-# ~ 1b ~
 # Pull Patients from the portal
 # In order to retrieve data from Alissa, we need to create the identifiers that
 # we can use to retrieve data via the API. Using the information stored in
@@ -271,7 +259,7 @@ subjectsDT = dt.Frame(
 )[:, dt.first(f[:]), dt.by(f.UMCG_NUMBER)]['UMCG_NUMBER']
 
 
-# ~ 1c ~
+# ~ 1b ~
 # Retrieve family information
 # pull patient info from patients portal table (i.e., `cosasportal_patients`)
 # For the API, we need the familyID. We will merge the samples data with the
@@ -295,17 +283,52 @@ subjectsDT.key = 'UMCG_NUMBER'
 familyInfoDT.key = 'UMCG_NUMBER'
 subjectsDT = subjectsDT[:, :, dt.join(familyInfoDT)]
 
+
+#///////////////////////////////////////
+
+# ~ 1c ~
+# ~ 1a ~
+# Retrieve existing metadata from alissa_patients
+print2('Pulling existing Alissa Patients....')
+alissaPatients = dt.Frame(cosas.get('alissa_patients', batch_size=10000))
+
+
 # add new subjects to existing alissa subjects metadata
-print2('Combining new patients with existing patients....')
-subjectsDT['isNew'] = dt.Frame([
-  value not in alissaPatients['umcgNr'].to_list()[0]
-  for value in subjectsDT['UMCG_NUMBER'].to_list()[0]
-])
+if alissaPatients.nrows:
+  print2('Combining new patients with existing patients....')
+  del alissaPatients['_href']
+  
+  # check for new subjects
+  subjectsDT['isNew'] = dt.Frame([
+    value not in alissaPatients['umcgNr'].to_list()[0]
+    for value in subjectsDT['UMCG_NUMBER'].to_list()[0]
+  ])
+  
+  # automatically rerun records with error overwrite isNew status where applicable
+  subjectsWithErrors = alissaPatients[f.hasError, 'umcgNr'].to_list()[0]
+  subjectsDT['isNew'] = dt.Frame([
+    True if value in subjectsWithErrors else value
+    for value in subjectsDT['UMCG_NUMBER'].to_list()[0]
+  ])
+
+  # reduce to new subjects only
+  subjectsDT = subjectsDT[f.isNew, :]
+
+else:
+  print2('Initialising patients....')
+  subjectsDT['isNew'] = True
+
+
+# are there any subjects to process? If not, exit.
+if subjectsDT.nrows == 0:
+  cosas.logout()
+  raise SystemExit('There are no new subjects. Stopping script.')
+
 
 # filter to new subjects only
-subjectsDT = subjectsDT[f.isNew, :]
 subjectsDT.names = {'UMCG_NUMBER': 'umcgNr', 'FAMILIENUMMER': 'familieNr'}
 subjectsDT = dt.rbind(alissaPatients, subjectsDT[f.isNew,:], force=True)
+
 
 del subjectsDT['isNew']
 
@@ -317,10 +340,9 @@ del subjectsDT['isNew']
 # when we we run the full variant script.
 
 # FOR TESTING ONLY --- TRIM DATASET TO 100 SUBJECTS ONLY
-subjectsDT = subjectsDT[
-  (f.dateFirstRun == None ) | (f.dateFirstRun == '') | (f.hasError),
-  :
-][range(0,100), :]
+# subjectsDT = subjectsDT[
+#   (f.dateFirstRun == None ) | (f.dateFirstRun == '') | (f.hasError), :
+# ][range(0,100), :]
 
 # ~ 2a ~
 # CREATE ACCESSIONNUMBER
@@ -408,3 +430,4 @@ for id in ids:
 # import data
 print2('Importing data into alissa_patients....')
 cosas.importDatatableAsCsv(pkg_entity='alissa_patients', data = subjectsDT)
+cosas.logout()
