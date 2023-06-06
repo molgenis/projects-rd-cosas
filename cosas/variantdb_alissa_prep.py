@@ -2,7 +2,7 @@
 # FILE: variantdb_alissa_prep.py
 # AUTHOR: David Ruvolo
 # CREATED: 2023-01-26
-# MODIFIED: 2023-06-05
+# MODIFIED: 2023-06-06
 # PURPOSE: compile a list of information necessary for querying the alissa API
 # STATUS: stable
 # PACKAGES: **see below**
@@ -21,6 +21,7 @@ import requests
 import tempfile
 import pytz
 import csv
+import sys
 
 def now():
   return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -287,7 +288,6 @@ subjectsDT = subjectsDT[:, :, dt.join(familyInfoDT)]
 #///////////////////////////////////////
 
 # ~ 1c ~
-# ~ 1a ~
 # Retrieve existing metadata from alissa_patients
 print2('Pulling existing Alissa Patients....')
 alissaPatients = dt.Frame(cosas.get('alissa_patients', batch_size=10000))
@@ -298,16 +298,12 @@ if alissaPatients.nrows:
   print2('Combining new patients with existing patients....')
   del alissaPatients['_href']
   
-  # check for new subjects
-  subjectsDT['isNew'] = dt.Frame([
-    value not in alissaPatients['umcgNr'].to_list()[0]
-    for value in subjectsDT['UMCG_NUMBER'].to_list()[0]
-  ])
-  
+  # check for new subjects and
   # automatically rerun records with error overwrite isNew status where applicable
+  subjectIDs = alissaPatients['umcgNr'].to_list()[0]
   subjectsWithErrors = alissaPatients[f.hasError, 'umcgNr'].to_list()[0]
   subjectsDT['isNew'] = dt.Frame([
-    True if value in subjectsWithErrors else value
+    value not in subjectIDs
     for value in subjectsDT['UMCG_NUMBER'].to_list()[0]
   ])
 
@@ -321,16 +317,14 @@ else:
 
 # are there any subjects to process? If not, exit.
 if subjectsDT.nrows == 0:
+  print2('There are no new subjects. Stopping script.')
   cosas.logout()
-  raise SystemExit('There are no new subjects. Stopping script.')
+  sys.exit(0)
 
 
-# filter to new subjects only
 subjectsDT.names = {'UMCG_NUMBER': 'umcgNr', 'FAMILIENUMMER': 'familieNr'}
-subjectsDT = dt.rbind(alissaPatients, subjectsDT[f.isNew,:], force=True)
-
-
 del subjectsDT['isNew']
+
 
 #///////////////////////////////////////////////////////////////////////////////
 
@@ -351,7 +345,7 @@ del subjectsDT['isNew']
 print2('Creating accession number....')
 
 subjectsDT['accessionNr'] = dt.Frame([
-  '_'.join(row)
+  '_'.join(row) if all(row) else None
   for row in subjectsDT[:, (f.familieNr, f.umcgNr)].to_tuples()
 ])
 
@@ -360,15 +354,19 @@ print2('Initialising columns for alissa API responses...')
 subjectsDT[:, dt.update(
   alissaInternalID=as_type(None, str),
   dateFirstRun = datetime.now().strftime('%Y-%m-%d'),
+  dateLastUpdated = as_type(None, str),
   hasError=as_type(None, bool),
   errorType=as_type(None, str),
   errorMessage=as_type(None, str),
   comments=as_type(None, str)
 )]
 
+# bind records with error as well
+subjectsDT = dt.rbind(alissaPatients[f.hasError,:], subjectsDT, force=True)
+
 # retireve internal identifier from Alissa
 print2('Querying Alissa for internal patient information....')
-ids = subjectsDT['accessionNr'].to_list()[0]
+ids = subjectsDT[f.accessionNr!=None,'accessionNr'].to_list()[0]
 for id in ids:
   try:
     patientInfo = alissa.getPatients(accessionNumber=id)
@@ -380,12 +378,13 @@ for id in ids:
         if row['accessionNumber'] == id:
           
           # if previously failed cases are now resolved, updated date solved
-          if subjectsDT[f.accessionNr==id, f.hasError] == True:
-            subjectsDT[f.accessionNr==id, f.dateLastUpdated] = datetime.now().strftime('%Y-%m-%d')
-            subjectsDT[f.accessionNr==id, (f.errorType, f.errorMessage)] = None
+          if subjectsDT[f.accessionNr==id, 'hasError'] == True:
+            subjectsDT[f.accessionNr==id, 'dateLastUpdated'] = datetime.now().strftime('%Y-%m-%d')
+            subjectsDT[f.accessionNr==id, ['errorType', 'errorMessage']] = None
+            subjectsDT[f.accessionNr==id, 'comments'] = 'accession number resolved'
 
-          subjectsDT[f.accessionNr==id, f.hasError] = False
-          subjectsDT[f.accessionNr==id, f.alissaInternalID] = str(row['id'])
+          subjectsDT[f.accessionNr==id, 'hasError'] = False
+          subjectsDT[f.accessionNr==id, 'alissaInternalID'] = str(row['id'])
           
       # if an internal ID was not located in the previous step, flag this case
       if subjectsDT[f.accessionNr==id, f.alissaInternalID].to_list()[0] == [None]:
