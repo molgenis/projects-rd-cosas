@@ -2,7 +2,7 @@
 # FILE: alissa.py
 # AUTHOR: David Ruvolo
 # CREATED: 2022-04-19
-# MODIFIED: 2023-06-05
+# MODIFIED: 2023-06-06
 # PURPOSE: fetch data from alissa
 # STATUS: stable
 # PACKAGES: **see below**
@@ -279,12 +279,12 @@ print2('Establishing connecting to COSAS and Alissa....')
 # ~ LOCAL DEV ~
 # For local molgenis development
 # Connect to COSAS database
-from dotenv import load_dotenv
-from os import environ
-load_dotenv()
+# from dotenv import load_dotenv
+# from os import environ
+# load_dotenv()
 
-cosas = Molgenis(environ['MOLGENIS_ACC_HOST'])
-cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
+# cosas = Molgenis(environ['MOLGENIS_ACC_HOST'])
+# cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
 
 # alissa = Alissa(
 #   host=environ['ALISSA_HOST'],
@@ -349,14 +349,7 @@ existingReports = dt.Frame(cosas.get(
 print2('Pulling reference data for Alissa patients....')
 
 # pull patient info from the database
-patientsDT = dt.Frame(
-  cosas.get(
-    'alissa_patients',
-    q="hasError==false",
-    batch_size=10000,
-    num=100
-  )
-)
+patientsDT = dt.Frame(cosas.get('alissa_patients',q="hasError==false",batch_size=10000))
 
 del patientsDT['_href']
 
@@ -646,8 +639,8 @@ variantsDT = variantsDT[f.status=='COMPLETED',:]
 # set row identifier
 print2('Creating row identifier...')
 variantsDT['id'] = dt.Frame([
-  f"{row[0]}_{row[1]}_{row[2].split('.')[0]}_{row[3]}"
-  for row in variantsDT[:, (f.umcgNr,f.start,f.transcript,f.reference)].to_tuples()
+  f"{row[0]}_{row[1]}_{row[2].split('.')[0]}_{row[3]}_{row[4]}"
+  for row in variantsDT[:, (f.umcgNr,f.start,f.transcript,f.reference,f.analysisId)].to_tuples()
 ])
 
 # set run date
@@ -661,31 +654,26 @@ for column in variantsDT.names:
 
 
 # reduce data to new variant exports only
-if existingReports.nrows > 0:
-  
-  reportIDs = existingReports['id'].to_list()[0]
-  
-  variantsDT['isNew'] = dt.Frame([
-    value not in reportIDs
-    for value in variantsDT['id'].to_list()[0]
-  ])
-  
-  variantsDT = variantsDT[f.isNew,:]
-  
-  
-# is duplicated
-variantsDT['isDuplicated'] = dt.Frame([
-  variantsDT[f.id==value,:].nrows > 1
-  for value in variantsDT['id'].to_list()[0]
-])
+# if existingReports.nrows > 0:
+#   reportIDs = existingReports['id'].to_list()[0]
+#   variantsDT['isNew'] = dt.Frame([
+#     value not in reportIDs
+#     for value in variantsDT['id'].to_list()[0]
+#   ])  
+#   variantsDT = variantsDT[f.isNew,:]
 
+# is duplicated
+# variantsDT['isDuplicated'] = dt.Frame([
+#   variantsDT[f.id==value,:].nrows > 1
+#   for value in variantsDT['id'].to_list()[0]
+# ])
+
+# variantsDT[:, dt.count(), dt.by(f.isDuplicated)]
 
 #///////////////////////////////////////////////////////////////////////////////
 
 # ~ 7 ~
 # Import data
-# cosas.delete('alissa_variantexports')
 print2('Importing data patient and variants data....')
-
-cosas.importDatatableAsCsv(pkg_entity='alissa_patients', data=patientsDT)
 cosas.importDatatableAsCsv(pkg_entity='alissa_variantexports', data=variantsDT)
+cosas.logout()
