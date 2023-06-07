@@ -2,7 +2,7 @@
 # FILE: alissa.py
 # AUTHOR: David Ruvolo
 # CREATED: 2022-04-19
-# MODIFIED: 2023-06-06
+# MODIFIED: 2023-06-07
 # PURPOSE: fetch data from alissa
 # STATUS: stable
 # PACKAGES: **see below**
@@ -282,7 +282,6 @@ print2('Establishing connecting to COSAS and Alissa....')
 # from dotenv import load_dotenv
 # from os import environ
 # load_dotenv()
-
 # cosas = Molgenis(environ['MOLGENIS_ACC_HOST'])
 # cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
 
@@ -360,7 +359,7 @@ patientIdentifiers=patientsDT['alissaInternalID'].to_list()[0]
 # For all patient identifiers that were extracted in the previous step, return
 # all analysis identifiers. The analysis ID is required in order to retrieve the
 # molecular variant report identifier. Since we are are only interested in the
-# analysis ID, at this point anyways, every analysis ID are returned. If you
+# analysis IDs that are marked "complete", not all analyses are returned. If you
 # would like to get information for a specific analysis type, then apply
 # filters in the 'for' loop. If no analyses were found for patient, then they
 # aren't included in the remaining steps.
@@ -371,9 +370,10 @@ for id in patientIdentifiers:
   analysisResponse = alissa.getPatientAnalyses(patientId=id)
   if analysisResponse:
     for analysis in analysisResponse:
-      analysis['analysisId'] = analysis['id']
-      del analysis['id']
-      analysesByPatient.append(analysis)
+      if analysis.get('status') == 'COMPLETED':
+        analysis['analysisId'] = analysis['id']
+        del analysis['id']
+        analysesByPatient.append(analysis)
 
 print2('Returned',len(analysesByPatient),'results')
 
@@ -451,7 +451,6 @@ for variantRow in variantExportsByAnalyses:
           variantExport.append(export)
   except requests.exceptions.HTTPError as error:
     pass
-
 
 print2('Returned metadata for',len(variantExport),'reports')
 
@@ -606,16 +605,13 @@ for row in analysesByPatient:
       row['targetPanelNames'] = ','.join(row['targetPanelNames'])
 analysisDT = dt.Frame(analysesByPatient)
 
-
-# merge analysis information and variant export
-print2('\tFixing dataTypes....')
 analysisDT[:, dt.update(analysisId = as_type(f.analysisId, str))]
 variantsDT[:, dt.update(analysisId = as_type(f.analysisId, str))]
 
-print2('\tMerging data....')
 analysisIDs = analysisDT['analysisId'].to_list()[0]
 variantAnalysisIDs = variantsDT['analysisId'].to_list()[0]
 
+print2('\tMerging data....')
 for id in variantAnalysisIDs:
   if id in analysisIDs:
     refRow = analysisDT[f.analysisId==id,:]
@@ -627,21 +623,18 @@ for id in variantAnalysisIDs:
     # variantsDT[f.analysisId==id,'domainName'] = refRow['domainName'].to_list()[0]
     # variantsDT[f.analysisId==id,'analysisPipelineName'] = refRow['analysisPipelineName'].to_list()[0]
     # variantsDT[f.analysisId==id,'classificationTreeName'] = refRow['classificationTreeName'].to_list()[0]
-  else:
-    raise SystemError(f"Error '{id}' not found in analysis dataset")
   
-# drop columns where status is complete
-variantsDT = variantsDT[f.status=='COMPLETED',:]
-
-
-#///////////////////////////////////////
-
 # set row identifier
 print2('Creating row identifier...')
 variantsDT['id'] = dt.Frame([
-  f"{row[0]}_{row[1]}_{row[2].split('.')[0]}_{row[3]}_{row[4]}"
+  f"{row[0]}_{row[1]}_{row[2].split('.')[0]}_{row[3]}_{row[4]}" if all(row) else None
   for row in variantsDT[:, (f.umcgNr,f.start,f.transcript,f.reference,f.analysisId)].to_tuples()
 ])
+
+# drop columns where status is complete
+variantsDT = variantsDT[(f.status=='COMPLETED') & (f.id != None),:]
+
+#///////////////////////////////////////
 
 # set run date
 print2('\tSetting date retrieved....')
