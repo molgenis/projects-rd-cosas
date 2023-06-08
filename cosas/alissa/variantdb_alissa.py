@@ -339,23 +339,23 @@ existingReports = dt.Frame(cosas.get(
   batch_size=10000
 ))
 
+
+# pull patient info from the database and extract IDs
+print2('Pulling reference data for Alissa patients....')
+patientsDT = dt.Frame(cosas.get(
+  entity='alissa_patients',
+  q="hasError==false",
+  batch_size=10000
+))
+
+del patientsDT['_href']
+patientIdentifiers=patientsDT['alissaInternalID'].to_list()[0]
+
+
 #///////////////////////////////////////////////////////////////////////////////
 
 # ~ 1 ~
 # GET ANALYSES ASSOCIATED WITH EACH PATIENT
-# Using the information stored in `alissa_patients`, retrieve a list of
-# analysis identifiers associated with each patient
-print2('Pulling reference data for Alissa patients....')
-
-# pull patient info from the database
-patientsDT = dt.Frame(cosas.get('alissa_patients',q="hasError==false",batch_size=10000))
-
-del patientsDT['_href']
-
-# isolate Alissa Internal IDs
-patientIdentifiers=patientsDT['alissaInternalID'].to_list()[0]
-
-# GET ANALYSES BY PATIENT
 # For all patient identifiers that were extracted in the previous step, return
 # all analysis identifiers. The analysis ID is required in order to retrieve the
 # molecular variant report identifier. Since we are are only interested in the
@@ -637,14 +637,13 @@ variantsDT = variantsDT[(f.status=='COMPLETED') & (f.id != None),:]
 #///////////////////////////////////////
 
 # set run date
-print2('\tSetting date retrieved....')
+print2('Setting date retrieved....')
 variantsDT['dateRetrieved'] = today()
 
 # select columns of interest
 for column in variantsDT.names:
   if column not in tableAttribs:
     del variantsDT[column]
-
 
 # reduce data to new variant exports only
 # if existingReports.nrows > 0:
