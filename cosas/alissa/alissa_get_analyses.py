@@ -15,9 +15,7 @@ from datatable import dt, f, as_type
 import molgenis.client as molgenis
 from datetime import datetime
 from os.path import abspath
-from time import sleep
 import numpy as np
-import requests
 import tempfile
 import pytz
 import csv
@@ -182,21 +180,6 @@ alissa = Alissa(
   password=environ['ALISSA_API_PWD']
 )
 
-
-test = cosas.get('alissa_patients',q="hasError==false",num=10)
-
-data = []
-for row in test:
-  tmp = alissa.getPatientAnalyses(patientId=row['alissaInternalID'])
-  data.extend(tmp)
-
-from datatable import dt, f, as_type
-dataDT = dt.Frame(data)
-
-
-
-
-
 #///////////////////////////////////////
 
 # ~ DEPLOY ~
@@ -205,7 +188,7 @@ print2('\tConnecting to MOLGENIS....')
 
 # cosas = Molgenis('http://localhost/api/', token='${molgenisToken}')
 
-# print2('\tRetrieving credentials for Alissa....')
+# print2('\tConnecting to Alissa UMCG....')
 # credentials = cosas.get(
 #   'sys_sec_Token',
 #   q='description=like="alissa-api-"',
@@ -218,8 +201,6 @@ print2('\tConnecting to MOLGENIS....')
 # apiUser=filterList(credentials,'description','alissa-api-username')['token']
 # apiPwd=filterList(credentials,'description','alissa-api-password')['token']
 
-
-# print2('\tConnecting to Alissa UMCG....')
 # alissa = Alissa(
 #   host=host,
 #   clientId=clientId,
@@ -231,7 +212,9 @@ print2('\tConnecting to MOLGENIS....')
 #///////////////////////////////////////////////////////////////////////////////
 
 # ~ 1 ~
-# Retrieve Analyses
+# Retrieve Metadata
+# Before analysis information can be retrieved, it is important to build of
+# identifiers that need to be tested.
 
 # get list of patients that do not have errors
 print2('Pulling existing Alissa Patients....')
@@ -242,18 +225,144 @@ subjectsDT = dt.Frame(
     batch_size=10000
   )
 )
+del subjectsDT['_href']
 
-# get a list of analyses that do not have errors
-analysesDT = dt.Frame(
-  cosas.get(
-    entity='alissa_analyses',
-    q='hasError==false',
-    batch_size='10000'
-  )
-)
-
-# 
-
-test = alissa
+# flatten refs
+for column in ['analyses', 'inheritanceAnalyses', 'variants']:
+  subjectsDT[column] = dt.Frame([
+    ','.join([item for item in value]) if bool(value) else None
+    for value in subjectsDT[column].to_list()[0]
+  ])
 
 
+subjectsDT[:, dt.update(
+  analyses = as_type(f.analyses, dt.str32),
+  inheritanceAnalyses = as_type(f.inheritanceAnalyses, dt.str32),
+  variants = as_type(f.variants, dt.str32)
+)]
+
+
+# define a list of identifiers
+patientIdentifiers = subjectsDT['alissaInternalID'].to_list()[0]
+
+# # get analyses
+alissaAnalyses = dt.Frame(cosas.get('alissa_analyses',batch_size='10000'))
+del alissaAnalyses['_href']
+
+#///////////////////////////////////////////////////////////////////////////////
+
+# ~ 2 ~
+# Retreive analysis information
+
+print2(f'Retrieving analyses for {len(patientIdentifiers)} patients...')
+analysesByPatient = []
+
+for id in patientIdentifiers:
+  analysisResponse = alissa.getPatientAnalyses(patientId=id)
+  if analysisResponse:
+    for analysis in analysisResponse:
+      if analysis.get('status') == 'COMPLETED':
+        analysis['analysisId'] = analysis['id']
+        del analysis['id']
+        analysesByPatient.append(analysis)
+
+print2(f"Retrieved {len(analysesByPatient)} analyses....")
+
+#///////////////////////////////////////////////////////////////////////////////
+
+# ~ 3 ~
+# Transform data
+
+print2('Transforming data....')
+
+analysesDT = dt.Frame(analysesByPatient)
+
+# init columns in not present
+for column in ['dateFirstRun', 'dateLastUpdated','comments']:
+  if column not in analysesDT.names:
+    analysesDT[column] = None
+
+#///////////////////////////////////////
+
+# add umcgNr
+print2('Merging umcgNr and generating table identifiers....')
+
+analysesDT['umcgNr'] = dt.Frame([
+  subjectsDT[f.alissaInternalID==str(value), 'umcgNr'].to_list()[0][0]
+  if value else value
+  for value in analysesDT['patientId'].to_list()[0]
+])
+
+# create ID: `<patient-id>_<analysis-id>`
+analysesDT['id'] = analysesDT[:, f.umcgNr + '_' + f.analysisId]
+
+#///////////////////////////////////////
+
+# flatten targetPanelNames
+print2('Flattening target panel names....')
+
+analysesDT['targetPanelNames'] = dt.Frame([
+  ';'.join(value)
+  for value in analysesDT['targetPanelNames'].to_list()[0]
+])
+
+analysesDT['targetPanelNames'] = dt.Frame([
+  None if value == 'NONE' else value
+  for value in analysesDT['targetPanelNames'].to_list()[0]
+])
+
+#///////////////////////////////////////
+
+# determine if each analysis exists and set dates
+print2('Updating date run and date updated....')
+
+analysisIds = alissaAnalyses['analysisId'].to_list()[0] if alissaAnalyses else []
+
+analysesDT[['dateFirstRun','dateLastUpdated', 'comments']] = dt.Frame([
+  (row[1], today(), 'record updated or refreshed')
+  if row[0] in analysisIds
+  else (today(), None, None)
+  for row in analysesDT[:, ['analysisId', 'dateFirstRun','dateLastUpdated']].to_tuples()
+])
+
+#///////////////////////////////////////
+
+# update data types
+print2('Updating data types....')
+
+analysesDT[:, dt.update(
+  patientId=as_type(f.patientId, dt.str32),
+  analysisId=as_type(f.analysisId, dt.str32),
+  dateFirstRun=as_type(f.dateFirstRun, dt.str32),
+  dateLastUpdated=as_type(f.dateLastUpdated, dt.str32),
+  comments=as_type(f.comments, dt.str32),
+)]
+
+#///////////////////////////////////////
+
+# update analyses references in patients
+print2('Updating analysis table references in alissa_patients....')
+
+analysesPatients = analysesDT['umcgNr'].to_list()[0]
+for id in analysesPatients:
+  ids = []
+  
+  current = analysesDT[f.umcgNr==id, 'id'].to_list()[0]
+  if current: ids.extend(current)
+    
+  existing = subjectsDT[f.umcgNr==id, 'analyses'].to_list()[0][0]
+  if existing: ids.extend(existing.split(','))
+    
+  patientAnalysisIds = list(set(filter(lambda value: value != None, ids)))
+  subjectsDT[f.umcgNr==id, 'analyses'] = ','.join(patientAnalysisIds)
+  subjectsDT[f.umcgNr==id, 'dateLastUpdated'] = today()
+
+#///////////////////////////////////////////////////////////////////////////////
+
+# ~ 4 ~
+# Import Data
+
+print2('Importing datasets....')
+cosas.importDatatableAsCsv(pkg_entity='alissa_analyses', data=analysesDT)
+cosas.importDatatableAsCsv(pkg_entity='alissa_patients', data=subjectsDT)
+cosas.logout()
