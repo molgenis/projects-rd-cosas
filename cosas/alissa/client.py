@@ -203,3 +203,14 @@ class Alissa:
     """
     api=f"patient_analyses/{analysisId}/molecular_variants/exports/{exportId}"
     return self._get(endpoint=api)
+
+  def getInheritanceAnalysis(self, analysisId: int=None) -> dict:
+    """Get Interhitance Analysis
+    Get the inheritance analysis of a patient for a specific analysis.
+    
+    @param analysisId The unique internal identifier of an analysis
+    
+    @reference Alissa Interpret Public API (v5.3; p89-90)
+    @return dictionary
+    """
+    return self._get(endpoint=f"interhitance_analyses/{analysisId}")
