@@ -2,7 +2,7 @@
 # FILE: variantdb_alissa_prep.py
 # AUTHOR: David Ruvolo
 # CREATED: 2023-01-26
-# MODIFIED: 2023-06-06
+# MODIFIED: 2023-06-08
 # PURPOSE: compile a list of information necessary for querying the alissa API
 # STATUS: stable
 # PACKAGES: **see below**
@@ -15,7 +15,6 @@ from datatable import dt, f, as_type
 import molgenis.client as molgenis
 from datetime import datetime
 from os.path import abspath
-from time import sleep
 import numpy as np
 import requests
 import tempfile
@@ -36,7 +35,6 @@ def print2(*args):
   
 class Alissa:
   """Alissa Interpret Public API (v5.3)"""
-  
   def __init__(self, host, clientId, clientSecret, username, password):
     """Create new instance of the client
     A mini api client to get molecular variant information per patient.
@@ -65,7 +63,6 @@ class Alissa:
       print('Connected to', host, 'as', username)
     else:
       print('Unable to connect to', host, 'as', username)
-      
 
   def _formatOptionalParams(self, params: dict=None) -> dict:
     """Format Optional Parameters
@@ -180,7 +177,6 @@ class Molgenis(molgenis.Session):
           print2('Imported data into', pkg_entity)
         return response
 
-
 def filterList(data, key, condition):
   return [row for row in data if row[key] == condition][0]
 
@@ -227,7 +223,6 @@ clientSecret=filterList(credentials,'description', 'alissa-api-client-secret')['
 apiUser=filterList(credentials,'description','alissa-api-username')['token']
 apiPwd=filterList(credentials,'description','alissa-api-password')['token']
 
-
 print2('\tConnecting to Alissa UMCG....')
 alissa = Alissa(
   host=host,
@@ -241,7 +236,6 @@ alissa = Alissa(
 
 # ~ 1 ~
 # Pull Information from the Portal
-
 
 # ~ 1a ~
 # Pull Patients from the portal
@@ -284,14 +278,12 @@ subjectsDT.key = 'UMCG_NUMBER'
 familyInfoDT.key = 'UMCG_NUMBER'
 subjectsDT = subjectsDT[:, :, dt.join(familyInfoDT)]
 
-
 #///////////////////////////////////////
 
 # ~ 1c ~
 # Retrieve existing metadata from alissa_patients
 print2('Pulling existing Alissa Patients....')
 alissaPatients = dt.Frame(cosas.get('alissa_patients', batch_size=10000))
-
 
 # add new subjects to existing alissa subjects metadata
 if alissaPatients.nrows:
@@ -314,17 +306,14 @@ else:
   print2('Initialising patients....')
   subjectsDT['isNew'] = True
 
-
 # are there any subjects to process? If not, exit.
 if subjectsDT.nrows == 0:
   print2('There are no new subjects. Stopping script.')
   cosas.logout()
   sys.exit(0)
 
-
 subjectsDT.names = {'UMCG_NUMBER': 'umcgNr', 'FAMILIENUMMER': 'familieNr'}
 del subjectsDT['isNew']
-
 
 #///////////////////////////////////////////////////////////////////////////////
 
@@ -332,11 +321,6 @@ del subjectsDT['isNew']
 # Create Alissa Information
 # Here we will create and retrieve the internal Alissa ID. This will save time
 # when we we run the full variant script.
-
-# FOR TESTING ONLY --- TRIM DATASET TO 100 SUBJECTS ONLY
-# subjectsDT = subjectsDT[
-#   (f.dateFirstRun == None ) | (f.dateFirstRun == '') | (f.hasError), :
-# ][range(0,100), :]
 
 # ~ 2a ~
 # CREATE ACCESSIONNUMBER
@@ -375,7 +359,9 @@ for id in ids:
       # results if the accessionNumber is in the string. We need to make sure
       # we extract the correct ID using an extact match.
       for row in patientInfo:
-        if row['accessionNumber'] == id:
+        if (row['accessionNumber'] == id):
+          subjectsDT[f.accessionNr==id, 'hasError'] = False
+          subjectsDT[f.accessionNr==id, 'alissaInternalID'] = str(row['id'])
           
           # if previously failed cases are now resolved, updated date solved
           if subjectsDT[f.accessionNr==id, 'hasError'] == True:
@@ -383,8 +369,12 @@ for id in ids:
             subjectsDT[f.accessionNr==id, ['errorType', 'errorMessage']] = None
             subjectsDT[f.accessionNr==id, 'comments'] = 'accession number resolved'
 
-          subjectsDT[f.accessionNr==id, 'hasError'] = False
-          subjectsDT[f.accessionNr==id, 'alissaInternalID'] = str(row['id'])
+          # log error if no patient identifier was found
+          if bool(row['id']):            
+            raise ValueError(
+              'no.identifier',
+              'valid accessionNr and response, but no internal identifier found'
+            )
           
       # if an internal ID was not located in the previous step, flag this case
       if subjectsDT[f.accessionNr==id, f.alissaInternalID].to_list()[0] == [None]:
@@ -421,7 +411,6 @@ for id in ids:
     subjectsDT[f.accessionNr==id, f.hasError] = True
     subjectsDT[f.accessionNr==id, f.errorType] = e.args[0]
     subjectsDT[f.accessionNr==id, f.errorMessage] = e.args[1]
-  sleep(0.12)
 
 #///////////////////////////////////////
 
