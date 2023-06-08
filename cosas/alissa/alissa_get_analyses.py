@@ -19,7 +19,6 @@ import numpy as np
 import tempfile
 import pytz
 import csv
-import sys
 
 def now():
   return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -162,52 +161,49 @@ def filterList(data, key, condition):
 
 # ~ 0 ~
 # Connect to Alissa and MOLGENIS
-print2('Starting sessions with API....')
+print2('Connecting to Alissa and MOLGENIS....')
 
 # ~ DEV ~
 # for local dev
-from dotenv import load_dotenv
-load_dotenv()
-from os import environ
+# from dotenv import load_dotenv
+# load_dotenv()
+# from os import environ
 
-cosas = Molgenis(environ['MOLGENIS_ACC_HOST'])
-cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
-alissa = Alissa(
-  host=environ['ALISSA_HOST'],
-  clientId=environ['ALISSA_CLIENT_ID'],
-  clientSecret=environ['ALISSA_CLIENT_SECRET'],
-  username=environ['ALISSA_API_USR'],
-  password=environ['ALISSA_API_PWD']
-)
+# cosas = Molgenis(environ['MOLGENIS_ACC_HOST'])
+# cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
+# alissa = Alissa(
+#   host=environ['ALISSA_HOST'],
+#   clientId=environ['ALISSA_CLIENT_ID'],
+#   clientSecret=environ['ALISSA_CLIENT_SECRET'],
+#   username=environ['ALISSA_API_USR'],
+#   password=environ['ALISSA_API_PWD']
+# )
 
 #///////////////////////////////////////
 
 # ~ DEPLOY ~
 # for deployment
-print2('\tConnecting to MOLGENIS....')
 
-# cosas = Molgenis('http://localhost/api/', token='${molgenisToken}')
+cosas = Molgenis('http://localhost/api/', token='${molgenisToken}')
+credentials = cosas.get(
+  'sys_sec_Token',
+  q='description=like="alissa-api-"',
+  attributes='token,description'
+)
 
-# print2('\tConnecting to Alissa UMCG....')
-# credentials = cosas.get(
-#   'sys_sec_Token',
-#   q='description=like="alissa-api-"',
-#   attributes='token,description'
-# )
+host=filterList(credentials,'description','alissa-api-host')['token']
+clientId=filterList(credentials,'description','alissa-api-client-id')['token']
+clientSecret=filterList(credentials,'description', 'alissa-api-client-secret')['token']
+apiUser=filterList(credentials,'description','alissa-api-username')['token']
+apiPwd=filterList(credentials,'description','alissa-api-password')['token']
 
-# host=filterList(credentials,'description','alissa-api-host')['token']
-# clientId=filterList(credentials,'description','alissa-api-client-id')['token']
-# clientSecret=filterList(credentials,'description', 'alissa-api-client-secret')['token']
-# apiUser=filterList(credentials,'description','alissa-api-username')['token']
-# apiPwd=filterList(credentials,'description','alissa-api-password')['token']
-
-# alissa = Alissa(
-#   host=host,
-#   clientId=clientId,
-#   clientSecret=clientSecret,
-#   username=apiUser,
-#   password=apiPwd
-# )
+alissa = Alissa(
+  host=host,
+  clientId=clientId,
+  clientSecret=clientSecret,
+  username=apiUser,
+  password=apiPwd
+)
 
 #///////////////////////////////////////////////////////////////////////////////
 
@@ -218,29 +214,23 @@ print2('\tConnecting to MOLGENIS....')
 
 # get list of patients that do not have errors
 print2('Pulling existing Alissa Patients....')
-subjectsDT = dt.Frame(
-  cosas.get(
-    entity='alissa_patients',
-    q='hasError==false',
-    batch_size=10000
-  )
-)
-del subjectsDT['_href']
+subjects = cosas.get('alissa_patients',q='hasError==false', batch_size=10000)
 
-# flatten refs
-for column in ['analyses', 'inheritanceAnalyses', 'variants']:
-  subjectsDT[column] = dt.Frame([
-    ','.join([item for item in value]) if bool(value) else None
-    for value in subjectsDT[column].to_list()[0]
-  ])
+# flatten data
+for row in subjects:
+  for column in ['analyses', 'inheritanceAnalyses', 'variants']:
+    if row.get(column):
+      row[column] = ','.join([subrow['id'] for subrow in row[column]])
+    else:
+      row[column] = None
 
-
+subjectsDT = dt.Frame(subjects)
 subjectsDT[:, dt.update(
   analyses = as_type(f.analyses, dt.str32),
   inheritanceAnalyses = as_type(f.inheritanceAnalyses, dt.str32),
   variants = as_type(f.variants, dt.str32)
 )]
-
+del subjectsDT['_href']
 
 # define a list of identifiers
 patientIdentifiers = subjectsDT['alissaInternalID'].to_list()[0]
@@ -253,10 +243,9 @@ del alissaAnalyses['_href']
 
 # ~ 2 ~
 # Retreive analysis information
-
 print2(f'Retrieving analyses for {len(patientIdentifiers)} patients...')
-analysesByPatient = []
 
+analysesByPatient = []
 for id in patientIdentifiers:
   analysisResponse = alissa.getPatientAnalyses(patientId=id)
   if analysisResponse:
@@ -272,7 +261,6 @@ print2(f"Retrieved {len(analysesByPatient)} analyses....")
 
 # ~ 3 ~
 # Transform data
-
 print2('Transforming data....')
 
 analysesDT = dt.Frame(analysesByPatient)
