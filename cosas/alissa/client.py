@@ -2,7 +2,7 @@
 # FILE: alissa.py
 # AUTHOR: David Ruvolo
 # CREATED: 2022-04-13
-# MODIFIED: 2023-03-15
+# MODIFIED: 2023-06-09
 # PURPOSE: custom Alissa public api client
 # STATUS: experimental
 # PACKAGES: requests
@@ -39,7 +39,6 @@ from requests_oauthlib import OAuth2Session
 
 class Alissa:
   """Alissa Interpret Public API (v5.3)"""
-  
   def __init__(self, host, clientId, clientSecret, username, password):
     """Create new instance of the client
     A mini api client to get molecular variant information per patient.
@@ -68,11 +67,9 @@ class Alissa:
       print('Connected to', host, 'as', username)
     else:
       print('Unable to connect to', host, 'as', username)
-      
 
   def _formatOptionalParams(self, params: dict=None) -> dict:
-    """Format Optional Parameters
-    
+    """Format Optional Parameters 
     @param params dictionary containg one or more parameter
     @return dict
     """
@@ -84,11 +81,9 @@ class Alissa:
   
   def _get(self, endpoint, params=None, **kwargs):
     """GET
-
     @param endpoint the Alissa Interpret endpoint where data should be
-        sent to. The path "/interpret/api/2" is prefilled.
+      sent to. The path "/interpret/api/2" is prefilled.
     @param params Optional parameters to add to the request
-
     """
     uri = f'{self.apiUrl}/{endpoint}'
     response = self.session.get(uri, params=params, **kwargs)
@@ -97,11 +92,9 @@ class Alissa:
       
   def _post(self, endpoint, data=None, json=None, **kwargs):
     """POST
-    
     @param endpoint the Alissa Interpret endpoint where data should be
-        sent to. The path "/interpret/api/2" is prefilled.
-    @param data Optional dictionary, list of tuples, bytes, or file-like
-        object
+      sent to. The path "/interpret/api/2" is prefilled.
+    @param data Optional dictionary, list of tuples, bytes, or file-like object
     @param json Optional json data
     """
     uri = f'{self.apiUrl}/{endpoint}'
