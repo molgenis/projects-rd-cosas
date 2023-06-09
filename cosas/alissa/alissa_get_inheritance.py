@@ -2,9 +2,9 @@
 # FILE: alissa_get_inheritance.py
 # AUTHOR: David Ruvolo
 # CREATED: 2023-06-08
-# MODIFIED: 2023-06-08
+# MODIFIED: 2023-06-09
 # PURPOSE: retrieve inheritance metadata where applicable
-# STATUS: in.progress
+# STATUS: stable
 # PACKAGES: **see below**
 # COMMENTS: NA
 #///////////////////////////////////////////////////////////////////////////////
@@ -152,45 +152,44 @@ print2('Connecting to Alissa and MOLGENIS....')
 
 # ~ DEV ~
 # for local dev
-
-from dotenv import load_dotenv
-load_dotenv()
-from os import environ
-cosas = Molgenis(environ['MOLGENIS_ACC_HOST'])
-cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
-alissa = Alissa(
-  host=environ['ALISSA_HOST'],
-  clientId=environ['ALISSA_CLIENT_ID'],
-  clientSecret=environ['ALISSA_CLIENT_SECRET'],
-  username=environ['ALISSA_API_USR'],
-  password=environ['ALISSA_API_PWD']
-)
+# from dotenv import load_dotenv
+# load_dotenv()
+# from os import environ
+# cosas = Molgenis(environ['MOLGENIS_ACC_HOST'])
+# cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
+# alissa = Alissa(
+#   host=environ['ALISSA_HOST'],
+#   clientId=environ['ALISSA_CLIENT_ID'],
+#   clientSecret=environ['ALISSA_CLIENT_SECRET'],
+#   username=environ['ALISSA_API_USR'],
+#   password=environ['ALISSA_API_PWD']
+# )
 
 #///////////////////////////////////////
 
 # ~ DEPLOY ~
 # for deployment
 
-# cosas = Molgenis('http://localhost/api/', token='${molgenisToken}')
-# credentials = cosas.get(
-#   'sys_sec_Token',
-#   q='description=like="alissa-api-"',
-#   attributes='token,description'
-# )
+cosas = Molgenis('http://localhost/api/', token='${molgenisToken}')
+credentials = cosas.get(
+  'sys_sec_Token',
+  q='description=like="alissa-api-"',
+  attributes='token,description'
+)
 
-# host=filterList(credentials,'description','alissa-api-host')['token']
-# clientId=filterList(credentials,'description','alissa-api-client-id')['token']
-# clientSecret=filterList(credentials,'description', 'alissa-api-client-secret')['token']
-# apiUser=filterList(credentials,'description','alissa-api-username')['token']
-# apiPwd=filterList(credentials,'description','alissa-api-password')['token']
+host=filterList(credentials,'description','alissa-api-host')['token']
+clientId=filterList(credentials,'description','alissa-api-client-id')['token']
+clientSecret=filterList(credentials,'description', 'alissa-api-client-secret')['token']
+apiUser=filterList(credentials,'description','alissa-api-username')['token']
+apiPwd=filterList(credentials,'description','alissa-api-password')['token']
 
-# alissa = Alissa(
-#   host=host,
-#   clientId=clientId,
-#   clientSecret=clientSecret,
-#   username=apiUser,
-#   password=apiPwd
-# )
+alissa = Alissa(
+  host=host,
+  clientId=clientId,
+  clientSecret=clientSecret,
+  username=apiUser,
+  password=apiPwd
+)
 
 #///////////////////////////////////////////////////////////////////////////////
 
@@ -211,12 +210,12 @@ alissaAnalysesDT = dt.Frame(
 )
 
 # get existing inheritance data
-alissaInheritanceDT = dt.Frame([
+alissaInheritanceDT = dt.Frame(
   cosas.get(
     entity = 'alissa_inheritance',
     batch_size=10000
   )
-])
+)
 
 # get subject metadata
 subjects = cosas.get('alissa_patients',batch_size=10000)
@@ -260,7 +259,6 @@ print2(f"Retrieved metadata for {len(analyses)} inheritance analyses...")
 print2('Flattening nested data and expanding family members....')
 
 analysesData = analyses.copy()
-
 for row in analysesData: 
   
   # flatten target panel names
@@ -288,7 +286,6 @@ for row in analysesData:
         row['paternalPatientId'] = person['patientId']
         row['paternalAffectedStatus'] = person['affected']
   row['familyMembers'] = None
-  
 
 # convert to datatable 
 analysesDT = dt.Frame(analysesData)
@@ -316,11 +313,8 @@ analysesDT['analysisId'] = analysesDT[:, f.id]
 # create ID: `<patient-id>_<analysis-id>`
 analysesDT['id'] = analysesDT[:, f.umcgNr + '_' + f.analysisId]
 
-#///////////////////////////////////////
 
-# update data types
 print2('Updating data types....')
-
 analysesDT[:, dt.update(
   patientId=as_type(f.patientId, dt.str32),
   analysisId=as_type(f.analysisId, dt.str32),
@@ -340,11 +334,11 @@ analysisIds = alissaInheritanceDT['analysisId'].to_list()[0] if alissaInheritanc
 
 analysesDT[['dateFirstRun','dateLastUpdated', 'comments']] = dt.Frame([
   (row[1], today(), 'record was refreshed')
-  if row[0] in analysisIds
-  else (today(), None, None)
+  if row[0] in analysisIds else (today(), None, None)
   for row in analysesDT[:, ['analysisId', 'dateFirstRun','dateLastUpdated']].to_tuples()
 ])
 
+# make sure columns remain string (will get overwritten if all are none)
 analysesDT[:, dt.update(
   dateFirstRun=as_type(f.dateFirstRun, dt.str32),
   dateLastUpdated=as_type(f.dateLastUpdated, dt.str32),
@@ -375,6 +369,6 @@ for id in analysesPatients:
 # ~ 4 ~
 # Import Data
 print2('Importing data....')
-
 cosas.importDatatableAsCsv(pkg_entity='alissa_inheritance',data=analysesDT)
 cosas.importDatatableAsCsv(pkg_entity='alissa_patients',data=subjectsDT)
+cosas.logout()
