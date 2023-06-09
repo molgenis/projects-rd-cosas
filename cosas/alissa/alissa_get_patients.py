@@ -184,7 +184,6 @@ def filterList(data, key, condition):
 
 # ~ 0 ~
 # Connect to Alissa and MOLGENIS
-print2('Starting sessions with API....')
 
 # ~ DEV ~
 # for local dev
@@ -205,12 +204,9 @@ print2('Starting sessions with API....')
 #///////////////////////////////////////
 
 # ~ DEPLOY ~
-# for deployment
-print2('\tConnecting to MOLGENIS....')
+print2('Connecting to APIs....')
 
 cosas = Molgenis('http://localhost/api/', token='${molgenisToken}')
-
-print2('\tRetrieving credentials for Alissa....')
 credentials = cosas.get(
   'sys_sec_Token',
   q='description=like="alissa-api-"',
@@ -223,7 +219,6 @@ clientSecret=filterList(credentials,'description', 'alissa-api-client-secret')['
 apiUser=filterList(credentials,'description','alissa-api-username')['token']
 apiPwd=filterList(credentials,'description','alissa-api-password')['token']
 
-print2('\tConnecting to Alissa UMCG....')
 alissa = Alissa(
   host=host,
   clientId=clientId,
@@ -356,9 +351,9 @@ subjectsDT[:, dt.update(
 # bind records with error as well
 subjectsDT = dt.rbind(alissaPatients[f.hasError,:], subjectsDT, force=True)
 
-# retireve internal identifier from Alissa
-print2('Querying Alissa for internal patient information....')
+# retrieve internal identifier from Alissa
 ids = subjectsDT[f.accessionNr!=None,'accessionNr'].to_list()[0]
+print2(f"Querying patient metadata for {len(ids)} patients....")
 for id in ids:
   try:
     patientInfo = alissa.getPatients(accessionNumber=id)
