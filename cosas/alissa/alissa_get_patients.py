@@ -2,7 +2,7 @@
 # FILE: variantdb_alissa_prep.py
 # AUTHOR: David Ruvolo
 # CREATED: 2023-01-26
-# MODIFIED: 2023-06-08
+# MODIFIED: 2023-06-09
 # PURPOSE: compile a list of information necessary for querying the alissa API
 # STATUS: stable
 # PACKAGES: **see below**
@@ -244,7 +244,6 @@ alissa = Alissa(
 # `cosasportal_labs_ngs_adlas`, we can create a list of patients and samples to
 # use in the Alissa search.
 print2('Retrieving the latest patientIDs from ADLAS-NGS datasets....')
-
 subjectsDT = dt.Frame(
   cosas.get(
     entity='cosasportal_labs_ngs_adlas',
@@ -283,7 +282,16 @@ subjectsDT = subjectsDT[:, :, dt.join(familyInfoDT)]
 # ~ 1c ~
 # Retrieve existing metadata from alissa_patients
 print2('Pulling existing Alissa Patients....')
-alissaPatients = dt.Frame(cosas.get('alissa_patients', batch_size=10000))
+
+rawAlissaPatients = cosas.get('alissa_patients', batch_size=10000)
+for row in rawAlissaPatients:
+  for column in ['analyses', 'inheritanceAnalyses', 'variants']:
+    if row.get(column):
+      row[column] = ','.join([record['id'] for record in row[column]])
+    else:
+      row[column] = None
+
+alissaPatients = dt.Frame(rawAlissaPatients)
 
 # add new subjects to existing alissa subjects metadata
 if alissaPatients.nrows:
