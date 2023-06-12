@@ -2,7 +2,7 @@
 # FILE: alissa.py
 # AUTHOR: David Ruvolo
 # CREATED: 2022-04-13
-# MODIFIED: 2023-06-09
+# MODIFIED: 2023-06-12
 # PURPOSE: custom Alissa public api client
 # STATUS: experimental
 # PACKAGES: requests
@@ -203,7 +203,39 @@ class Alissa:
     
     @param analysisId The unique internal identifier of an analysis
     
-    @reference Alissa Interpret Public API (v5.3; p89-90)
+    @reference Alissa Interpret Public API (v5.3; p55)
     @return dictionary
     """
     return self._get(endpoint=f"interhitance_analyses/{analysisId}")
+
+  def getInheritanceVariantExportId(
+    self,
+    analysisId: int,
+    markedForReview: bool=True,
+    markedIncludeInReport: bool=True
+  ) -> dict:
+    """Request Inheritance Molecular Variants Export
+    Request an export of all variants. When filter criteria are provided the
+    result is limited to the variants matching the criteria.
+    
+    @param analysisId The unique internal identifier of an analysis
+    
+    @reference Alissa Interpret Public API (v5.3; 89)
+    @return dictionary
+    """
+    data={'markedForReview': markedForReview, 'markedIncludeInReport': markedIncludeInReport}
+    api=f"interhitance_analyses/{analysisId}/molecular_variants/exports"
+    return self._post(endpoint=api,json=data)
+    
+  def getInheritanceVariantExportData(self, analysisId: int, exportId: str) -> dict:
+    """Get Inheritance Molecular Variants Export
+    Get the exported variants of an inheritance analysis via the export id
+    returned when requesting the export.
+    
+    @param analysisId The unique internal identifier of an analysis
+    @param exportId The unique internal identifier of the export
+
+    @reference Alissa Interpret Public API (v5.3; p56-58)
+    """
+    api=f"interhitance_analyses/{analysisId}/molecular_variants/exports/{exportId}"
+    return self._get(endpoint=api)
