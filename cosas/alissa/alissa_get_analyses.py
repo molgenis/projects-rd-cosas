@@ -2,9 +2,9 @@
 # FILE: alissa_get_analyses.py
 # AUTHOR: David Ruvolo
 # CREATED: 2023-06-08
-# MODIFIED: 2023-06-08
+# MODIFIED: 2023-06-21
 # PURPOSE: retrieve patient analyses from Alissa Interpret
-# STATUS: in.progress
+# STATUS: stable
 # PACKAGES: **see below**
 # COMMENTS: NA
 #///////////////////////////////////////////////////////////////////////////////

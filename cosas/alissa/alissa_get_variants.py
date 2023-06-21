@@ -2,7 +2,7 @@
 # FILE: alissa.py
 # AUTHOR: David Ruvolo
 # CREATED: 2022-04-19
-# MODIFIED: 2023-06-09
+# MODIFIED: 2023-06-21
 # PURPOSE: fetch data from alissa
 # STATUS: stable
 # PACKAGES: **see below**
@@ -200,7 +200,6 @@ print2('Establishing connections to COSAS and Alissa....')
 # load_dotenv()
 # cosas = Molgenis(environ['MOLGENIS_ACC_HOST'])
 # cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
-
 # alissa = Alissa(
 #   host=environ['ALISSA_HOST'],
 #   clientId=environ['ALISSA_CLIENT_ID'],
@@ -453,6 +452,19 @@ print2('Building datasets....')
 
 # convert to datatable object
 variantsDT = dt.Frame(variantdata)
+
+# First, select cases that are necessary
+# We are only in cases where that have a specific classification or where the
+# classification is missing (to investigate this further)
+variantsDT['mustKeep'] = dt.Frame([
+  (not bool(value)) or (value in ['','Likely pathogenic', 'Pathogenic', 'VOUS'])
+  for value in variantsDT['classification'].to_list()[0]
+])
+
+variantsDT = variantsDT[f.mustKeep, :]
+del variantsDT['mustKeep']
+
+# set classes
 variantsDT[:, dt.update(
   patientId=as_type(f.patientId, str),
   analysisId=as_type(f.analysisId, str),
@@ -534,16 +546,6 @@ variantsDT[:, dt.update(
   dateFirstRun=as_type(f.dateFirstRun, dt.str32),
   dateLastUpdated=as_type(f.dateLastUpdated, dt.str32)
 )]
-
-
-# ~ ¡THIS IS A TEMPORARY SOLUTION! ~
-# the following step removes duplicated rows until it is determined how to
-# import multiple records with the same row identifiers.
-variantsDT['isDuplicated'] = dt.Frame([
-  variantsDT[f.id==id,:].nrows > 1 for id in variantsDT['id'].to_list()[0]
-])
-
-variantsDT = variantsDT[f.isDuplicated==False,:]
 
 #///////////////////////////////////////////////////////////////////////////////
 

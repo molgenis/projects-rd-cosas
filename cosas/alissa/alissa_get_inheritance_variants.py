@@ -2,9 +2,9 @@
 # FILE: alissa_get_inheritance_variants.py
 # AUTHOR: David Ruvolo
 # CREATED: 2023-06-12
-# MODIFIED: 2023-06-12
+# MODIFIED: 2023-06-21
 # PURPOSE: retrieve variant exports for inheritance analyses
-# STATUS: in.progress
+# STATUS: stable
 # PACKAGES: **see below**
 # COMMENTS: NA
 #///////////////////////////////////////////////////////////////////////////////
@@ -187,42 +187,44 @@ print2('Establishing connections to COSAS and Alissa....')
 # ~ LOCAL DEV ~
 # For local molgenis development
 # Connect to COSAS database
-from dotenv import load_dotenv
-from os import environ
-load_dotenv()
-cosas = Molgenis(environ['MOLGENIS_ACC_HOST'])
-cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
-alissa = Alissa(
-  host=environ['ALISSA_HOST'],
-  clientId=environ['ALISSA_CLIENT_ID'],
-  clientSecret=environ['ALISSA_CLIENT_SECRET'],
-  username=environ['ALISSA_API_USR'],
-  password=environ['ALISSA_API_PWD']
-)
+# from dotenv import load_dotenv
+# from os import environ
+# load_dotenv()
+# cosas = Molgenis(environ['MOLGENIS_ACC_HOST'])
+# cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
+# alissa = Alissa(
+#   host=environ['ALISSA_HOST'],
+#   clientId=environ['ALISSA_CLIENT_ID'],
+#   clientSecret=environ['ALISSA_CLIENT_SECRET'],
+#   username=environ['ALISSA_API_USR'],
+#   password=environ['ALISSA_API_PWD']
+# )
 
 #///////////////////////////////////////
 
 # ~ PROD ~
-# cosas = Molgenis('http://localhost/api/', token='${molgenisToken}')
-# credentials = cosas.get(
-#   'sys_sec_Token',
-#   q='description=like="alissa-api-"',
-#   attributes='token,description'
-# )
+cosas = Molgenis('http://localhost/api/', token='${molgenisToken}')
+credentials = cosas.get(
+  'sys_sec_Token',
+  q='description=like="alissa-api-"',
+  attributes='token,description'
+)
 
-# host=filterList(credentials,'description','alissa-api-host')['token']
-# clientId=filterList(credentials,'description','alissa-api-client-id')['token']
-# clientSecret=filterList(credentials,'description', 'alissa-api-client-secret')['token']
-# apiUser=filterList(credentials,'description','alissa-api-username')['token']
-# apiPwd=filterList(credentials,'description','alissa-api-password')['token']
+host=filterList(credentials,'description','alissa-api-host')['token']
+clientId=filterList(credentials,'description','alissa-api-client-id')['token']
+clientSecret=filterList(credentials,'description', 'alissa-api-client-secret')['token']
+apiUser=filterList(credentials,'description','alissa-api-username')['token']
+apiPwd=filterList(credentials,'description','alissa-api-password')['token']
 
-# alissa = Alissa(
-#   host=host,
-#   clientId=clientId,
-#   clientSecret=clientSecret,
-#   username=apiUser,
-#   password=apiPwd
-# )
+alissa = Alissa(
+  host=host,
+  clientId=clientId,
+  clientSecret=clientSecret,
+  username=apiUser,
+  password=apiPwd
+)
+
+#///////////////////////////////////////////////////////////////////////////////
 
 # ~ 1 ~
 # Retrieve metadata
@@ -317,14 +319,6 @@ for row in analysesByPatient:
     pass
 
 print2('Returned',len(variantExportsByAnalyses),'export identifiers')
-
-
-alissa.getInheritanceVariantExportId(
-  analysisId='14091',
-  markedForReview=True,
-  markedIncludeInReport=False
-)
-
 
 #///////////////////////////////////////
 
@@ -455,6 +449,19 @@ print2('Building datasets....')
 
 # convert to datatable object
 variantsDT = dt.Frame(variantdata)
+
+# First, select cases that are necessary
+# We are only in cases where that have a specific classification or where the
+# classification is missing (to investigate this further)
+variantsDT['mustKeep'] = dt.Frame([
+  (not bool(value)) or (value in ['','Likely pathogenic', 'Pathogenic', 'VOUS'])
+  for value in variantsDT['classification'].to_list()[0]
+])
+
+variantsDT = variantsDT[f.mustKeep, :]
+del variantsDT['mustKeep']
+
+# set classes
 variantsDT[:, dt.update(
   patientId=as_type(f.patientId, str),
   analysisId=as_type(f.analysisId, str),
@@ -536,17 +543,6 @@ variantsDT[:, dt.update(
   dateFirstRun=as_type(f.dateFirstRun, dt.str32),
   dateLastUpdated=as_type(f.dateLastUpdated, dt.str32)
 )]
-
-
-# ~ ¡THIS IS A TEMPORARY SOLUTION! ~
-# the following step removes duplicated rows until it is determined how to
-# import multiple records with the same row identifiers.
-variantsDT['isDuplicated'] = dt.Frame([
-  variantsDT[f.id==id,:].nrows > 1 for id in variantsDT['id'].to_list()[0]
-])
-
-variantsDT[:, dt.count(), dt.by(f.isDuplicated)]
-# variantsDT = variantsDT[f.isDuplicated==False,:]
 
 #///////////////////////////////////////////////////////////////////////////////
 
