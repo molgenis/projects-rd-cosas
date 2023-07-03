@@ -1,92 +1,18 @@
 #'////////////////////////////////////////////////////////////////////////////
-#' FILE: cartagenia_query.py
+#' FILE: cartagenia.py
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-03-23
-#' MODIFIED: 2023-01-30
+#' MODIFIED: 2023-07-03
 #' PURPOSE: run query for cartagenia data
 #' STATUS: stable
 #' PACKAGES: **see below**
 #' COMMENTS: NA
 #'////////////////////////////////////////////////////////////////////////////
 
-import molgenis.client as molgenis
+from cosastools.molgenis import Molgenis, print2
+from cosastools.cartagenia import Cartagenia
 from datatable import dt, f
-from os.path import abspath
-import numpy as np
-import datetime
-import requests
-import tempfile
-import pytz
-import csv
 import re
-
-def now():
-  return datetime.datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime('%H:%M:%S.%f')[:-3]
-
-def print2(*args):
-  """Status Message
-  Print a log-style message, e.g., "[16:50:12.245] Hello world!"
-  @param *args one or more strings containing a message to print
-  @return string
-  """
-  message = ' '.join(map(str, args))
-  print(f'[{now()}] {message}')
-
-class Molgenis(molgenis.Session):
-  def __init__(self, *args, **kwargs):
-    super(Molgenis, self).__init__(*args, **kwargs)
-    self.fileImportEndpoint = f"{self._root_url}plugin/importwizard/importFile"
-  
-  def _datatableToCsv(self, path, datatable):
-    """To CSV
-    Write datatable object as CSV file
-
-    @param path location to save the file
-    @param data datatable object
-    """
-    data = datatable.to_pandas().replace({np.nan: None})
-    data.to_csv(path, index=False, quoting=csv.QUOTE_ALL)
-  
-  def importDatatableAsCsv(self, pkg_entity: str, data):
-    """Import Datatable As CSV
-    Save a datatable object to as csv file and import into MOLGENIS using the
-    importFile api.
-    
-    @param pkg_entity table identifier in emx format: package_entity
-    @param data a datatable object
-    @param label a description to print (e.g., table name)
-    """
-    with tempfile.TemporaryDirectory() as tmpdir:
-      filepath=f"{tmpdir}/{pkg_entity}.csv"
-      self._datatableToCsv(filepath, data)
-      with open(abspath(filepath),'r') as file:
-        response = self._session.post(
-          url = self.fileImportEndpoint,
-          headers = self._headers.token_header,
-          files = {'file': file},
-          params = {'action': 'add_update_existing', 'metadataAction': 'ignore'}
-        )
-        if (response.status_code // 100 ) != 2:
-          print2('Failed to import data into', pkg_entity, '(', response.status_code, ')')
-        else:
-          print2('Imported data into', pkg_entity)
-        return response
-
-class Cartagenia:
-  """Cartagenia Client"""
-  def __init__(self, url, token):
-    self.session = requests.Session()
-    self._api_url = url
-    self._api_token = token 
-    self._headers = {'x-api-key': self._api_token}
-
-  def getData(self):
-    response = self.session.get(url=self._api_url, headers=self._headers)
-    response.raise_for_status()
-    data = response.json()
-    if 'Output' not in data:
-      raise KeyError('Expected object "Output" not found')
-    return list(eval(data['Output']))
 
 def extractIdsFromValue(value):
   """Extract Identifiers from value
@@ -121,14 +47,7 @@ def extractIdsFromValue(value):
 # ~ 0 ~
 # init db connections
 
-# ~ For Deployment ~
-cosas = Molgenis(url='http://localhost/api/', token = '${molgenisToken}')
-apiUrl = cosas.get('sys_sec_Token',attributes='token',q='description=="cartagenia-api-url"')[0]['token']
-apiToken = cosas.get('sys_sec_Token',attributes='token',q='description=="cartagenia-api-token"')[0]['token']
-cartagenia = Cartagenia(url = apiUrl, token = apiToken)
-
 # ~ for local development ~
-# After connecting to the database, run the apiUrl and apiToken lines
 # from dotenv import load_dotenv
 # from os import environ
 # load_dotenv()
@@ -136,6 +55,13 @@ cartagenia = Cartagenia(url = apiUrl, token = apiToken)
 # cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
 # cartagenia = Cartagenia(apiUrl, apiToken)
 
+# ~ For Deployment ~
+cosas = Molgenis(url='http://localhost/api/', token = '${molgenisToken}')
+apiUrl = cosas.get('sys_sec_Token',attributes='token',q='description=="cartagenia-api-url"')[0]['token']
+apiToken = cosas.get('sys_sec_Token',attributes='token',q='description=="cartagenia-api-token"')[0]['token']
+cartagenia = Cartagenia(url = apiUrl, token = apiToken)
+
+#///////////////////////////////////////////////////////////////////////////////
 
 # ~ 1 ~
 # Build Phenotype Dataset
