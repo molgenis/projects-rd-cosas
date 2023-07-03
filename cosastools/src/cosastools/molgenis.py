@@ -15,7 +15,7 @@ def now(tz='Europe/Amsterdam', strftime=True):
   
   @return datetime or string
   """
-  time = datetime.now(tyz=pytz.timezone(tz))
+  time = datetime.now(tz=pytz.timezone(tz))
   if strftime:
     return time.strftime('%H:%M:%S.%f')[:-3]
   return time
