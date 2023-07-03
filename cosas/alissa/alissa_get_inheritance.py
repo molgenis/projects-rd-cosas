@@ -2,144 +2,21 @@
 # FILE: alissa_get_inheritance.py
 # AUTHOR: David Ruvolo
 # CREATED: 2023-06-08
-# MODIFIED: 2023-06-09
+# MODIFIED: 2023-07-03
 # PURPOSE: retrieve inheritance metadata where applicable
 # STATUS: stable
 # PACKAGES: **see below**
 # COMMENTS: NA
 #///////////////////////////////////////////////////////////////////////////////
 
-from oauthlib.oauth2 import LegacyApplicationClient
-from requests_oauthlib import OAuth2Session
+from cosastools.molgenis import Molgenis, print2
+from cosastools.alissa import Alissa
 from datatable import dt, f, as_type
-import molgenis.client as molgenis
 from datetime import datetime
-from os.path import abspath
-import numpy as np
-import tempfile
 import json
-import pytz
-import csv
 
-def now():
-  return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-  
 def today():
   return datetime.today().strftime('%Y-%m-%d')
-
-def print2(*args):
-  message = ' '.join(map(str, args))
-  time = datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime('%H:%M:%S.%f')[:-3]
-  print(f'[{time}] {message}')
-  
-class Alissa:
-  """Alissa Interpret Public API (v5.3)"""
-  
-  def __init__(self, host, clientId, clientSecret, username, password):
-    """Create new instance of the client
-    A mini api client to get molecular variant information per patient.
-
-    @param host The url of your Alissa Interpret instance
-    @param clientId provided by Alissa Support
-    @param clientSecret provided by Alissa Support
-    @param username username of the API account
-    @param password password of the API account
-    
-    @reference Alissa Interpret Public API documentation v5.3
-    @return class
-    """
-    self.host=host
-    self.apiUrl=f"{host}/interpret/api/2"
-    self.session=OAuth2Session(client=LegacyApplicationClient(client_id=clientId))
-    self.session.fetch_token(
-      token_url=f"{host}/auth/oauth/token",
-      username=username,
-      password=password,
-      client_id=clientId,
-      client_secret=clientSecret
-    )
-
-    if self.session.access_token:
-      print('Connected to', host, 'as', username)
-    else:
-      print('Unable to connect to', host, 'as', username)
-      
-
-  def _formatOptionalParams(self, params: dict=None) -> dict:
-    """Format Optional Parameters
-    
-    @param params dictionary containg one or more parameter
-    @return dict
-    """
-    return {
-      key: params[key]
-      for key in params.keys()
-      if (key != 'self') and (params[key] is not None)
-    }
-  
-  def _get(self, endpoint, params=None, **kwargs):
-    """GET
-
-    @param endpoint the Alissa Interpret endpoint where data should be
-        sent to. The path "/interpret/api/2" is prefilled.
-    @param params Optional parameters to add to the request
-
-    """
-    uri = f'{self.apiUrl}/{endpoint}'
-    response = self.session.get(uri, params=params, **kwargs)
-    response.raise_for_status()
-    return response.json()
-  
-  def getInheritanceAnalysis(self, analysisId: int=None) -> dict:
-    """Get Interhitance Analysis
-    Get the inheritance analysis of a patient for a specific analysis.
-    
-    @param analysisId The unique internal identifier of an analysis
-    
-    @reference Alissa Interpret Public API (v5.3; p89-90)
-    @return dictionary
-    """
-    return self._get(endpoint=f"inheritance_analyses/{analysisId}")
-
-class Molgenis(molgenis.Session):
-  def __init__(self, *args, **kwargs):
-    super(Molgenis, self).__init__(*args, **kwargs)
-    self.fileImportEndpoint = f"{self._root_url}plugin/importwizard/importFile"
-  
-  def _datatableToCsv(self, path, datatable):
-    """To CSV
-    Write datatable object as CSV file
-
-    @param path location to save the file
-    @param data datatable object
-    """
-    data = datatable.to_pandas().replace({np.nan: None})
-    data.to_csv(path, index=False, quoting=csv.QUOTE_ALL)
-  
-  def importDatatableAsCsv(self, pkg_entity: str, data):
-    """Import Datatable As CSV
-    Save a datatable object to as csv file and import into MOLGENIS using the
-    importFile api.
-    
-    @param pkg_entity table identifier in emx format: package_entity
-    @param data a datatable object
-    @param label a description to print (e.g., table name)
-    """
-    with tempfile.TemporaryDirectory() as tmpdir:
-      filepath=f"{tmpdir}/{pkg_entity}.csv"
-      self._datatableToCsv(filepath, data)
-      with open(abspath(filepath),'r') as file:
-        response = self._session.post(
-          url = self.fileImportEndpoint,
-          headers = self._headers.token_header,
-          files = {'file': file},
-          params = {'action': 'add_update_existing', 'metadataAction': 'ignore'}
-        )
-        if (response.status_code // 100 ) != 2:
-          print2('Failed to import data into', pkg_entity, '(', response.status_code, ')')
-        else:
-          print2('Imported data into', pkg_entity)
-        return response
 
 def filterList(data, key, condition):
   return [row for row in data if row[key] == condition][0]
@@ -151,10 +28,9 @@ def filterList(data, key, condition):
 print2('Connecting to Alissa and MOLGENIS....')
 
 # ~ DEV ~
-# for local dev
 # from dotenv import load_dotenv
-# load_dotenv()
 # from os import environ
+# load_dotenv()
 # cosas = Molgenis(environ['MOLGENIS_ACC_HOST'])
 # cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
 # alissa = Alissa(
