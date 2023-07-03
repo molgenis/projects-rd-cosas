@@ -1,5 +1,6 @@
 
 import requests
+import datetime
 
 class Cartagenia:
   """Cartagenia Client"""
