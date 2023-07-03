@@ -6,6 +6,7 @@
   "main": "index.js",
   "scripts": {
     "build": "python3 index.py",
+    "update-py": "rm -rf requirements.txt && pip freeze >> requirements.txt",
     "zip": "zip -r -j dist/cosas.zip dist/cosasportal* dist/cosasreports* dist/umdm_*.csv lookups/*.csv"
   },
   "repository": {
