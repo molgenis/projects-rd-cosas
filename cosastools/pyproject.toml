@@ -18,7 +18,5 @@ dependencies = [
   "numpy>=1.23.5",
 ]
 
-
-
 [project.urls]
 Home = "https://github.com/molgenis/molgenis-cosas"
