@@ -70,9 +70,5 @@ class Molgenis(molgenis.Session):
           print2('Failed to import data into', pkg_entity, '(', response.status_code, ')')
         else:
           print2('Imported data into', pkg_entity)
-          
-      file.close()
-      
-    tmpdir.close()
-    
-    return response
+
+        return response
