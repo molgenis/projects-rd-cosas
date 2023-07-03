@@ -1,8 +1,34 @@
 import molgenis.client as molgenis
-import numpy as np
-import csv
-import tempfile
+from datetime import datetime
 from os.path import abspath
+import numpy as np
+import tempfile
+import pytz
+import csv
+
+def now(tz='Europe/Amsterdam', strftime=True):
+  """Now
+  Print current time as datetime object or as string formatted time.
+  
+  @param tz string containing a timezone name
+  @param strftime if True, the current time will be formatted as HOUR:MINUTE:SECOND
+  
+  @return datetime or string
+  """
+  time = datetime.now(tyz=pytz.timezone(tz))
+  if strftime:
+    return time.strftime('%H:%M:%S.%f')[:-3]
+  return time
+  
+def print2(*args):
+  """Print2
+  Print a message with a timestamp, e.g., "[16:50:12.245] Hello world!".
+
+  @param *args one or more strings containing a message to print
+  @return string
+  """
+  message = ' '.join(map(str, args))
+  print(f"[{now()}] {message}")
 
 
 class Molgenis(molgenis.Session):
