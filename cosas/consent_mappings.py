@@ -2,91 +2,70 @@
 # FILE: cosas_consent.py
 # AUTHOR: David Ruvolo
 # CREATED: 2022-11-10
-# MODIFIED: 2022-11-14
+# MODIFIED: 2023-07-04
 # PURPOSE: mapping script for consent dataset
 # STATUS: stable
 # PACKAGES: see below
 # COMMENTS: NA
 #///////////////////////////////////////////////////////////////////////////////
 
-from cosas.api.molgenis2 import Molgenis
-from dotenv import load_dotenv
-from datatable import dt, f, as_type
-from datetime import datetime
-from os import environ
-import pandas as pd
+from cosastools.molgenis import Molgenis,print2
+from cosastools.datatable import uniqueValuesById
+from datatable import dt, f
 import re
-load_dotenv()
 
-def uniqueValuesById(data, groupby, column, dropDuplicates=True, keyGroupBy=True):
-  """Unique Values By Id
-  For a datatable object, collapse all unique values by ID into a comma
-  separated string.
+print2('Running: Cosas consent mapping script....')
 
-  @param data datatable object
-  @param groupby name of the column that will serve as the grouping variable
-  @param column name of the column that contains the values to collapse
-  @param dropDuplicates If True, all duplicate rows will be removed
-  @param keyGroupBy If True, returned object will be keyed using the value named in groupby
-  
-  @param datatable object
-  """
-  df = data.to_pandas()
-  df[column] = df.dropna(subset=[column]) \
-    .groupby(groupby)[column] \
-    .transform(lambda val: ','.join(set(val)))
-  if dropDuplicates:
-    df = df[[groupby, column]].drop_duplicates()
-  output = dt.Frame(df)
-  if keyGroupBy:
-    output.key = groupby
-  return output
+# connect: dev
+# from dotenv import load_dotenv
+# from os import environ
+# import re
+# load_dotenv()
+# cosas = Molgenis(environ['MOLGENIS_ACC_HOST'])
+# cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
+
+# connect: prod
+cosas = Molgenis('http://localhost/api/', '${molgenisToken}')
 
 #///////////////////////////////////////////////////////////////////////////////
 
 # ~ 0 ~
-# Pull raw data
+# Retrieve data and transform
 
-cosas = Molgenis(environ['MOLGENIS_ACC_HOST'])
-cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
+print2('Retrieving COSAS metadata and raw consent data...')
 
-# pull list of existing patients
-subjectIDs = dt.Frame(
-  cosas.get(
-    entity = 'umdm_subjects',
-    attributes='subjectID'
-  )
-)['subjectID'].to_list()[0]
+# get existing subject IDs
+subjects = cosas.get('umdm_subjects', attributes='subjectID', batch_size=10000)
+subjectIDs = dt.Frame(subjects)['subjectID'].to_list()[0]
 
-# pull raw data
-data = dt.Frame(cosas.get('cosasportal_consent'))
-del data[:, ['_href', 'id', 'analysis', 'datefilled']]
+
+# get consent data
+consentraw = dt.Frame(cosas.get('cosasportal_consent'))
+del consentraw[:, ['_href', 'id', 'analysis', 'datefilled']]
+
 
 # trim all columns
-for column in data.names:
-  print('Trimming',f"data${column}")
-  data[column] = dt.Frame([
+for column in consentraw.names:
+  consentraw[column] = dt.Frame([
     value.strip() if value is not None else value
-    for value in data[column].to_list()[0]
+    for value in consentraw[column].to_list()[0]
   ])
 
-consent = data.copy()
+consent = consentraw.copy()
 
 #///////////////////////////////////////////////////////////////////////////////
 
 # ~ 1 ~
 # Clean Consent Data
 
-dt.unique(consent['MDN_umcgnr'])
-consent[:, dt.count(), dt.by(f.MDN_umcgnr)][f.count > 1, :]
-
-# reformat patient identifier
+# ~ 1a ~
+# reformat patient identifier: take out separator ('.')
 consent['MDN_umcgnr'] = dt.Frame([
-  id.replace('.', '')
-  for id in consent['MDN_umcgnr'].to_list()[0]
+  id.replace('.', '') for id in consent['MDN_umcgnr'].to_list()[0]
 ])
 
-# ~ 1a ~
+
+# ~ 1b ~
 # recode request_consent_material
 consentCategories = dt.unique(consent['request_consent_material'])
 consentCategories['mapping'] = dt.Frame([
@@ -104,7 +83,7 @@ consent['allowUseOfMaterial'] = dt.Frame([
 ])
 
 
-# ~ 1b ~
+# ~ 1c ~
 # recode consent_recontact
 recontactCategories = dt.unique(consent['consent_recontact'])
 recontactCategories['mapping'] = dt.Frame([
@@ -125,7 +104,8 @@ consent['allowRecontacting'] = dt.Frame([
   for value in consent['consent_recontact'].to_list()[0]
 ])
 
-# ~ 1c ~
+
+# ~ 1d ~
 # recode research
 researchCategories = dt.unique(consent['consent_research'])
 researchCategories['mappings'] = dt.Frame([
@@ -146,7 +126,8 @@ consent['allowGeneralResearchUse'] = dt.Frame([
   for value in consent['consent_research'].to_list()[0]
 ])
 
-# ~ 1d ~
+
+# ~ 1e ~
 # recode incidental findings
 incidentalCategories = dt.unique(consent['incidental_consent_recontact'])
 incidentalCategories['mappings'] = dt.Frame([
@@ -166,6 +147,28 @@ consent['allowRecontactingForIncidentalFindings'] = dt.Frame([
   ) if value is not None else None
   for value in consent['incidental_consent_recontact'].to_list()[0]
 ])
+
+# ~ 1f ~
+# recode diagnostic use
+diagnosticCategories = dt.unique(consent['consent_diagnostics'])
+diagnosticCategories['mappings'] = dt.Frame([
+  (
+    True if bool(re.search(r'^((w|W)el)', value)) else (
+      False if bool(re.search(r'^(niet)', value)) else None
+    )
+  ) if value is not None else None
+  for value in diagnosticCategories['consent_diagnostics'].to_list()[0]
+])
+
+consent['allowDiagnosticUse'] = dt.Frame([
+  (
+    True if bool(re.search(r'^((w|W)el)', value)) else (
+      False if bool(re.search(r'^(niet)', value)) else None
+    )
+  ) if value is not None else None
+  for value in consent['consent_diagnostics'].to_list()[0]
+])
+
 
 #///////////////////////////////////////////////////////////////////////////////
 
@@ -202,9 +205,11 @@ signedConsents = dt.rbind(
   force = True
 )
 
+#///////////////////////////////////////
+
+# ~ 2b ~
 # recode consentFormUsed
 # Set values that are characters to None
-# dt.unique(signedConsents['consentFormUsed'])
 signedConsents['consentFormUsed'] = dt.Frame([
   None if (value in ['/', '-', '?']) and (value is not None) else value
   for value in signedConsents['consentFormUsed'].to_list()[0]
@@ -212,67 +217,21 @@ signedConsents['consentFormUsed'] = dt.Frame([
 
 #///////////////////////////////////////
 
+# ~ 2c ~
 # recode dateFormSigned
 # the column `dateFormSigned` has a mix of date formats.
 
 # first remove all non-date values (i.e., '-', '?', text, etc.)
-dt.unique(signedConsents['dateFormSigned'])
 signedConsents['dateFormSigned'] = dt.Frame([
-  None if (value is not None) and (bool(re.search(r'^([?/-])', value))) else value
+  value.split('00:')[0].strip() if value else value
   for value in signedConsents['dateFormSigned'].to_list()[0]
 ])
-
-# !-------------- THIS NEEDS INPUT -----------------!
-# Recode character-separated strings (',' or '/')
-# How should values that have one (or more) forward slash be handled?
-# "2022-11-11 / 2022-11-12". Which date is it? For now, I'm taking the
-# first date. It needs to be decided which date to take, but it should
-# be corrected in the spreadshet.
-signedConsents[dt.re.match(f.dateFormSigned, '.*/\s+.*'), :]
-signedConsents[dt.re.match(f.dateFormSigned, '.*,\s+.*'), :]
-
-signedConsents['dateFormSigned'] = dt.Frame([
-  re.split(r'([,/]\s+|[()])', value)[0].strip() if value is not None else value
-  for value in signedConsents['dateFormSigned'].to_list()[0]
-])
-
-# dt.unique(signedConsents['dateFormSigned']).to_list()[0]
-
-# recode forwardslashes to dashes -- this allows us to reformat the dates
-signedConsents['dateFormSigned'] = dt.Frame([
-  value.replace('/', '-') if value is not None else value
-  for value in signedConsents['dateFormSigned'].to_list()[0]
-])
-
-# I'm assuming that dates are in dd-mm-yyyy format. Make sure all values follow
-# this format.
-signedConsents[
-  dt.re.match(f.dateFormSigned, r'^([0-9]{1,2}-[0-9]{1,2}-[0-9]{4})$') == False,
-  (f.consentID, f.consentFormType, f.dateFormSigned)
-]
-
-# recode case(s) that are formatted as: xx-xx-xxxx
-signedConsents['dateFormSigned'] = dt.Frame([
-  (
-    None if not bool(re.search(r'^([0-9]{1,2}-[0-9]{1,2}-[0-9]{4})$', value)) else value
-  ) if value is not None else value
-  for value in signedConsents['dateFormSigned'].to_list()[0]
-])
-
-
-# reformat dates to yyyy-mm-dd format
-signedConsents['dateFormSigned'] = dt.Frame([
-  datetime.strptime(value, '%d-%m-%Y').date().strftime('%Y-%m-%d')
-  if value is not None else value
-  for value in signedConsents['dateFormSigned'].to_list()[0]
-])
-
-# dt.unique(signedConsents['dateFormSigned'])
 
 #///////////////////////////////////////
 
+# ~ 2d ~
 # recode system
-# Set values taht are characters to None
+# Set values that are characters to None
 # dt.unique(signedConsents['system'])
 signedConsents['system'] = dt.Frame([
   None if (value in ['?']) and (value is not None) else value
@@ -285,14 +244,13 @@ signedConsents['belongsToSubject'] = dt.Frame([
   for value in signedConsents['consentID'].to_list()[0]
 ])
 
-signedConsents[f.belongsToSubject!=None,:]
-signedConsents[f.belongsToSubject!=None,(f.consentID, f.belongsToSubject)]
 
+#///////////////////////////////////////
 
+# ~ 2e ~
 # update consentID
 # Now that records are linked with the patients table, make sure each consentID
 # is unique
-dt.unique(signedConsents['consentID']).nrows == signedConsents.nrows
 
 signedConsents['idCount'] = dt.Frame(
   signedConsents.to_pandas().groupby(['consentID']).cumcount()
@@ -308,35 +266,37 @@ signedConsents['consentID'] = dt.Frame([
   for tuple in signedConsents[:, (f.consentID, f.idCount)].to_tuples()
 ])
 
-cosas.importDatatableAsCsv('umdm_signedconsents', signedConsents)
-
 #///////////////////////////////////////////////////////////////////////////////
 
-# ~ 2 ~
+# ~ 3 ~
 # Build consent Permissions
 
+# select columns of interest
 permissions = consent[:, (
   f.MDN_umcgnr,
   f.allowUseOfMaterial,
   f.allowRecontacting,
   f.allowGeneralResearchUse,
-  f.allowRecontactingForIncidentalFindings
+  f.allowRecontactingForIncidentalFindings,
+  f.allowDiagnosticUse
 )]
 
-# collapse consent IDs so that the tables can be linked
+
+# collapse all signed forms IDs to link tables
 signedForms = uniqueValuesById(
   data = signedConsents[:, (f.rowID, f.consentID)],
   groupby= 'rowID',
   column = 'consentID'  
 )
 
+
 signedForms.names = {'rowID': 'MDN_umcgnr', 'consentID': 'signedForms'}
 permissions = permissions[:, :, dt.join(signedForms)]
 permissions.names = { 'MDN_umcgnr': 'consentID' }
 
-# check for multiple entries and select unique rows only
-# permissions[:, dt.count(), dt.by(f.consentID)][f.count > 1, :]
+# select distinct records only
 permissions = permissions[:, dt.first(f[:]), dt.by(f.consentID, f.signedForms)]
+
 
 # create link between the permissions and patients tables
 permissions['belongsToSubject'] = dt.Frame([
@@ -344,34 +304,10 @@ permissions['belongsToSubject'] = dt.Frame([
   for value in permissions['consentID'].to_list()[0]
 ])
 
-# check row counts
-permissions.nrows == dt.unique(permissions['consentID']).nrows
-
-# import
-cosas.importDatatableAsCsv('umdm_consent', permissions)
-
 #///////////////////////////////////////
-
-# save mapping objects
-# dt.rbind(
-#   consentCategories[:, {
-#     'value': f.request_consent_material,
-#     'mapping': as_type(f.mapping, str),
-#     'variable': 'consent to use material'
-#   }],
-#   incidentalCategories[:, {
-#     'value': f.incidental_consent_recontact,
-#     'mapping': as_type(f.mappings, str),
-#     'variable': 'incidental findings'
-#   }],
-#   recontactCategories[:,{
-#     'value': f.consent_recontact,
-#     'mapping': as_type(f.mapping, str),
-#     'variable': 'consent to recontact'
-#   }],
-#   researchCategories[:, {
-#     'value': f.consent_research,
-#     'mapping': as_type(f.mappings, str),
-#     'variable': 'consent for research'
-#   }]
-# ).to_csv('private/consent_mappings.csv')
+  
+# ~ 4 ~
+# import
+cosas.importDatatableAsCsv('umdm_signedconsents', signedConsents)
+cosas.importDatatableAsCsv('umdm_consent', permissions)
+cosas.logout()
