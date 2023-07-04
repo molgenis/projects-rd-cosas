@@ -4,13 +4,14 @@
 # CREATED: 2023-07-04
 # MODIFIED: 2023-07-04
 # PURPOSE: script for daily processing of file metadata 
-# STATUS: in.progress
+# STATUS: stable
 # PACKAGES: **see below**
 # COMMENTS: NA
 #///////////////////////////////////////////////////////////////////////////////
 
-from cosastools.molgenis import Molgenis, print2, now
+from cosastools.molgenis import Molgenis, print2
 from datatable import dt, f
+from datetime import datetime
 import re
 
 def getFileType(value): 
@@ -30,6 +31,7 @@ def getFileType(value):
 
 # ~ 0 ~
 # Connect and retrieve metadata
+print2('Connecting to molgenis....')
 
 # ~ LOCAL DEV ~
 # from dotenv import load_dotenv
@@ -41,100 +43,122 @@ def getFileType(value):
 # ~ PROD ~
 cosas = Molgenis('http://localhost/api/', token='${molgenisToken}')
 
+#///////////////////////////////////////
 
-# retrieve raw file metadata
+# ~ 0b ~
+# Retrieve file and patients data
+print2('Retrieving metadata....')
+
 portaldata = dt.Frame(cosas.get('cosasportal_files',batch_size=10000))
 del portaldata['_href']
 
-# get list of existing patient IDs
-patientsDT = dt.Frame(
+# get patient IDs
+patientIDs = dt.Frame(
   cosas.get(
     'umdm_subjects',
     attributes='subjectID',
     batch_size=10000
   )
-)
+)['subjectID'].to_list()[0]
 
-patientIDs = patientsDT['subjectID'].to_list()[0]
+
+# get sample IDs
+sampleIDs = dt.Frame(
+  cosas.get(
+    'umdm_samples',
+    attributes='sampleID',
+    batch_size=10000
+  )
+)['sampleID'].to_list()[0]
 
 #///////////////////////////////////////////////////////////////////////////////
 
 # ~ 1 ~
 # Map file metadata into the COSAS
+print2('Preparing file metadata...')
 
-# ~ 1a ~
 # pull file metadata and prep
 for column in portaldata.names:
   if column in ['_href', 'id', 'familyID']:
     del portaldata[column]
 
 
+# format dna nummer
+print2('Formatting DNAnr....')
 portaldata['belongsToSample'] = dt.Frame([
   re.sub(r'^(DNA)', 'DNA-', d)
   for d in portaldata['dnaID'].to_list()[0]
 ])
 
+# recode missing or blank file names
+print2('Recoding missing filenames....')
+portaldata['filename'] = dt.Frame([
+  None if value == 'N/A' else value
+  for value in portaldata['filename'].to_list()[0]
+])
+
+# remove instances of 2 or more slashes
+print2('Formatting filepaths....')
 portaldata['filepath'] = dt.Frame([
   re.sub(r'\/{2,}', '/', d)
   for d in portaldata['filepath'].to_list()[0]
 ])
 
+# recode file formats
+# portaldata[:, dt.count(), dt.by(f.fileFormat)]
+print2('Recoding file format....')
 portaldata['fileFormat'] = dt.Frame([
-  getFileType(d)
-  for d in portaldata['filename'].to_list()[0]
+  getFileType(value) if value else value
+  for value in portaldata['filename'].to_list()[0]
 ])
 
-# dt.unique(portaldata['fileFormat'])
-# portaldata[:, :, dt.sort(f.fileFormat, reverse=True)][:, (f.filename, f.fileFormat)]
 
+# create file identifier
+print2('Generating table identifiers')
 portaldata['fileID'] = dt.Frame([
-  ''.join(d)
-  for d in portaldata[:, ['filepath', 'filename']].to_tuples()
+  ''.join(row) if all(row) else None
+  for row in portaldata[:, ['filepath', 'filename']].to_tuples()
 ])
 
+# drop empty rows
+print2('Removing records where a file ID cannot be created....')
+print2(f"Current row count: {portaldata.nrows}")
+
+portaldata = portaldata[f.fileID !=None,:]
+
+print2(f"New row count: {portaldata.nrows}")
+
+# make sure there are unique rows
 if dt.unique(portaldata['fileID']).nrows != portaldata.nrows:
   raise SystemError('Number of unique file IDs must equal total possible rows')
-  
-# filedata['countOfDuplicates'] = dt.Frame([
-#   filedata[f.fileID == d, :].nrows
-#   for d in filedata['fileID'].to_list()[0]
-# ])
 
-# ~ 1b ~
-# get a list of all current patient identifiers (i.e., UmcgNr)
-patients = dt.Frame(cosas.get('umdm_subjects', attributes='subjectID', batch_size=10000))
-patientIDs = patients['subjectID'].to_list()[0]
+#///////////////////////////////////////////////////////////////////////////////
 
-# ~ 1c ~
-# get a list of all current sample identifiers (i.e., dnaNr)
-samples = dt.Frame(cosas.get('umdm_samples', attributes='sampleID', batch_size=10000))
-sampleIDs = samples['sampleID'].to_list()[0]
+# ~ 2 ~
+# Create umdm_files
 
-# ~ 1d ~
-# Compute coverage of identifiers
+# ~ 2a ~
+# Validate identifiers
 
+# check incoming patient IDs
+print2('Validating incoming patientIDs....')
 portaldata['patientIdExists'] = dt.Frame([
-  d in patientIDs
-  for d in portaldata['umcgID'].to_list()[0]
+  value in patientIDs for value in portaldata['umcgID'].to_list()[0]
 ])
 
+# check incoming sample IDs
+print2('Validating incoming sampleIDs....')
 portaldata['sampleIdExists'] = dt.Frame([
-  d in sampleIDs
-  for d in portaldata['belongsToSample'].to_list()[0]
+  value in sampleIDs for value in portaldata['belongsToSample'].to_list()[0]
 ])
 
-# portaldata[:, dt.count(), dt.by(f.sampleIdExists)]
-portaldata[:, dt.count(), dt.by(f.patientIdExists)]
-portaldata[:, dt.count(), dt.by(f.patientIdExists, f.sampleIdExists)]
-portaldata[f.patientIdExists & f.sampleIdExists==False, :]
-
-# ~ 0d ~ 
+#///////////////////////////////////////
+ 
+# ~ 2b ~ 
 # Subset date for records that have a valid subject- and sample identifier
+print2('Filtering dataset to rows with valid patient- and sample IDs....')
 
-# umdm_files = portaldata[(f.patientIdExists) & (f.sampleIdExists), :]
-umdm_files = portaldata[(f.patientIdExists), :]
-
-umdm_files[:, dt.count(), dt.by(f.patientIdExists, f.sampleIdExists)]
+umdm_files = portaldata[(f.patientIdExists) & (f.sampleIdExists), :]
 del umdm_files[:, ['dnaID', 'patientIdExists', 'sampleIdExists', 'filetype']]
 
 # rename columns
@@ -145,9 +169,12 @@ umdm_files.names = {
   'dateCreated': 'dateFileCreated'
 }
 
-umdm_files['dateRecordCreated'] = now()
+umdm_files['dateRecordCreated'] = datetime.today().strftime('%Y-%m-%d')
 umdm_files['recordCreatedBy'] = 'cosasbot'
 
+#///////////////////////////////////////////////////////////////////////////////
+
+# ~ 3 ~
 # import
-# cosas.delete('umdm_files')
-cosas.importDatatableAsCsv(pkg_entity = 'umdm_files', data = umdm_files)
+cosas.importDatatableAsCsv('umdm_files', umdm_files)
+cosas.logout()
