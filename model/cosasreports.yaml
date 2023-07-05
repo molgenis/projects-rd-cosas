@@ -14,8 +14,8 @@ name: cosasreports
 label: COSAS Reports
 description: Reports on COSAS jobs, imports, and processing
 tags: NCIT_C82964 http://purl.obolibrary.org/obo/NCIT_C82964
-version: 1.6.0
-date: 2022-07-29
+version: 1.7.0
+date: 2023-07-05
 
 # set defaults
 defaults:
@@ -243,3 +243,28 @@ entities:
         description: A fraction or ratio with 100 understood as the denominator.
         tags: NCIT_C25613 http://purl.obolibrary.org/obo/NCIT_C25613
         dataType: decimal
+
+  - name: datasources
+    label: COSAS Data Sources
+    description: Overview on the data sources connected to COSAS
+    attributes:
+      - name: source
+        description: name of the source connected to COSAS
+        nillable: false
+        idAttribute: true
+        labelAttribute: true
+        
+      - name: type
+        description: Indication if the source is internal or external
+        dataType: enum
+        enumOptions: internal,external
+      
+      - name: metadata
+        description: overivew of data provided
+        
+      - name: status
+        description: "indication if the data source status (1: online/connected, -1: offline/not connected, 0: not activated)"
+        dataType: int
+        minRange: -1
+        maxRange: 1
+    
