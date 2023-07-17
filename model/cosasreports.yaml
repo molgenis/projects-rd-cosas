@@ -2,7 +2,7 @@
 #' FILE: cosasreports.yaml
 #' AUTHOR: David Ruvolo
 #' CREATED: 2022-02-14
-#' MODIFIED: 2022-07-29
+#' MODIFIED: 2023-07-14
 #' PURPOSE: EMX for reporting
 #' STATUS: stable
 #' PACKAGES: NA
@@ -14,8 +14,8 @@ name: cosasreports
 label: COSAS Reports
 description: Reports on COSAS jobs, imports, and processing
 tags: NCIT_C82964 http://purl.obolibrary.org/obo/NCIT_C82964
-version: 1.7.0
-date: 2023-07-05
+version: 1.8.0
+date: 2023-07-14
 
 # set defaults
 defaults:
@@ -268,3 +268,24 @@ entities:
         minRange: -1
         maxRange: 1
     
+  - name: jobs
+    description: Overview on scheduled jobs
+    attributes:
+      - name: name
+        dataType: string
+        idAttribute: true
+        nillable: false
+        
+      - name: description
+        dataType: string
+        
+      - name: cron
+        dataType: string
+        
+      - name: dateLastRun
+        dataType: date
+        
+      - name: isStable
+        dataType: bool
+      
+      
