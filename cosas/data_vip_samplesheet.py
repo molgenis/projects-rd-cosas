@@ -2,15 +2,16 @@
 # FILE: data_vip_samplesheet.py
 # AUTHOR: David Ruvolo
 # CREATED: 2023-07-04
-# MODIFIED: 2023-07-04
+# MODIFIED: 2023-07-17
 # PURPOSE: generate data for vip
-# STATUS: in.progress
+# STATUS: stable
 # PACKAGES: **see below**
 # COMMENTS: NA
 # ///////////////////////////////////////////////////////////////////////////////
 
 from cosastools.molgenis import Molgenis
 from datatable import dt, f, as_type
+from tqdm import tqdm
 from os import environ
 from dotenv import load_dotenv
 import re
@@ -90,6 +91,27 @@ samplesDT['keep'] = dt.Frame([
 samplesDT = samplesDT[f.keep, :]
 del samplesDT['keep']
 
+
+# merge sequencing metadata (currently unavailable)
+# sequencingDT = dt.Frame(
+#   cosas.get(
+#     'umdm_sequencing',
+#     attributes='belongsToSamplePreparation,belongsToLabProcedure,reasonForSequencing,referenceGenomeUsed',
+#     q="belongsToLabProcedure=q=NX154",
+#     batch_size=10000
+#   ),
+#   types = {
+#     '_href': dt.Type.str32,
+#     'belongsToSamplePreparation': dt.Type.obj64,
+#     'belongsToLabProcedure': dt.Type.obj64,
+#     'reasonForSequencing': dt.Type.obj64,
+#     'referenceGenomeUsed': dt.Type.obj64
+#   }
+# )
+
+# del sequencingDT['_href']
+
+
 #///////////////////////////////////////
 
 # ~ 1c ~
@@ -130,37 +152,44 @@ patientsDT['genderAtBirth'] = dt.Frame([
   for obj in patientsDT['genderAtBirth'].to_list()[0]
 ])
  
+ 
+#///////////////////////////////////////
+
+# ~ 1d ~
+# Select patients and parents
+
 # identify subjects: based on samples
 patientsDT['keep'] = dt.Frame([
   value in samplesDT['belongsToSubject'].to_list()[0]
   for value in patientsDT['subjectID'].to_list()[0]
 ])
 
+
+# keep maternal and paternal identifiers
+subjectsToKeep = patientsDT[f.keep,'subjectID'].to_list()[0]
+for id in subjectsToKeep:
+  familyID = patientsDT[f.subjectID==id, 'belongsToFamily'].to_list()[0][0]
+  maternalID = patientsDT[f.subjectID==id, 'belongsToMother'].to_list()[0][0]
+  paternalID = patientsDT[f.subjectID==id, 'belongsToFather'].to_list()[0][0]
+  
+  if bool(maternalID) or bool(paternalID):
+    patientsDT[f.subjectID==id, 'type'] = 'index'
+  
+  if bool(maternalID):
+    patientsDT[f.subjectID==maternalID, 'keep'] = True
+    patientsDT[f.subjectID==maternalID, 'type'] = 'mother'
+  
+  if bool(paternalID):
+    patientsDT[f.subjectID==paternalID, 'keep'] = True
+    patientsDT[f.subjectID==paternalID, 'type'] = 'father'
+
+
 # reduce dataset and attempt to identify family hierarchy
 vipDT = patientsDT[f.keep, :][:, :, dt.sort(f.belongsToFamily)]
 
-# establish patient type (i.e., index, mother, father)
-vipDT[:, dt.update(type=as_type('index', dt.Type.str32))]
-
-vipDT['type'] = dt.Frame([
-  'father'
-  if vipDT[(f.belongsToFather==row[0]) & (f.belongsToFamily==row[1]), :].nrows
-  else row[2]
-  for row in vipDT[:, (f.subjectID, f.belongsToFamily, f.type)].to_tuples()
-])
-
-vipDT['type'] = dt.Frame([
-  'mother'
-  if vipDT[(f.belongsToMother==row[0]) & (f.belongsToFamily==row[1]), :].nrows
-  else row[2]
-  for row in vipDT[:, (f.subjectID, f.belongsToFamily, f.type)].to_tuples()
-])
-
-del vipDT['keep']
-
 #///////////////////////////////////////
 
-# ~ 1d ~
+# ~ 1e ~
 # Get umdm_clinical
 # Merge phenotypic data with selected patients (only observedPhenotypes)
 
@@ -199,88 +228,75 @@ vipDT['observedPhenotype'] = dt.Frame([
 
 #///////////////////////////////////////
 
-# ~ 1e ~
+# ~ 1f ~
 # Get umdm_files
 # Find vcfs and crams for selected patients
 
-filesDT = dt.Frame(
-  cosas.get(
+vipSubjectIDs = vipDT['subjectID'].to_list()[0]
+for id in tqdm(vipSubjectIDs):
+  subjectFiles = cosas.get(
     'umdm_files',
-    attributes='belongsToSubject,belongsToSample,fileName,filePath,fileFormat',
-    batch_size=10000
-  ),
-  types = {
-    '_href': dt.Type.str32,
-    'belongsToSubject': dt.Type.obj64,
-    'belongsToSample': dt.Type.obj64,
-    'fileName': dt.Type.str32,
-    'filePath': dt.Type.str32,
-    'fileFormat': dt.Type.str32
-  }
-)
-del filesDT['_href']
-
-# reduce to cram and vcfs
-filesDT = filesDT[(f.fileFormat=='cram') | (f.fileFormat=='vcf'),:]
-
-# collapse nested objects
-filesDT['belongsToSubject'] = dt.Frame([
-  obj['subjectID'] if obj else None
-  for obj in filesDT['belongsToSubject'].to_list()[0]
-])
-
-filesDT['belongsToSample'] = dt.Frame([
-  ','.join([row['sampleID'] for row in obj]) if obj else None
-  for obj in filesDT['belongsToSample'].to_list()[0]
-])
-
-# merge cram
-vipDT['cram'] = dt.Frame([
-  collapseTuple(
-    filesDT[
-      (f.belongsToSubject==value) & (f.fileFormat=='cram'),
-      (f.filePath, f.fileName)
-    ].to_tuples()[0]
+    attributes='belongsToSubject,fileName,filePath,fileFormat',
+    q=f"belongsToSubject=q={id};(fileFormat=q=vcf,fileFormat=q=cram)"
   )
-  for value in vipDT['subjectID'].to_list()[0][:1]
+
+  if len(subjectFiles) > 0:
+    subjectFiles = dt.Frame(
+      subjectFiles,
+      types = {
+        '_href': dt.Type.str32,
+        'belongsToSubject': dt.Type.obj64,        
+        'fileName': dt.Type.str32,
+        'filePath': dt.Type.str32,
+        'fileFormat': dt.Type.str32
+      }
+    )[:, ['fileName','filePath','fileFormat']]
+
+    fileFormats = dt.unique(subjectFiles['fileFormat']).to_list()[0] 
+    if 'cram' in fileFormats:
+      cram = subjectFiles[f.fileFormat=='cram', (f.filePath, f.fileName)].to_tuples()[0]
+      vipDT[f.subjectID==id, 'cram'] = '/'.join(cram)
+    if 'vcf' in fileFormats:
+      vcf = subjectFiles[dt.re.match(f.fileName, '.*vcf.gz|.*vcf'), (f.filePath, f.fileName)].to_tuples()[0]
+      vipDT[f.subjectID==id, 'vcf'] = '/'.join(vcf)
+
+
+#///////////////////////////////////////
+
+# ~ 1g ~
+# restructure dataset into desired format
+
+# recode type to proband
+vipDT['type'] = dt.Frame([
+  False if (value in ['mother', 'father']) else True
+  for value in vipDT['type'].to_list()[0]
 ])
-
-
-# merge vcf
-vipDT['vcf'] = dt.Frame([
-  collapseTuple(
-    filesDT[
-      (f.belongsToSubject==value) & (f.fileFormat=='vcf'),
-      (f.filePath, f.fileName)
-    ].to_tuples()[0]
-  )
-  for value in vipDT['subjectID'].to_list()[0][:1]
-])
-
-# init columns that we do not have yet
-vipDT[:, dt.update(
-  project_id = as_type(None, dt.Type.str32),
-  proband = as_type(None, dt.Type.str32),
-  affected = as_type(None, dt.Type.bool8),
-  assembly = as_type(None, dt.Type.str32)
-)]
 
 # rename columns
 vipDT.names = {
   'subjectID': 'individual_id',
   'belongsToFamily': 'family_id',
   'genderAtBirth': 'sex',
+  'type': 'proband',
   'observedPhenotype': 'hpo_ids',
   'belongsToFather': 'paternal_id',
   'belongsToMother': 'maternal_id',
 }
+
+# init columns that we do not have yet
+vipDT[:, dt.update(
+  project_id = 'NX154_' + f.belongsToFamily + '_' + f.subjectID,
+  affected = as_type(None, dt.Type.bool8),
+  assembly = as_type(None, dt.Type.str32),
+  proband = as_type(f.proband, dt.Type.str32)
+)]
 
 # reorder dataset
 vipDT = vipDT[:, (
   f.project_id,
   f.family_id,
   f.individual_id,
-  f.type,
+  f.proband,
   f.sex,
   f.proband,
   f.affected,
