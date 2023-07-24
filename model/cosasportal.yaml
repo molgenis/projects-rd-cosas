@@ -2,7 +2,7 @@
 #' FILE: cosasportal.yaml
 #' AUTHOR: David Ruvolo
 #' CREATED: 2021-12-10
-#' MODIFIED: 2022-11-09
+#' MODIFIED: 2023-07-24
 #' PURPOSE: EMX for COSAS staging tables
 #' STATUS: stable
 #' PACKAGES: NA
@@ -12,8 +12,8 @@
 name: cosasportal
 label: COSAS Portal
 description: Staging tables for raw data exports
-version: 2.0.0
-date: 2022-11-09
+version: 2.1.0
+date: 2023-07-24
 
 # define entity level defaults
 defaults:
@@ -125,6 +125,32 @@ entities:
       - name: EXTRA_DIAGNOSE_ZEKERHEID
       - name: DATUM_EERSTE_CONSULT
       - name: OND_ID
+      
+  # @name cosasportal_export
+  - name: export
+    attributes:
+      - name: datumTijd
+      - name: vraag
+      - name: antwoordregel
+      - name: antwoord
+      - name: UMCGnr
+      - name: dateOfBirth
+      - name: dateOfDeath
+      - name: isFetus
+      - name: biologicalSex
+      - name: firstConsultDate
+      - name: isTwin
+      - name: polihoofdbehandelaar
+      - name: _id
+        idAttribute: true
+        nillable: true
+        auto: true
+      - name: _importedOn
+        dataType: date
+        auto: true
+      - name: _processed
+        dataType: bool
+        defaultValue: false
       
   # @name cosasportal_files
   - name: files
