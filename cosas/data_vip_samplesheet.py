@@ -2,7 +2,7 @@
 # FILE: data_vip_samplesheet.py
 # AUTHOR: David Ruvolo
 # CREATED: 2023-07-04
-# MODIFIED: 2023-07-17
+# MODIFIED: 2023-07-19
 # PURPOSE: generate data for vip
 # STATUS: stable
 # PACKAGES: **see below**
@@ -12,14 +12,16 @@
 from cosastools.molgenis import Molgenis
 from datatable import dt, f, as_type
 from tqdm import tqdm
-from os import environ
+from os import environ, path
 from dotenv import load_dotenv
+from datetime import datetime
+import pytz
 import re
 load_dotenv()
 
-def collapseTuple(row):
-  """collapse tuple"""
-  return '/'.join(row) if all(row) else None
+def today():
+  """Return today's date in yyyy-mm-dd format"""
+  return datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime('%Y-%m-%-d')
 
 cosas = Molgenis(environ['MOLGENIS_ACC_HOST'])
 cosas.login(environ['MOLGENIS_ACC_USR'], environ['MOLGENIS_ACC_PWD'])
@@ -111,7 +113,6 @@ del samplesDT['keep']
 
 # del sequencingDT['_href']
 
-
 #///////////////////////////////////////
 
 # ~ 1c ~
@@ -151,7 +152,11 @@ patientsDT['genderAtBirth'] = dt.Frame([
   if bool(obj) else None
   for obj in patientsDT['genderAtBirth'].to_list()[0]
 ])
- 
+
+patientsDT['genderAtBirth'] = dt.Frame([
+  value.strip() if bool(value) else value
+  for value in patientsDT['genderAtBirth'].to_list()[0]
+])
  
 #///////////////////////////////////////
 
@@ -163,7 +168,6 @@ patientsDT['keep'] = dt.Frame([
   value in samplesDT['belongsToSubject'].to_list()[0]
   for value in patientsDT['subjectID'].to_list()[0]
 ])
-
 
 # keep maternal and paternal identifiers
 subjectsToKeep = patientsDT[f.keep,'subjectID'].to_list()[0]
@@ -185,7 +189,7 @@ for id in subjectsToKeep:
 
 
 # reduce dataset and attempt to identify family hierarchy
-vipDT = patientsDT[f.keep, :][:, :, dt.sort(f.belongsToFamily)]
+vipDT = patientsDT.copy()[f.keep, :][:, :, dt.sort(f.belongsToFamily)]
 
 #///////////////////////////////////////
 
@@ -252,25 +256,20 @@ for id in tqdm(vipSubjectIDs):
       }
     )[:, ['fileName','filePath','fileFormat']]
 
+    # add file paths if a matching record exists
     fileFormats = dt.unique(subjectFiles['fileFormat']).to_list()[0] 
     if 'cram' in fileFormats:
       cram = subjectFiles[f.fileFormat=='cram', (f.filePath, f.fileName)].to_tuples()[0]
       vipDT[f.subjectID==id, 'cram'] = '/'.join(cram)
+
     if 'vcf' in fileFormats:
       vcf = subjectFiles[dt.re.match(f.fileName, '.*vcf.gz|.*vcf'), (f.filePath, f.fileName)].to_tuples()[0]
       vipDT[f.subjectID==id, 'vcf'] = '/'.join(vcf)
 
+#///////////////////////////////////////////////////////////////////////////////
 
-#///////////////////////////////////////
-
-# ~ 1g ~
-# restructure dataset into desired format
-
-# recode type to proband
-vipDT['type'] = dt.Frame([
-  False if (value in ['mother', 'father']) else True
-  for value in vipDT['type'].to_list()[0]
-])
+# ~ 2 ~
+# Transform data into desired the format
 
 # rename columns
 vipDT.names = {
@@ -283,29 +282,111 @@ vipDT.names = {
   'belongsToMother': 'maternal_id',
 }
 
-# init columns that we do not have yet
-vipDT[:, dt.update(
-  project_id = 'NX154_' + f.belongsToFamily + '_' + f.subjectID,
-  affected = as_type(None, dt.Type.bool8),
-  assembly = as_type(None, dt.Type.str32),
-  proband = as_type(f.proband, dt.Type.str32)
+
+# ~ 2b ~
+# Filter data based on the following criteria
+# Remove families where one or more family members where:
+#   1. vcf or cram is unknown
+#   2. the individual and maternal IDs are identical (i.e., fetus)
+
+vipDT['missingFiles'] = dt.Frame([
+  not all(row) for row in vipDT[:, (f.vcf, f.cram)].to_tuples()
+])
+
+vipDT['isFetus'] = dt.Frame([
+  row[0] == row[1] if all(row) else False
+  for row in vipDT[:, (f.individual_id, f.maternal_id)].to_tuples()
+])
+
+# how many records will be removed?
+# vipDT[:, dt.count(), dt.by(f.missingFiles)]
+# vipDT[:, dt.count(), dt.by(f.isFetus)]
+# vipDT[:, dt.count(), dt.by(f.missingFiles,f.isFetus)]
+
+
+# set status for families
+vipDT['removeFamily'] = False
+for id in vipDT['individual_id'].to_list()[0]:
+  row = vipDT[f.individual_id==id, (f.missingFiles, f.isFetus, f.family_id)]
+  if True in row[:, (f.missingFiles, f.isFetus)].to_tuples()[0]:
+    familyID = row['family_id'].to_list()[0][0]
+    vipDT[f.family_id==familyID, 'removeFamily'] = True
+
+# drop records      
+vipFamilyDT = vipDT.copy()[f.removeFamily==False, :]
+
+#///////////////////////////////////////
+
+# update identifiers to match filename: individual, paternal, and maternal ID
+vipFamilyDT['_id'] = dt.Frame([
+  path.basename(value).split('.')[0] if value else None
+  for value in vipFamilyDT['vcf'].to_list()[0]
+])
+
+vipFamilyDT['maternal_id'] = dt.Frame([
+  vipFamilyDT[f.maternal_id==value, '_id'].to_list()[0][0]
+  if value else None
+  for value in vipFamilyDT['maternal_id'].to_list()[0]
+])
+
+vipFamilyDT['paternal_id'] = dt.Frame([
+  vipFamilyDT[f.paternal_id == value, '_id'].to_list()[0][0]
+  if value else None
+  for value in vipFamilyDT['paternal_id'].to_list()[0]
+])
+
+
+# recode type to proband
+vipFamilyDT['proband'] = dt.Frame([
+  False if (value in ['mother', 'father']) else True
+  for value in vipFamilyDT['proband'].to_list()[0]
+])
+
+
+# Set affected status based on proband (i.e., is index), and convert to string
+vipFamilyDT['affected'] = dt.Frame([
+  value is True for value in vipFamilyDT['proband'].to_list()[0]
+])
+
+
+# manualy create columns and change classes
+vipFamilyDT[:, dt.update(
+  project_id = 'NX154_' + f.family_id,
+  assembly= 'GRCh37',
+  sequencing_method='WES',
+  affected = as_type(f.affected, dt.Type.str32),
+  proband= as_type(f.proband, dt.Type.str32)
 )]
 
+# lowercase bool->sting columns
+vipFamilyDT['affected'] = dt.Frame([
+  value.lower() for value in vipFamilyDT['affected'].to_list()[0]
+])
+
+vipFamilyDT['proband'] = dt.Frame([
+  value.lower() for value in vipFamilyDT['proband'].to_list()[0]
+])
+
+
 # reorder dataset
-vipDT = vipDT[:, (
+vipFamilyDT = vipFamilyDT[:, (
   f.project_id,
   f.family_id,
-  f.individual_id,
+  f._id,
+  # f.individual_id,
   f.proband,
   f.sex,
-  f.proband,
   f.affected,
   f.hpo_ids,
   f.paternal_id,
   f.maternal_id,
   f.assembly,
+  f.sequencing_method,
   f.vcf,
   f.cram
 )]
 
-vipDT.to_csv('private/vip_sample_sheet.csv')
+vipFamilyDT.names = {'_id': 'individual_id'}
+
+file=f"private/vip_sample_sheet_{today()}.tsv"
+vipFamilyDT.to_csv(file, sep='\t')
