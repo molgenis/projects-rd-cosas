@@ -1,5 +1,5 @@
 build==0.10.0
-certifi==2023.5.7
+certifi==2023.7.22
 charset-normalizer==3.1.0
 cosastools @ file:///Users/davidcruvolo/Github/projects-rd-cosas/cosastools
 datatable @ git+https://github.com/h2oai/datatable@6e80543e30c07459d7d4e8592c3a1dcf81a6064f
