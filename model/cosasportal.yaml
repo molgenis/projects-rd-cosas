@@ -12,8 +12,8 @@
 name: cosasportal
 label: COSAS Portal
 description: Staging tables for raw data exports
-version: 2.1.0
-date: 2023-07-24
+version: 2.1.1
+date: 2023-07-25
 
 # define entity level defaults
 defaults:
@@ -97,6 +97,7 @@ entities:
       - name: request_consent_material
       - name: request_form
       - name: request_date_signed
+      - name: consent_diagnostics
       - name: consent_recontact
       - name: consent_research
       - name: consent_system
@@ -133,6 +134,7 @@ entities:
       - name: vraag
       - name: antwoordregel
       - name: antwoord
+        dataType: text
       - name: UMCGnr
       - name: dateOfBirth
       - name: dateOfDeath
