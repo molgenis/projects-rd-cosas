@@ -4,7 +4,7 @@
 
 | Name | Description | Parent |
 |:---- |:-----------|:------|
-| cosasportal | Staging tables for raw data exports (v2.1.0, 2023-07-24) | - |
+| cosasportal | Staging tables for raw data exports (v2.1.1, 2023-07-25) | - |
 
 ## Entities
 
@@ -157,6 +157,17 @@ Raw consent information open-exoom en 5PGM
 | request_consent_material | - | - | string |
 | request_form | - | - | string |
 | request_date_signed | - | - | string |
+| consent_diagnostics | - | - | string |
+| Name | Label | Description | Data Type |
+|:---- |:-----|:-----------|:---------|
+| analysis | - | - | string |
+| datefilled | - | - | string |
+| MDN_umcgnr | - | - | string |
+| familienummer | - | - | string |
+| request_consent_material | - | - | string |
+| request_form | - | - | string |
+| request_date_signed | - | - | string |
+| consent_diagnostics | - | - | string |
 | consent_recontact | - | - | string |
 | Name | Label | Description | Data Type |
 |:---- |:-----|:-----------|:---------|
@@ -167,33 +178,9 @@ Raw consent information open-exoom en 5PGM
 | request_consent_material | - | - | string |
 | request_form | - | - | string |
 | request_date_signed | - | - | string |
-| consent_recontact | - | - | string |
-| consent_research | - | - | string |
-| Name | Label | Description | Data Type |
-|:---- |:-----|:-----------|:---------|
-| analysis | - | - | string |
-| datefilled | - | - | string |
-| MDN_umcgnr | - | - | string |
-| familienummer | - | - | string |
-| request_consent_material | - | - | string |
-| request_form | - | - | string |
-| request_date_signed | - | - | string |
-| consent_recontact | - | - | string |
-| consent_research | - | - | string |
-| consent_system | - | - | string |
-| Name | Label | Description | Data Type |
-|:---- |:-----|:-----------|:---------|
-| analysis | - | - | string |
-| datefilled | - | - | string |
-| MDN_umcgnr | - | - | string |
-| familienummer | - | - | string |
-| request_consent_material | - | - | string |
-| request_form | - | - | string |
-| request_date_signed | - | - | string |
+| consent_diagnostics | - | - | string |
 | consent_recontact | - | - | string |
 | consent_research | - | - | string |
-| consent_system | - | - | string |
-| consent_form | - | - | string |
 | Name | Label | Description | Data Type |
 |:---- |:-----|:-----------|:---------|
 | analysis | - | - | string |
@@ -203,11 +190,10 @@ Raw consent information open-exoom en 5PGM
 | request_consent_material | - | - | string |
 | request_form | - | - | string |
 | request_date_signed | - | - | string |
+| consent_diagnostics | - | - | string |
 | consent_recontact | - | - | string |
 | consent_research | - | - | string |
 | consent_system | - | - | string |
-| consent_form | - | - | string |
-| consent_doctor | - | - | string |
 | Name | Label | Description | Data Type |
 |:---- |:-----|:-----------|:---------|
 | analysis | - | - | string |
@@ -217,12 +203,11 @@ Raw consent information open-exoom en 5PGM
 | request_consent_material | - | - | string |
 | request_form | - | - | string |
 | request_date_signed | - | - | string |
+| consent_diagnostics | - | - | string |
 | consent_recontact | - | - | string |
 | consent_research | - | - | string |
 | consent_system | - | - | string |
 | consent_form | - | - | string |
-| consent_doctor | - | - | string |
-| consent_date_signed | - | - | string |
 | Name | Label | Description | Data Type |
 |:---- |:-----|:-----------|:---------|
 | analysis | - | - | string |
@@ -232,13 +217,12 @@ Raw consent information open-exoom en 5PGM
 | request_consent_material | - | - | string |
 | request_form | - | - | string |
 | request_date_signed | - | - | string |
+| consent_diagnostics | - | - | string |
 | consent_recontact | - | - | string |
 | consent_research | - | - | string |
 | consent_system | - | - | string |
 | consent_form | - | - | string |
 | consent_doctor | - | - | string |
-| consent_date_signed | - | - | string |
-| consent_folder | - | - | string |
 | Name | Label | Description | Data Type |
 |:---- |:-----|:-----------|:---------|
 | analysis | - | - | string |
@@ -248,14 +232,13 @@ Raw consent information open-exoom en 5PGM
 | request_consent_material | - | - | string |
 | request_form | - | - | string |
 | request_date_signed | - | - | string |
+| consent_diagnostics | - | - | string |
 | consent_recontact | - | - | string |
 | consent_research | - | - | string |
 | consent_system | - | - | string |
 | consent_form | - | - | string |
 | consent_doctor | - | - | string |
 | consent_date_signed | - | - | string |
-| consent_folder | - | - | string |
-| incidental_consent_recontact | - | - | string |
 | Name | Label | Description | Data Type |
 |:---- |:-----|:-----------|:---------|
 | analysis | - | - | string |
@@ -265,6 +248,7 @@ Raw consent information open-exoom en 5PGM
 | request_consent_material | - | - | string |
 | request_form | - | - | string |
 | request_date_signed | - | - | string |
+| consent_diagnostics | - | - | string |
 | consent_recontact | - | - | string |
 | consent_research | - | - | string |
 | consent_system | - | - | string |
@@ -272,7 +256,42 @@ Raw consent information open-exoom en 5PGM
 | consent_doctor | - | - | string |
 | consent_date_signed | - | - | string |
 | consent_folder | - | - | string |
-| incidental_consent_recontact | - | - | string |
+| Name | Label | Description | Data Type |
+|:---- |:-----|:-----------|:---------|
+| analysis | - | - | string |
+| datefilled | - | - | string |
+| MDN_umcgnr | - | - | string |
+| familienummer | - | - | string |
+| request_consent_material | - | - | string |
+| request_form | - | - | string |
+| request_date_signed | - | - | string |
+| consent_diagnostics | - | - | string |
+| consent_recontact | - | - | string |
+| consent_research | - | - | string |
+| consent_system | - | - | string |
+| consent_form | - | - | string |
+| consent_doctor | - | - | string |
+| consent_date_signed | - | - | string |
+| consent_folder | - | - | string |
+| incidental_consent_recontact | - | - | text |
+| Name | Label | Description | Data Type |
+|:---- |:-----|:-----------|:---------|
+| analysis | - | - | string |
+| datefilled | - | - | string |
+| MDN_umcgnr | - | - | string |
+| familienummer | - | - | string |
+| request_consent_material | - | - | string |
+| request_form | - | - | string |
+| request_date_signed | - | - | string |
+| consent_diagnostics | - | - | string |
+| consent_recontact | - | - | string |
+| consent_research | - | - | string |
+| consent_system | - | - | string |
+| consent_form | - | - | string |
+| consent_doctor | - | - | string |
+| consent_date_signed | - | - | string |
+| consent_folder | - | - | string |
+| incidental_consent_recontact | - | - | text |
 | incidental_form | - | - | string |
 | Name | Label | Description | Data Type |
 |:---- |:-----|:-----------|:---------|
@@ -283,6 +302,7 @@ Raw consent information open-exoom en 5PGM
 | request_consent_material | - | - | string |
 | request_form | - | - | string |
 | request_date_signed | - | - | string |
+| consent_diagnostics | - | - | string |
 | consent_recontact | - | - | string |
 | consent_research | - | - | string |
 | consent_system | - | - | string |
@@ -290,7 +310,7 @@ Raw consent information open-exoom en 5PGM
 | consent_doctor | - | - | string |
 | consent_date_signed | - | - | string |
 | consent_folder | - | - | string |
-| incidental_consent_recontact | - | - | string |
+| incidental_consent_recontact | - | - | text |
 | incidental_form | - | - | string |
 | incidental_date_signed | - | - | string |
 | Name | Label | Description | Data Type |
@@ -302,6 +322,7 @@ Raw consent information open-exoom en 5PGM
 | request_consent_material | - | - | string |
 | request_form | - | - | string |
 | request_date_signed | - | - | string |
+| consent_diagnostics | - | - | string |
 | consent_recontact | - | - | string |
 | consent_research | - | - | string |
 | consent_system | - | - | string |
@@ -309,7 +330,7 @@ Raw consent information open-exoom en 5PGM
 | consent_doctor | - | - | string |
 | consent_date_signed | - | - | string |
 | consent_folder | - | - | string |
-| incidental_consent_recontact | - | - | string |
+| incidental_consent_recontact | - | - | text |
 | incidental_form | - | - | string |
 | incidental_date_signed | - | - | string |
 | id&#8251; | - | - | string |
