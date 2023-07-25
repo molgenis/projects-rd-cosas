@@ -106,6 +106,7 @@ entities:
       - name: consent_date_signed
       - name: consent_folder
       - name: incidental_consent_recontact
+        dataType: text
       - name: incidental_form
       - name: incidental_date_signed
       - name: id
