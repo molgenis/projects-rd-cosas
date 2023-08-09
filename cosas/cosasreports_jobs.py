@@ -2,7 +2,7 @@
 # FILE: cosasreports_jobs.py
 # AUTHOR: David Ruvolo
 # CREATED: 2023-07-25
-# MODIFIED: 2023-07-25
+# MODIFIED: 2023-08-25
 # PURPOSE: update jobs table status
 # STATUS: stable
 # PACKAGES: **see below**
@@ -68,7 +68,6 @@ del historyDT['_href']
 # ~ 1 ~
 # Prepare data and merge job history
 
-# Recode Data
 # recode job history names to map to scheduled job names
 mapping = {
   'DATABASE ADMIN: Clean up scripts': 'DATABASE: Clean up tokens',
@@ -81,7 +80,6 @@ historyDT['name'] = dt.Frame([
   for value in historyDT['name'].to_list()[0]
 ])
 
-
 # Change submissionDate to date
 historyDT['submissionDate'] = dt.Frame([
   value.split('T')[0]
@@ -89,7 +87,6 @@ historyDT['submissionDate'] = dt.Frame([
 ])
 
 historyDT[:, dt.update(submissionDate=as_type(f.submissionDate, dt.Type.date32))]
-
 
 # Merge status and date last run with scheduled jobs
 for job in scheduleDT['name'].to_list()[0]:
@@ -108,12 +105,10 @@ for job in scheduleDT['name'].to_list()[0]:
   ].to_tuples()[0]
   
 
-
 # Recode `isStable` values to bool and convert to string for import
 scheduleDT['isStable'] = dt.Frame([
   value == 'SUCCESS' for value in scheduleDT['isStable'].to_list()[0]
 ])
-
 
 #///////////////////////////////////////////////////////////////////////////////
 
@@ -127,6 +122,8 @@ cosasJobsDT = scheduleDT[dt.re.match(f.name, 'COSAS.*'), ['isActive','isStable']
 for row in cosasJobsDT.to_tuples():
   if (row[0] is False) or (row[1] is False):
     sourcesDT[dt.re.match(f.source, 'ADLAS|Darwin'),'status'] = -1
+  else:
+    sourcesDT[dt.re.match(f.source, 'ADLAS|Darwin'),'status'] = 1
 
 
 # set alissa sources
@@ -134,6 +131,8 @@ alissaJobsDT = scheduleDT[dt.re.match(f.name, 'Alissa.*'), ['isActive','isStable
 for row in alissaJobsDT.to_tuples():
   if (row[0] is False) or (row[1] is False):
     sourcesDT[dt.re.match(f.source, 'Alissa'), 'status'] = -1
+  else:
+    sourcesDT[dt.re.match(f.source, 'Alissa'), 'status'] = 1
     
     
 # set cartagenia source
@@ -141,6 +140,8 @@ cartageniaJobDT = scheduleDT[dt.re.match(f.name, 'Cartagenia.*'), ['isActive','i
 for row in cartageniaJobDT.to_tuples():
   if (row[0] is False) or (row[1] is False):
     sourcesDT[dt.re.match(f.source, 'Cartagenia.*'), 'status'] = -1
+  else:
+    sourcesDT[dt.re.match(f.source, 'Cartagenia.*'), 'status'] = 1
     
     
 # set consent source status
@@ -148,25 +149,27 @@ consentJobDT = scheduleDT[dt.re.match(f.name, 'Consent.*'), ['isActive','isStabl
 for row in consentJobDT.to_tuples():
   if (row[0] is False) or (row[1] is False): 
     sourcesDT[f.source=='Consent Files', 'status'] = -1
-  
+  else:
+    sourcesDT[f.source=='Consent Files', 'status'] = 1
+
 
 # set file metadata processing status
 filesJobDT = scheduleDT[dt.re.match(f.name,'.*Daily file.*'), ['isActive', 'isStable']]
 for row in filesJobDT.to_tuples():
   if (row[0] is False) or (row[1] is False):
     sourcesDT[dt.re.match(f.source,'Analyis.*'), 'status'] = -1
+  else:
+    sourcesDT[dt.re.match(f.source,'Analyis.*'), 'status'] = 1
 
 #///////////////////////////////////////////////////////////////////////////////
 
 # ~ 3 ~
 # Import
 
-# last preparations
 scheduleDT[:, dt.update(
   isStable=as_type(f.isStable, dt.Type.str32),
   isActive=as_type(f.isActive, dt.Type.str32)
 )]
-
 
 cosas.importDatatableAsCsv('cosasreports_datasources', sourcesDT)
 cosas.importDatatableAsCsv('cosasreports_jobs', scheduleDT)
