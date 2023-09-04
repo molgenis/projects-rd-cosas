@@ -2,7 +2,7 @@
 # FILE: data_vip_samplesheet.py
 # AUTHOR: David Ruvolo
 # CREATED: 2023-07-04
-# MODIFIED: 2023-07-19
+# MODIFIED: 2023-09-04
 # PURPOSE: generate data for vip
 # STATUS: stable
 # PACKAGES: **see below**
@@ -15,6 +15,7 @@ from tqdm import tqdm
 from os import environ, path
 from dotenv import load_dotenv
 from datetime import datetime
+import pandas as pd
 import pytz
 import re
 load_dotenv()
@@ -324,13 +325,13 @@ vipFamilyDT['_id'] = dt.Frame([
 ])
 
 vipFamilyDT['maternal_id'] = dt.Frame([
-  vipFamilyDT[f.maternal_id==value, '_id'].to_list()[0][0]
+  vipFamilyDT[f.individual_id==value, '_id'].to_list()[0][0]
   if value else None
   for value in vipFamilyDT['maternal_id'].to_list()[0]
 ])
 
 vipFamilyDT['paternal_id'] = dt.Frame([
-  vipFamilyDT[f.paternal_id == value, '_id'].to_list()[0][0]
+  vipFamilyDT[f.individual_id == value, '_id'].to_list()[0][0]
   if value else None
   for value in vipFamilyDT['paternal_id'].to_list()[0]
 ])
@@ -389,4 +390,9 @@ vipFamilyDT = vipFamilyDT[:, (
 vipFamilyDT.names = {'_id': 'individual_id'}
 
 file=f"private/vip_sample_sheet_{today()}.tsv"
-vipFamilyDT.to_csv(file, sep='\t')
+
+vipFamilyDT \
+  .to_pandas() \
+  .to_csv(file,index=False, sep='\t', quoting=None)
+
+# vipFamilyDT.to_csv(file, sep='\t')
