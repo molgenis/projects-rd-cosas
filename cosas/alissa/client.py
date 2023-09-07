@@ -2,7 +2,7 @@
 # FILE: alissa.py
 # AUTHOR: David Ruvolo
 # CREATED: 2022-04-13
-# MODIFIED: 2023-06-12
+# MODIFIED: 2023-09-07
 # PURPOSE: custom Alissa public api client
 # STATUS: experimental
 # PACKAGES: requests
@@ -37,6 +37,10 @@
 from oauthlib.oauth2 import LegacyApplicationClient
 from requests_oauthlib import OAuth2Session
 
+def clean_url(url):
+  """Remove trailing slashes"""
+  return url[:-1] if url.endswith('/') else url
+
 class Alissa:
   """Alissa Interpret Public API (v5.3)"""
   def __init__(self, host, clientId, clientSecret, username, password):
@@ -52,11 +56,11 @@ class Alissa:
     @reference Alissa Interpret Public API documentation v5.3
     @return class
     """
-    self.host=host
-    self.apiUrl=f"{host}/interpret/api/2"
+    self.host=clean_url(host)
+    self.apiUrl=f"{self.host}/interpret/api/2"
     self.session=OAuth2Session(client=LegacyApplicationClient(client_id=clientId))
     self.session.fetch_token(
-      token_url=f"{host}/auth/oauth/token",
+      token_url=f"{self.host}/auth/oauth/token",
       username=username,
       password=password,
       client_id=clientId,
