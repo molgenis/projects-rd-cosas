@@ -25,6 +25,6 @@ six==1.16.0
 tomli==2.0.1
 tomli_w==1.0.0
 tqdm==4.64.1
-urllib3==2.0.3
+urllib3==2.0.6
 XlsxWriter==3.0.7
 yamlemxconvert==1.2.2
